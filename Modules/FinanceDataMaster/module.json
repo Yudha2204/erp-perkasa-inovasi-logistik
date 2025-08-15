@@ -1,0 +1,11 @@
+{
+    "name": "FinanceDataMaster",
+    "alias": "financedatamaster",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\FinanceDataMaster\\App\\Providers\\FinanceDataMasterServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,11 @@
+{
+    "name": "ReportMasterData",
+    "alias": "reportmasterdata",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\ReportMasterData\\App\\Providers\\ReportMasterDataServiceProvider"
+    ],
+    "files": []
+}

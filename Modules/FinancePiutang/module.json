@@ -1,0 +1,11 @@
+{
+    "name": "FinancePiutang",
+    "alias": "financepiutang",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\FinancePiutang\\App\\Providers\\FinancePiutangServiceProvider"
+    ],
+    "files": []
+}

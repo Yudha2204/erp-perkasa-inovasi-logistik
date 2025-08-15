@@ -1,0 +1,11 @@
+{
+    "name": "Marketing",
+    "alias": "marketing",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Marketing\\App\\Providers\\MarketingServiceProvider"
+    ],
+    "files": []
+}

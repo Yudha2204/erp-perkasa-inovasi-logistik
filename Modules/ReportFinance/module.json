@@ -1,0 +1,11 @@
+{
+    "name": "ReportFinance",
+    "alias": "reportfinance",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\ReportFinance\\App\\Providers\\ReportFinanceServiceProvider"
+    ],
+    "files": []
+}

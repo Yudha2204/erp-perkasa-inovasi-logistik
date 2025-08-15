@@ -1,0 +1,11 @@
+{
+    "name": "RealtimeTracking",
+    "alias": "realtimetracking",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\RealtimeTracking\\App\\Providers\\RealtimeTrackingServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,11 @@
+{
+    "name": "FinancePayments",
+    "alias": "financepayments",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\FinancePayments\\App\\Providers\\FinancePaymentsServiceProvider"
+    ],
+    "files": []
+}

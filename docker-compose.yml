@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # Laravel Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aplpil_app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - aplpil_network
+
+  # Nginx Web Server
+  webserver:
+    image: nginx:alpine
+    container_name: aplpil_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - aplpil_network
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: aplpil_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: aplpil
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_PASSWORD: aplpil_password
+      MYSQL_USER: aplpil_user
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    ports:
+      - "3306:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - aplpil_network
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: aplpil_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - aplpil_network
+
+  # Mailhog for Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: aplpil_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - aplpil_network
+
+  # phpMyAdmin (Optional)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: aplpil_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root_password
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      - aplpil_network
+
+volumes:
+  dbdata:
+    driver: local
+
+networks:
+  aplpil_network:
+    driver: bridge 

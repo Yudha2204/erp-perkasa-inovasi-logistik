@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/financedatamaster",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\FinanceDataMaster\\": "",
+            "Modules\\FinanceDataMaster\\App\\": "app/",
+            "Modules\\FinanceDataMaster\\Database\\Factories\\": "database/factories/",
+            "Modules\\FinanceDataMaster\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\FinanceDataMaster\\Tests\\": "tests/"
+        }
+    }
+}

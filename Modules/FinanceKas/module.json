@@ -1,0 +1,11 @@
+{
+    "name": "FinanceKas",
+    "alias": "financekas",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\FinanceKas\\App\\Providers\\FinanceKasServiceProvider"
+    ],
+    "files": []
+}

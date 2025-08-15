@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/financekas",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\FinanceKas\\": "",
+            "Modules\\FinanceKas\\App\\": "app/",
+            "Modules\\FinanceKas\\Database\\Factories\\": "database/factories/",
+            "Modules\\FinanceKas\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\FinanceKas\\Tests\\": "tests/"
+        }
+    }
+}

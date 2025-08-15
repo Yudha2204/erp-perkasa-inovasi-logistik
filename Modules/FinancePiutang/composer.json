@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/financepiutang",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\FinancePiutang\\": "",
+            "Modules\\FinancePiutang\\App\\": "app/",
+            "Modules\\FinancePiutang\\Database\\Factories\\": "database/factories/",
+            "Modules\\FinancePiutang\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\FinancePiutang\\Tests\\": "tests/"
+        }
+    }
+}

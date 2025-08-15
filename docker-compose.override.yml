@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+    command: >
+      sh -c "composer install &&
+             php artisan key:generate &&
+             php artisan storage:link &&
+             php artisan migrate:fresh --seed &&
+             php-fpm"
+
+  webserver:
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+
+  db:
+    environment:
+      MYSQL_DATABASE: aplpil_dev
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_PASSWORD: aplpil_password
+      MYSQL_USER: aplpil_user 

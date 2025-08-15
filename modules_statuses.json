@@ -1,0 +1,18 @@
+{
+    "Utility": true,
+    "Marketing": true,
+    "Dashboard": true,
+    "Operation": true,
+    "MasterData": true,
+    "FinanceDataMaster": true,
+    "RealtimeTracking": true,
+    "FinancePiutang": true,
+    "ExchangeRate": true,
+    "ReportFinance": true,
+    "ReportMasterData": true,
+    "FinanceKas": true,
+    "FinancePayments": true,
+    "Notification": true,
+    "Setting": true,
+    "Inventory": true
+}
