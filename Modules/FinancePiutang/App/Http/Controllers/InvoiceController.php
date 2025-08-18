@@ -21,6 +21,7 @@ use Modules\FinancePiutang\App\Models\SalesOrderHead;
 use Modules\Notification\App\Models\NotificationCustom;
 use Modules\ReportFinance\App\Models\Sao;
 use Modules\Setting\App\Models\LogoAddress;
+use Modules\FinanceDataMaster\App\Models\TermPaymentContact;
 
 class InvoiceController extends Controller
 {
@@ -76,7 +77,7 @@ class InvoiceController extends Controller
         $filterFormCurrency = [];
         foreach ($currencies as $currency) {
             $bank = BankAccount::find($currency);
-    
+
             $formCurrency = [
                 "fund" => $bank->account_no,
                 "bankName" => $bank->bank_name,
@@ -84,7 +85,7 @@ class InvoiceController extends Controller
                 "code" => $bank->swift_code,
                 "currency" => $bank->currency->initial
             ];
-    
+
             $filterFormCurrency[$currency] = $formCurrency;
         };
 
@@ -99,7 +100,7 @@ class InvoiceController extends Controller
         $sales = SalesOrderHead::find($invoiceData->sales_id);
         $currency = MasterCurrency::find($sales->currency_id);
         return view('financepiutang::invoice.softFilePdf', compact(
-            'invoiceData', 'invoiceDetail', 'contact', 'currency', 'shipper', 'consignee', 'comodity', 'mbl', 'hbl', 'voyage', 
+            'invoiceData', 'invoiceDetail', 'contact', 'currency', 'shipper', 'consignee', 'comodity', 'mbl', 'hbl', 'voyage',
             'invoice_date', 'depart_date', 'origin', 'weight', 'volumetrik', 'm3', 'chargetableWeight' , 'filterFormCurrency', 'dataBillTo', 'photos'
         ));
     }
@@ -111,7 +112,8 @@ class InvoiceController extends Controller
     public function create()
     {
         $contact = MasterContact::whereJsonContains('type','1')->get();
-        $terms = MasterTermOfPayment::all();
+        // $terms = MasterTermOfPayment::all();
+        $terms = TermPaymentContact::with(['term_payment'])->select('term_payment_id')->distinct()->get();
         $taxs = MasterTax::all();
 
         return view('financepiutang::invoice.create', compact('contact', 'terms', 'taxs'));
@@ -128,7 +130,26 @@ class InvoiceController extends Controller
         return response()->json([
             'message' => 'Success',
             'data'    => $salesOrder
-        ]); 
+        ]);
+    }
+
+    public function getTermByContact(Request $request, $id)
+    {
+        $terms = TermPaymentContact::with(['term_payment'])->select('term_payment_id')->where('contact_id', $id)->distinct()->get();
+
+        $data = [];
+        foreach ($terms as $term) {
+            $data[] = [
+                'id' => $term->term_payment->id,
+                'name' => $term->term_payment->name,
+                'pay_days' => $term->term_payment->pay_days,
+            ];
+        }
+
+        return response()->json([
+            'message' => 'Success',
+            'data'    => $data
+        ]);
     }
 
     /**
@@ -141,7 +162,7 @@ class InvoiceController extends Controller
             'sales_no' => 'required',
             'no_transactions'    => 'required',
             'date_invoice' => 'required',
-            'term_payment' => 'required' 
+            'term_payment' => 'required'
         ], [
             "customer_id.required" => "The customer field is required.",
             "sales_no.required" => "The sales no field is required.",
@@ -155,7 +176,7 @@ class InvoiceController extends Controller
             return redirect()->back()
                         ->withErrors($validator);
         }
-        
+
         $contact_id = $request->input('customer_id');
         $sales_id = $request->input('sales_no');
         $currency_id = SalesOrderHead::find($sales_id)->currency_id;
@@ -171,11 +192,11 @@ class InvoiceController extends Controller
         $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
         $display_dp = $this->numberToDatabase($request->input('display_dp'));
         $discount_display = $this->numberToDatabase($request->input('discount_display'));
-        
+
         $exp_term = explode(":", $term_payment);
         $exp_transaction = explode("-", $no_transactions);
         $number = $exp_transaction[3];
-        
+
         $data = [
             'contact_id' => $contact_id,
             'sales_id' => $sales_id,
@@ -189,7 +210,7 @@ class InvoiceController extends Controller
             'discount_nominal' => $discount_nominal,
             'status' => "open",
         ];
-        
+
         $piutang_usaha_id = MasterAccount::where('code', '110100')
                                 ->where('account_name', 'Piutang Usaha')
                                 ->where('master_currency_id', $currency_id)->first();
@@ -197,7 +218,7 @@ class InvoiceController extends Controller
             return redirect()->back()->withErrors(['piutang_usaha' => 'Please add the account of Piutang Usaha with code number is 110100']);
         }
         $piutang_usaha_id = $piutang_usaha_id->id;
-        
+
         $diskon_penjualan_id = MasterAccount::where('code', '440100')
                                 ->where('account_name', 'Diskon Penjualan')
                                 ->where('master_currency_id', $currency_id)->first();
@@ -229,14 +250,14 @@ class InvoiceController extends Controller
             return redirect()->back()->withErrors(['pendapatan_jasa' => 'Please add the account of Pendapatan Jasa with code number is 440000']);
         }
         $pendapatan_jasa_id = $pendapatan_jasa_id->id;
-        
+
         $kas_id = MasterAccount::where('code', "110001")
                                 ->where('account_name', 'Kas')
                                 ->where('master_currency_id', $currency_id)->first();
         if(!$kas_id) {
             return redirect()->back()->withErrors(['kas' => 'Please add the account of Kas with code number is 110001']);
         }
-        $kas_id = $kas_id->id;       
+        $kas_id = $kas_id->id;
 
         $dp_id = MasterAccount::where('code', "220203")
                                 ->where('account_name', 'Pendapatan Diterima Di Muka')
@@ -244,7 +265,7 @@ class InvoiceController extends Controller
         if(!$dp_id) {
             return redirect()->back()->withErrors(['dp' => 'Please add the account of Pendapatan Diterima Di Muka with code number is 220203']);
         }
-        $dp_id = $dp_id->id;       
+        $dp_id = $dp_id->id;
 
         InvoiceHead::create($data);
         $newestInvoice = InvoiceHead::latest()->first();
@@ -276,7 +297,7 @@ class InvoiceController extends Controller
                 $dp_type_detail = $data['dp_type_detail'];
                 $dp_detail = $this->numberToDatabase($data['dp_detail']);
             }
-            
+
             $totBalance += ($price_detail*$qty_detail);
             $totalFull = ($price_detail*$qty_detail);
             $discTotal = 0;
@@ -326,7 +347,7 @@ class InvoiceController extends Controller
             [0, $additional_cost, $pendapatan_lain_id],
             [0, $totBalance, $pendapatan_jasa_id]
         ];
-        
+
         foreach ($flow as $item) {
             $cashflowData = [
                 'transaction_id' => $head_id,
@@ -337,7 +358,7 @@ class InvoiceController extends Controller
                 'credit' => $item[1]
             ];
             BalanceAccount::create($cashflowData);
-        } 
+        }
 
         $remain = $total_display - $grand_dp;
         $dataSao = [
@@ -353,7 +374,7 @@ class InvoiceController extends Controller
             "type" => "customer",
         ];
         Sao::create($dataSao);
-      
+
         return redirect()->route('finance.piutang.invoice.index')->with('success', 'create successfully!');
     }
 
@@ -398,7 +419,7 @@ class InvoiceController extends Controller
             'sales_no' => 'required',
             'no_transactions'    => 'required',
             'date_invoice' => 'required',
-            'term_payment' => 'required' 
+            'term_payment' => 'required'
         ], [
             "customer_id.required" => "The customer field is required.",
             "sales_no.required" => "The sales no field is required.",
@@ -412,7 +433,7 @@ class InvoiceController extends Controller
             return redirect()->back()
                         ->withErrors($validator);
         }
-        
+
         $contact_id = $request->input('customer_id');
         $sales_id = $request->input('sales_no');
         $currency_id = SalesOrderHead::find($sales_id)->currency_id;
@@ -428,11 +449,11 @@ class InvoiceController extends Controller
         $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
         $display_dp = $this->numberToDatabase($request->input('display_dp'));
         $discount_display = $this->numberToDatabase($request->input('discount_display'));
-        
+
         $exp_term = explode(":", $term_payment);
         $exp_transaction = explode("-", $no_transactions);
         $number = $exp_transaction[3];
-        
+
         $data = [
             'contact_id' => $contact_id,
             'sales_id' => $sales_id,
@@ -480,7 +501,7 @@ class InvoiceController extends Controller
 
             $operator = $data['operator'];
             $exp_operator = explode(":", $operator);
-            
+
             $totBalance += ($price_detail*$qty_detail);
             $totalFull = ($price_detail*$qty_detail);
             $discTotal = 0;
@@ -551,7 +572,7 @@ class InvoiceController extends Controller
             [0, $additional_cost],
             [0, $totBalance]
         ];
-        
+
         foreach ($invoice->jurnal as $item) {
             if($item->master_account->code === "110100" && $item->master_account->account_name === "Piutang Usaha") {
                 $cashflowData = [
@@ -620,7 +641,7 @@ class InvoiceController extends Controller
         ];
         $tagertSao = Sao::where('invoice_id', $id)->first();
         $tagertSao->update($dataSao);
-      
+
         return redirect()->route('finance.piutang.invoice.index')->with('success', 'create successfully!');
     }
 

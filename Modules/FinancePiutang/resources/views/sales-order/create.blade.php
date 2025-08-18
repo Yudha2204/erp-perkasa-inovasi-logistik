@@ -1,656 +1,718 @@
 @extends('layouts.app')
 @section('content')
-@push('styles')
-<meta name="csrf-token" content="{{ csrf_token() }}" />
-@endpush
+    @push('styles')
+        <meta name="csrf-token" content="{{ csrf_token() }}" />
+    @endpush
 
-<div class="main-content app-content mt-0">
-    <div class="side-app">
+    <div class="main-content app-content mt-0">
+        <div class="side-app">
 
-        <!-- CONTAINER -->
-        <div class="main-container container-fluid">
-        <form action="{{ route('finance.piutang.sales-order.store') }}" method="POST" enctype="multipart/form-data" name="dynamic-form">
-            @csrf
-            <!-- PAGE-HEADER -->
-            <div class="page-header mb-0">
-                <h1>Sales Order</h1>
-            </div>
-            <h4 style="color: #015377">Add New</h4>
-            <!-- PAGE-HEADER END -->
+            <!-- CONTAINER -->
+            <div class="main-container container-fluid">
+                <form action="{{ route('finance.piutang.sales-order.store') }}" method="POST" enctype="multipart/form-data"
+                    name="dynamic-form">
+                    @csrf
+                    <!-- PAGE-HEADER -->
+                    <div class="page-header mb-0">
+                        <h1>Sales Order</h1>
+                    </div>
+                    <h4 style="color: #015377">Add New</h4>
+                    <!-- PAGE-HEADER END -->
 
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-body">                
-                            @if ($errors->any())
-                                <div class="alert alert-danger" role="alert">
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button>
-                                    <strong>Whoops!</strong>
-                                    <ul>
-                                        @foreach ($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label class="form-label">Customer</label>
-                                        <div class="d-flex d-inline">
-                                            <select class="form-control select2 form-select"
-                                                data-placeholder="Choose One" name="customer_id" id="customer_id">
-                                                <option label="Choose One" selected disabled></option>
-                                                @foreach ($contact as $c)
-                                                    <option value="{{ $c->id }}">{{ $c->customer_name }}</option>   
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    @if ($errors->any())
+                                        <div class="alert alert-danger" role="alert">
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                                aria-hidden="true">×</button>
+                                            <strong>Whoops!</strong>
+                                            <ul>
+                                                @foreach ($errors->all() as $error)
+                                                    <li>{{ $error }}</li>
                                                 @endforeach
-                                            </select>
-                                            <div id="btn_edit_contact"></div>
+                                            </ul>
                                         </div>
-                                        <a data-bs-effect="effect-scale" data-bs-toggle="modal" href="#modal-create"><i class="fe fe-plus me-1"></i>Create New Customer</a>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="" class="form-label">Nomor Transaksi</label>
-                                        <input type="text" name="no_transaction" id="no-transaction" class="form-control" readonly value="{{ sprintf("SO-PIL%s-%02d-%04d", \Carbon\Carbon::now()->year, \Carbon\Carbon::now()->month, $latest_number) }}" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="" class="form-label">Date</label>
-                                        <input type="date" class="form-control" name="date_sales" id="date_sales" >
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="" class="form-label">Currency</label>
-                                        <select class="form-control select2 form-select"
-                                            data-placeholder="Choose One" name="currency_id" id="currency_id">
-                                            <option label="Choose One" selected disabled></option>
-                                            @foreach ($currencies as $c)
-                                                <option value="{{ $c->id }}">{{ $c->initial }}</option>   
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="des_head_sales" class="form-label">Description</label>
-                                        <input type="text" class="form-control" name="des_head_sales" id="des_head_sales" placeholder="Sales Order - No Transaksi"  >
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label class="custom-control custom-radio">
-                                        <input type="checkbox" id="choose_job_order" name="choose_job_order" class="custom-control-input" value="0">
-                                        <span class="custom-control-label"><b>Choose Job Order</b></span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div style="display: none" id="job_order_display">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="" class="form-label">No Referensi</label>
-                                            <select class="form-control select2 form-select"
-                                                data-placeholder="Choose One" name="no_referensi" id="no_referensi">
-                                                <option label="Choose One" selected disabled></option>  
-                                            </select>
+                                    @endif
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label class="form-label">Customer</label>
+                                                <div class="d-flex d-inline">
+                                                    <select class="form-control select2 form-select"
+                                                        data-placeholder="Choose One" name="customer_id" id="customer_id">
+                                                        <option label="Choose One" selected disabled></option>
+                                                        @foreach ($contact as $c)
+                                                            <option value="{{ $c->id }}">{{ $c->customer_name }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    <div id="btn_edit_contact"></div>
+                                                </div>
+                                                {{-- <a data-bs-effect="effect-scale" data-bs-toggle="modal" href="#modal-create"><i class="fe fe-plus me-1"></i>Create New Customer</a> --}}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="" class="form-label">Nomor Transaksi</label>
+                                                <input type="text" name="no_transaction" id="no-transaction"
+                                                    class="form-control" readonly
+                                                    value="{{ sprintf('SO-PIL%s-%02d-%04d', \Carbon\Carbon::now()->year, \Carbon\Carbon::now()->month, $latest_number) }}" />
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="job_order_id" class="form-label">Job Order</label>
-                                            <input type="text" class="form-control" name="job_order_id" id="job_order_id" readonly placeholder="Link">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="" class="form-label">Date</label>
+                                                <input type="date" class="form-control" name="date_sales"
+                                                    id="date_sales">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="" class="form-label">Currency</label>
+                                                <select class="form-control select2 form-select"
+                                                    data-placeholder="Choose One" name="currency_id" id="currency_id">
+                                                    <option label="Choose One" selected disabled></option>
+                                                    @foreach ($currencies as $c)
+                                                        <option value="{{ $c->id }}">{{ $c->initial }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="des_head_sales" class="form-label">Description</label>
+                                                <input type="text" class="form-control" name="des_head_sales"
+                                                    id="des_head_sales" placeholder="Sales Order - No Transaksi">
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="consignee" class="form-label">Consignee</label>
-                                            <input type="text" class="form-control" name="consignee" id="consignee" readonly placeholder="Link">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label class="custom-control custom-radio">
+                                                <input type="checkbox" id="choose_job_order" name="choose_job_order"
+                                                    class="custom-control-input" value="0">
+                                                <span class="custom-control-label"><b>Choose Job Order</b></span>
+                                            </label>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="transportation" class="form-label">Transportation</label>
-                                            <input type="text" class="form-control" name="transportation" id="transportation" readonly placeholder="Link" >
+                                    <div style="display: none" id="job_order_display">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="" class="form-label">No Referensi</label>
+                                                    <select class="form-control select2 form-select"
+                                                        data-placeholder="Choose One" name="no_referensi" id="no_referensi">
+                                                        <option label="Choose One" selected disabled></option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="job_order_id" class="form-label">Job Order</label>
+                                                    <input type="text" class="form-control" name="job_order_id"
+                                                        id="job_order_id" readonly placeholder="Link">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="consignee" class="form-label">Consignee</label>
+                                                    <input type="text" class="form-control" name="consignee"
+                                                        id="consignee" readonly placeholder="Link">
+                                                </div>
+                                            </div>
                                         </div>
-                                        <label class="custom-control custom-radio" id="transportation_desc" style="display: none;">
-                                            <input type="radio" class="custom-control-input"
-                                                name="transportation_desc" checked>
-                                            <span class="custom-control-label"></span>
-                                        </label>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="shipper" class="form-label">Shipper</label>
-                                            <input type="text" class="form-control" name="shipper" id="shipper" readonly placeholder="Link">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="commodity" class="form-label">Commodity</label>
-                                            <input type="text" class="form-control" name="commodity" id="commodity" readonly placeholder="Link">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="transportation" class="form-label">Transportation</label>
+                                                    <input type="text" class="form-control" name="transportation"
+                                                        id="transportation" readonly placeholder="Link">
+                                                </div>
+                                                <label class="custom-control custom-radio" id="transportation_desc"
+                                                    style="display: none;">
+                                                    <input type="radio" class="custom-control-input"
+                                                        name="transportation_desc" checked>
+                                                    <span class="custom-control-label"></span>
+                                                </label>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="shipper" class="form-label">Shipper</label>
+                                                    <input type="text" class="form-control" name="shipper"
+                                                        id="shipper" readonly placeholder="Link">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="commodity" class="form-label">Commodity</label>
+                                                    <input type="text" class="form-control" name="commodity"
+                                                        id="commodity" readonly placeholder="Link">
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th style="min-width:15rem;">Description</th>
-                                            <th style="min-width:5rem;">Quantity</th>
-                                            <th style="min-width:5rem;">UoM</th>
-                                            <th style="min-width:10rem;">Price</th>
-                                            <th style="min-width:10rem;">Total</th>
-                                            <th style="text-align: center;">#</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="form-container">
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="row mt-2">
-                                <a href="javascript:void(0)" class="btn btn-default" id="add-form">
-                                    <span><i class="fa fa-plus"></i></span> Add New Column
-                                </a>
-                            </div>
-                            <div class="row justify-content-end">
-                                <div class="col-lg-6">
-                                    <table class="table mt-5">
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex justify-content-between">
-                                                    Biaya Lain
-                                                    <input type="text" style="width: 50%" class="form-control" name="additional_cost" id="additional_cost" value="0" />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex justify-content-between">
-                                                    Diskon (-)
-                                                    <div style="width: 10%">
-                                                        <select class="form-control select2 form-select" name="discount_type" id="discount_type" onchange="hideButton()">
-                                                            <option value="persen">%</option>
-                                                            <option value="nominal">0</option>
-                                                        </select>
-                                                    </div>
-                                                    <input type="text" style="width: 10%" class="form-control" name="discount" id="discount" value="0" onchange="hideButton()" />
-                                                    <input type="text" style="width: 50%" class="form-control" id="discount_display" name="discount_display" readonly value="0" />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex justify-content-between">
-                                                    Total
-                                                    <input type="text" style="width: 50%" class="form-control" id="total_display" name="total_display" readonly value="0" />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="btn-list text-end" >
-                                        <a href="javascript:void(0)" class="btn btn-default"
-                                            id="calculate" onclick="total()">
-                                            <span><i class="fa fa-plus"></i></span> Calculate
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th style="min-width:15rem;">Description</th>
+                                                    <th style="min-width:5rem;">Quantity</th>
+                                                    <th style="min-width:5rem;">UoM</th>
+                                                    <th style="min-width:10rem;">Price</th>
+                                                    <th style="min-width:10rem;">Total</th>
+                                                    <th style="text-align: center;">#</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="form-container">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <a href="javascript:void(0)" class="btn btn-default" id="add-form">
+                                            <span><i class="fa fa-plus"></i></span> Add New Column
                                         </a>
                                     </div>
-                                </div>
-                                <br><br><br><br>
-                                <div class="col-md-12">
-                                    <div class="btn-list text-end">
-                                        <a href="javascript: history.go(-1)" class="btn btn-default">Cancel</a>
-                                        <button id="submit-all-form" type="submit" class="btn btn-primary"  style="display: none;">Save</button>
+                                    <div class="row justify-content-end">
+                                        <div class="col-lg-6">
+                                            <table class="table mt-5">
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex justify-content-between">
+                                                            Biaya Lain
+                                                            <input type="text" style="width: 50%" class="form-control"
+                                                                name="additional_cost" id="additional_cost"
+                                                                value="0" />
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex justify-content-between">
+                                                            Diskon (-)
+                                                            <div style="width: 10%">
+                                                                <select class="form-control select2 form-select"
+                                                                    name="discount_type" id="discount_type"
+                                                                    onchange="hideButton()">
+                                                                    <option value="persen">%</option>
+                                                                    <option value="nominal">0</option>
+                                                                </select>
+                                                            </div>
+                                                            <input type="text" style="width: 10%" class="form-control"
+                                                                name="discount" id="discount" value="0"
+                                                                onchange="hideButton()" />
+                                                            <input type="text" style="width: 50%" class="form-control"
+                                                                id="discount_display" name="discount_display" readonly
+                                                                value="0" />
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex justify-content-between">
+                                                            Total
+                                                            <input type="text" style="width: 50%" class="form-control"
+                                                                id="total_display" name="total_display" readonly
+                                                                value="0" />
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="btn-list text-end">
+                                                <a href="javascript:void(0)" class="btn btn-default" id="calculate"
+                                                    onclick="total()">
+                                                    <span><i class="fa fa-plus"></i></span> Calculate
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <br><br><br><br>
+                                        <div class="col-md-12">
+                                            <div class="btn-list text-end">
+                                                <a href="javascript: history.go(-1)" class="btn btn-default">Cancel</a>
+                                                <button id="submit-all-form" type="submit" class="btn btn-primary"
+                                                    style="display: none;">Save</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </form>
+
             </div>
-        </form>
-
+            <!-- CONTAINER CLOSED -->
         </div>
-        <!-- CONTAINER CLOSED -->
     </div>
-</div>
 
-{{-- modal input contact --}}
-<div class="modal fade" id="modal-create" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">+ Add Contact</h5>
-                <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+    {{-- modal input contact --}}
+    <div class="modal fade" id="modal-create" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">+ Add Contact</h5>
+                    <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">×</span>
                     </button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="panel panel-primary">
-                            <div class=" tab-menu-heading">
-                                <div class="tabs-menu1">
-                                    <!-- Tabs -->
-                                    <ul class="nav panel-tabs">
-                                        <li><a href="#tab1" class="active" data-bs-toggle="tab">Customer</a></li>
-                                        <li><a href="#tab2" data-bs-toggle="tab">Company</a></li>
-                                        <li><a href="#tab3" data-bs-toggle="tab">Address</a></li>
-                                        <li><a href="#tab4" data-bs-toggle="tab">Others</a></li>
-                                    </ul>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="panel panel-primary">
+                                <div class=" tab-menu-heading">
+                                    <div class="tabs-menu1">
+                                        <!-- Tabs -->
+                                        <ul class="nav panel-tabs">
+                                            <li><a href="#tab1" class="active" data-bs-toggle="tab">Customer</a></li>
+                                            <li><a href="#tab2" data-bs-toggle="tab">Company</a></li>
+                                            <li><a href="#tab3" data-bs-toggle="tab">Address</a></li>
+                                            <li><a href="#tab4" data-bs-toggle="tab">Others</a></li>
+                                        </ul>
+                                    </div>
                                 </div>
-                            </div>
-                            <form action="{{ route('finance.master-data.contact.store') }}" method="POST" enctype="multipart/form-data">
-                                @csrf
-                                <div class="panel-body tabs-menu-body">
-                                    <div class="tab-content">
-                                        <div class="tab-pane active" id="tab1">
-                                            <h4><u>Customer</u></h4>
-                                            <div class="form-group">
-                                                <label>Customer ID</label>
-                                                <input type="text" name="customer_id" id="customer_id" value="{{ old('customer_id') }}" class="form-control" disabled>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Customer Name</label>
-                                                <input type="text" name="customer_name" id="customer_name" value="{{ old('customer_name') }}"class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Title</label>
-                                                <input type="text" name="title" value="{{ old('title') }}" class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Mobile Phone Number</label>
-                                                <input type="text" name="phone_number" value="{{ old('phone_humber') }}" class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Email</label>
-                                                <input type="text" name="email" value="{{ old('email') }}" class="form-control">
-                                            </div>
-                                            <div class="row">
-                                                <div class="form-group col-6">
-                                                    <label>NPWP/KTP</label>
-                                                    <input type="text" name="npwp_ktp" value="{{ old('npwp_ktp') }}" class="form-control">
+                                <form action="{{ route('finance.master-data.contact.store') }}" method="POST"
+                                    enctype="multipart/form-data">
+                                    @csrf
+                                    <div class="panel-body tabs-menu-body">
+                                        <div class="tab-content">
+                                            <div class="tab-pane active" id="tab1">
+                                                <h4><u>Customer</u></h4>
+                                                <div class="form-group">
+                                                    <label>Customer ID</label>
+                                                    <input type="text" name="customer_id" id="customer_id"
+                                                        value="{{ old('customer_id') }}" class="form-control" disabled>
                                                 </div>
-                                                <div class="form-group col-6">
-                                                    <label>Upload Document</label>
-                                                    <input type="file" name="document" class="form-control">
+                                                <div class="form-group">
+                                                    <label>Customer Name</label>
+                                                    <input type="text" name="customer_name" id="customer_name"
+                                                        value="{{ old('customer_name') }}"class="form-control">
                                                 </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-md-12">
-                                                    <label>Category</label>
-                                                    <div class="custom-controls-stacked d-flex d-inline">
-                                                        <label class="custom-control custom-checkbox">
-                                                                <input type="checkbox" class="custom-control-input" id="contact_type1" name="contact_type[]" value="1" @if(is_array(old('contact_type')) && in_array(1,old('contact_type'))) checked @endif>
+                                                <div class="form-group">
+                                                    <label>Title</label>
+                                                    <input type="text" name="title" value="{{ old('title') }}"
+                                                        class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Mobile Phone Number</label>
+                                                    <input type="text" name="phone_number"
+                                                        value="{{ old('phone_humber') }}" class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Email</label>
+                                                    <input type="text" name="email" value="{{ old('email') }}"
+                                                        class="form-control">
+                                                </div>
+                                                <div class="row">
+                                                    <div class="form-group col-6">
+                                                        <label>NPWP/KTP</label>
+                                                        <input type="text" name="npwp_ktp"
+                                                            value="{{ old('npwp_ktp') }}" class="form-control">
+                                                    </div>
+                                                    <div class="form-group col-6">
+                                                        <label>Upload Document</label>
+                                                        <input type="file" name="document" class="form-control">
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-12">
+                                                        <label>Category</label>
+                                                        <div class="custom-controls-stacked d-flex d-inline">
+                                                            <label class="custom-control custom-checkbox">
+                                                                <input type="checkbox" class="custom-control-input"
+                                                                    id="contact_type1" name="contact_type[]"
+                                                                    value="1"
+                                                                    @if (is_array(old('contact_type')) && in_array(1, old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Customer</span>
                                                             </label>
                                                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                                                        <label class="custom-control custom-checkbox">
-                                                                <input type="checkbox" class="custom-control-input" id="contact_type2" name="contact_type[]" value="2" @if(is_array(old('contact_type')) && in_array(2,old('contact_type'))) checked @endif>
+                                                            <label class="custom-control custom-checkbox">
+                                                                <input type="checkbox" class="custom-control-input"
+                                                                    id="contact_type2" name="contact_type[]"
+                                                                    value="2"
+                                                                    @if (is_array(old('contact_type')) && in_array(2, old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Vendor</span>
                                                             </label>
-                                                            &nbsp;&nbsp;&nbsp;&nbsp;    
-                                                        <label class="custom-control custom-checkbox">
-                                                                <input type="checkbox" class="custom-control-input" id="contact_type3" name="contact_type[]" value="3" @if(is_array(old('contact_type')) && in_array(3,old('contact_type'))) checked @endif>
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;
+                                                            <label class="custom-control custom-checkbox">
+                                                                <input type="checkbox" class="custom-control-input"
+                                                                    id="contact_type3" name="contact_type[]"
+                                                                    value="3"
+                                                                    @if (is_array(old('contact_type')) && in_array(3, old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Karyawan</span>
                                                             </label>
                                                             &nbsp;&nbsp;&nbsp;&nbsp;
-                                                        <label class="custom-control custom-checkbox">
-                                                                <input type="checkbox" class="custom-control-input" id="contact_type4" name="contact_type[]" value="4" @if(is_array(old('contact_type')) && in_array(4,old('contact_type'))) checked @endif>
+                                                            <label class="custom-control custom-checkbox">
+                                                                <input type="checkbox" class="custom-control-input"
+                                                                    id="contact_type4" name="contact_type[]"
+                                                                    value="4"
+                                                                    @if (is_array(old('contact_type')) && in_array(4, old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Supplier</span>
                                                             </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row input_fields_wrap_new mt-2">
+                                                    <div class="col-10">
+                                                        <div class="form-group"
+                                                            style="margin-bottom: 0px; margin-top: 0px">
+                                                            <label>Term Of Payment</label>
+                                                            <select class="form-control select2 form-select"
+                                                                data-placeholder="Choose One" name="term_payment_id[]">
+                                                                <option label="Choose One" selected disabled></option>
+                                                                @foreach ($terms as $term)
+                                                                    <option
+                                                                        {{ old('term_payment_id[]') == $term->id ? 'selected' : '' }}
+                                                                        value="{{ $term->id }}">{{ $term->name }}
+                                                                    </option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row mt-2">
+                                                    <div class="col-3">
+                                                        <button type="button" id="tambahKolomNew"
+                                                            class="btn btn-primary btn-sm add_field_button_new"><i
+                                                                class="fe fe-plus me-2"></i>Add New Term</button>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="row input_fields_wrap_new mt-2">
-                                                <div class="col-10">
-                                                    <div class="form-group" style="margin-bottom: 0px; margin-top: 0px">
-                                                        <label>Term Of Payment</label>
-                                                        <select class="form-control select2 form-select"
-                                                            data-placeholder="Choose One" name="term_payment_id[]">
-                                                            <option label="Choose One" selected disabled></option>
-                                                            @foreach ($terms as $term)
-                                                                <option {{ old('term_payment_id[]') == $term->id ? "selected" : "" }} value="{{ $term->id }}">{{ $term->name }}</option>
-                                                            @endforeach
-                                                        </select>
+                                            <div class="tab-pane" id="tab2">
+                                                <h4><u>Company</u></h4>
+                                                <div class="form-group">
+                                                    <label>Company Name</label>
+                                                    <input type="text" name="company_name"
+                                                        value="{{ old('company_name') }}" class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Type Of Company</label>
+                                                    <div class="d-flex d-inline">
+                                                        <label class="custom-control custom-radio">
+                                                            <input type="radio" class="custom-control-input"
+                                                                name="type_of_company" value="1"
+                                                                @if (is_array(old('type_of_company')) && in_array(1, old('type_of_company'))) checked @endif>
+                                                            <span class="custom-control-label">PT / Ltd</span>
+                                                        </label>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;
+                                                        <label class="custom-control custom-radio">
+                                                            <input type="radio" class="custom-control-input"
+                                                                name="type_of_company" value="2"
+                                                                @if (is_array(old('type_of_company')) && in_array(2, old('type_of_company'))) checked @endif>
+                                                            <span class="custom-control-label">CV</span>
+                                                        </label>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;
+                                                        <label class="custom-control custom-radio">
+                                                            <input type="radio" class="custom-control-input"
+                                                                name="type_of_company" value="3"
+                                                                @if (is_array(old('type_of_company')) && in_array(3, old('type_of_company'))) checked @endif>
+                                                            <span class="custom-control-label">UD</span>
+                                                        </label>
                                                     </div>
                                                 </div>
+                                                <div class="form-group">
+                                                    <label>Company Tax Status</label>
+                                                    <div class="d-flex d-inline">
+                                                        <label class="custom-control custom-radio">
+                                                            <input type="radio" class="custom-control-input"
+                                                                name="company_tax_status" value="1"
+                                                                @if (is_array(old('company_tax_status')) && in_array(1, old('company_tax_status'))) checked @endif>
+                                                            <span class="custom-control-label">Taxable</span>
+                                                        </label>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;
+                                                        <label class="custom-control custom-radio">
+                                                            <input type="radio" class="custom-control-input"
+                                                                name="company_tax_status" value="2"
+                                                                @if (is_array(old('company_tax_status')) && in_array(2, old('company_tax_status'))) checked @endif>
+                                                            <span class="custom-control-label">Non Taxable</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div id="input_vendor"></div>
                                             </div>
-                                            <div class="row mt-2">
-                                                <div class="col-3">
-                                                    <button type="button" id="tambahKolomNew" class="btn btn-primary btn-sm add_field_button_new"><i class="fe fe-plus me-2"></i>Add New Term</button>
+                                            <div class="tab-pane" id="tab3">
+                                                <h4><u>Address</u></h4>
+                                                <div class="form-group">
+                                                    <label>Address</label>
+                                                    <input type="text" name="address" value="{{ old('address') }}"
+                                                        class="form-control">
+                                                </div>
+                                                <div class="row">
+                                                    <div class="form-group col-md-6">
+                                                        <label>City</label>
+                                                        <input type="text" name="city" value="{{ old('city') }}"
+                                                            class="form-control">
+                                                    </div>
+                                                    <div class="form-group col-md-6">
+                                                        <label>Postal Code</label>
+                                                        <input type="text" name="postal_code"
+                                                            value="{{ old('postal_code') }}" class="form-control">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Country</label>
+                                                    <input type="text" name="country" value="{{ old('country') }}"
+                                                        class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="tab-pane" id="tab4">
+                                                <h4><u>Others</u></h4>
+                                                <div class="form-group">
+                                                    <label>PIC for Urgent Status</label>
+                                                    <input type="text" name="pic_for_urgent_status"
+                                                        value="{{ old('pic_for_urgent_status') }}" class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Mobile Number</label>
+                                                    <input type="text" name="mobile_number"
+                                                        value="{{ old('mobile_number') }}" class="form-control">
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="tab-pane" id="tab2">
-                                            <h4><u>Company</u></h4>
-                                            <div class="form-group">
-                                                <label>Company Name</label>
-                                                <input type="text" name="company_name" value="{{ old('company_name') }}" class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Type Of Company</label>
-                                                <div class="d-flex d-inline">
-                                                    <label class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input"
-                                                        name="type_of_company" value="1"  @if(is_array(old('type_of_company')) && in_array(1,old('type_of_company'))) checked @endif>
-                                                        <span class="custom-control-label">PT / Ltd</span>
-                                                    </label>
-                                                    &nbsp;&nbsp;&nbsp;&nbsp;
-                                                    <label class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input"
-                                                        name="type_of_company" value="2" @if(is_array(old('type_of_company')) && in_array(2,old('type_of_company'))) checked @endif>
-                                                        <span class="custom-control-label">CV</span>
-                                                    </label>
-                                                    &nbsp;&nbsp;&nbsp;&nbsp;
-                                                    <label class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input"
-                                                        name="type_of_company" value="3" @if(is_array(old('type_of_company')) && in_array(3,old('type_of_company'))) checked @endif>
-                                                        <span class="custom-control-label">UD</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Company Tax Status</label>
-                                                <div class="d-flex d-inline">
-                                                    <label class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input"
-                                                        name="company_tax_status" value="1"  @if(is_array(old('company_tax_status')) && in_array(1,old('company_tax_status'))) checked @endif>
-                                                        <span class="custom-control-label">Taxable</span>
-                                                    </label>
-                                                    &nbsp;&nbsp;&nbsp;&nbsp;
-                                                    <label class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input"
-                                                        name="company_tax_status" value="2" @if(is_array(old('company_tax_status')) && in_array(2,old('company_tax_status'))) checked @endif>
-                                                        <span class="custom-control-label">Non Taxable</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div id="input_vendor"></div>
-                                        </div>
-                                        <div class="tab-pane" id="tab3">
-                                            <h4><u>Address</u></h4>
-                                            <div class="form-group">
-                                                <label>Address</label>
-                                                <input type="text" name="address" value="{{ old('address') }}" class="form-control">
-                                            </div>
-                                            <div class="row">
-                                                <div class="form-group col-md-6">
-                                                    <label>City</label>
-                                                    <input type="text" name="city" value="{{ old('city') }}" class="form-control">
-                                                </div>
-                                                <div class="form-group col-md-6">
-                                                    <label>Postal Code</label>
-                                                    <input type="text" name="postal_code" value="{{ old('postal_code') }}" class="form-control">
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Country</label>
-                                                <input type="text" name="country" value="{{ old('country') }}" class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane" id="tab4">
-                                            <h4><u>Others</u></h4>
-                                            <div class="form-group">
-                                                <label>PIC for Urgent Status</label>
-                                                <input type="text" name="pic_for_urgent_status" value="{{ old('pic_for_urgent_status') }}" class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Mobile Number</label>
-                                                <input type="text" name="mobile_number" value="{{ old('mobile_number') }}" class="form-control">
-                                            </div>
+                                        <div class="mt-3" style="text-align: right">
+                                            <a class="btn btn-white color-grey" data-bs-dismiss="modal">Close</a>
+                                            <button type="submit" class="btn btn-primary">Save</button>
                                         </div>
                                     </div>
-                                    <div class="mt-3" style="text-align: right">
-                                        <a class="btn btn-white color-grey" data-bs-dismiss="modal">Close</a>
-                                        <button type="submit" class="btn btn-primary">Save</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- modal edit contact --}}
-<div class="modal fade" id="modal-edit" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">+ Edit Contact</h5>
-                <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">×</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="panel panel-primary">
-                            <div class=" tab-menu-heading">
-                                <div class="tabs-menu1">
-                                    <!-- Tabs -->
-                                    <ul class="nav panel-tabs">
-                                        <li><a href="#tab1edit" class="active" data-bs-toggle="tab">Customer</a></li>
-                                        <li><a href="#tab2edit" data-bs-toggle="tab">Company</a></li>
-                                        <li><a href="#tab3edit" data-bs-toggle="tab">Address</a></li>
-                                        <li><a href="#tab4edit" data-bs-toggle="tab">Others</a></li>
-                                    </ul>
-                                </div>
+                                </form>
                             </div>
-                            <form action="{{ route('finance.master-data.contact.store') }}" method="POST"
-                                enctype="multipart/form-data">
-                                @csrf
-                                <input type="hidden" name="id" id="id_edit">
-                                <div class="panel-body tabs-menu-body">
-                                    <div class="tab-content">
-                                        <div class="tab-pane active" id="tab1edit">
-                                            <h4><u>Customer</u></h4>
-                                            <div class="form-group">
-                                                <label>Customer ID</label>
-                                                <input type="text" name="customer_id" id="customer_id_edit"
-                                                    class="form-control" disabled>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Customer Name</label>
-                                                <input type="text" name="customer_name" id="customer_name_edit"
-                                                    class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Title</label>
-                                                <input type="text" name="title" id="title_edit"
-                                                    class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Mobile Phone Number</label>
-                                                <input type="text" name="phone_number" id="phone_number_edit"
-                                                    class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Email</label>
-                                                <input type="text" name="email" id="email_edit"
-                                                    class="form-control">
-                                            </div>
-                                            <div class="row">
-                                                <div class="form-group col-6">
-                                                    <label>NPWP/KTP</label>
-                                                    <input type="text" name="npwp_ktp" id="npwp_ktp_edit"
-                                                        class="form-control">
-                                                </div>
-                                                <div class="form-group col-6">
-                                                    <label>Upload Document</label>
-                                                    <input type="file" name="document" class="form-control">
-                                                    <div id="file_edit"></div>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-md-12">
-                                                    <label>Category</label>
-                                                    <div class="custom-controls-stacked d-flex d-inline">
-                                                        <label class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input"
-                                                                id="contact_type1" name="contact_type[]"
-                                                                value="1">
-                                                            <span class="custom-control-label">Customer</span>
-                                                        </label>
-                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                                                        <label class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input"
-                                                                id="contact_type2_edit" name="contact_type[]"
-                                                                value="2">
-                                                            <span class="custom-control-label">Vendor</span>
-                                                        </label>
-                                                        &nbsp;&nbsp;&nbsp;&nbsp;
-                                                        <label class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input"
-                                                                id="contact_type3" name="contact_type[]"
-                                                                value="3">
-                                                            <span class="custom-control-label">Karyawan</span>
-                                                        </label>
-                                                        &nbsp;&nbsp;&nbsp;&nbsp;
-                                                        <label class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input"
-                                                                id="contact_type4" name="contact_type[]"
-                                                                value="4">
-                                                            <span class="custom-control-label">Supplier</span>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="row input_fields_wrap_new edit mt-2">
-                        
-                                            </div>
-                                            <div class="row mt-2">
-                                                <div class="col-3">
-                                                    <button type="button" id="tambahKolomNew"
-                                                        class="btn btn-primary btn-sm add_field_button_new"><i
-                                                            class="fe fe-plus me-2"></i>Add New Term</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane" id="tab2edit">
-                                            <h4><u>Company</u></h4>
-                                            <div class="form-group">
-                                                <label>Company Name</label>
-                                                <input type="text" name="company_name" id="company_name_edit"
-                                                    class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Type Of Company</label>
-                                                <div class="d-flex d-inline">
-                                                    <label class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input"
-                                                            name="type_of_company" value="1">
-                                                        <span class="custom-control-label">PT / Ltd</span>
-                                                    </label>
-                                                    &nbsp;&nbsp;&nbsp;&nbsp;
-                                                    <label class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input"
-                                                            name="type_of_company" value="2">
-                                                        <span class="custom-control-label">CV</span>
-                                                    </label>
-                                                    &nbsp;&nbsp;&nbsp;&nbsp;
-                                                    <label class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input"
-                                                            name="type_of_company" value="3">
-                                                        <span class="custom-control-label">UD</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Company Tax Status</label>
-                                                <div class="d-flex d-inline">
-                                                    <label class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input"
-                                                            name="company_tax_status" value="1">
-                                                        <span class="custom-control-label">Taxable</span>
-                                                    </label>
-                                                    &nbsp;&nbsp;&nbsp;&nbsp;
-                                                    <label class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input"
-                                                            name="company_tax_status" value="2">
-                                                        <span class="custom-control-label">Non Taxable</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div id="input_vendor_edit"></div>
-                                        </div>
-                                        <div class="tab-pane" id="tab3edit">
-                                            <h4><u>Address</u></h4>
-                                            <div class="form-group">
-                                                <label>Address</label>
-                                                <input type="text" name="address" id="address_edit"
-                                                    class="form-control">
-                                            </div>
-                                            <div class="row">
-                                                <div class="form-group col-md-6">
-                                                    <label>City</label>
-                                                    <input type="text" name="city" id="city_edit"
-                                                        class="form-control">
-                                                </div>
-                                                <div class="form-group col-md-6">
-                                                    <label>Postal Code</label>
-                                                    <input type="text" name="postal_code" id="postal_code_edit"
-                                                        class="form-control">
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Country</label>
-                                                <input type="text" name="country" id="country_edit"
-                                                    class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane" id="tab4edit">
-                                            <h4><u>Others</u></h4>
-                                            <div class="form-group">
-                                                <label>PIC for Urgent Status</label>
-                                                <input type="text" name="pic_for_urgent_status"
-                                                    id="pic_for_urgent_status_edit" class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Mobile Number</label>
-                                                <input type="text" name="mobile_number" id="mobile_number_edit"
-                                                    class="form-control">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-3" style="text-align: right">
-                                        <a class="btn btn-white color-grey" data-bs-dismiss="modal">Close</a>
-                                        <button type="submit" class="btn btn-primary">Save</button>
-                                    </div>
-                                </div>
-                            </form>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+
+    {{-- modal edit contact --}}
+    <div class="modal fade" id="modal-edit" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">+ Edit Contact</h5>
+                    <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="panel panel-primary">
+                                <div class=" tab-menu-heading">
+                                    <div class="tabs-menu1">
+                                        <!-- Tabs -->
+                                        <ul class="nav panel-tabs">
+                                            <li><a href="#tab1edit" class="active" data-bs-toggle="tab">Customer</a></li>
+                                            <li><a href="#tab2edit" data-bs-toggle="tab">Company</a></li>
+                                            <li><a href="#tab3edit" data-bs-toggle="tab">Address</a></li>
+                                            <li><a href="#tab4edit" data-bs-toggle="tab">Others</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <form action="{{ route('finance.master-data.contact.store') }}" method="POST"
+                                    enctype="multipart/form-data">
+                                    @csrf
+                                    <input type="hidden" name="id" id="id_edit">
+                                    <div class="panel-body tabs-menu-body">
+                                        <div class="tab-content">
+                                            <div class="tab-pane active" id="tab1edit">
+                                                <h4><u>Customer</u></h4>
+                                                <div class="form-group">
+                                                    <label>Customer ID</label>
+                                                    <input type="text" name="customer_id" id="customer_id_edit"
+                                                        class="form-control" disabled>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Customer Name</label>
+                                                    <input type="text" name="customer_name" id="customer_name_edit"
+                                                        class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Title</label>
+                                                    <input type="text" name="title" id="title_edit"
+                                                        class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Mobile Phone Number</label>
+                                                    <input type="text" name="phone_number" id="phone_number_edit"
+                                                        class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Email</label>
+                                                    <input type="text" name="email" id="email_edit"
+                                                        class="form-control">
+                                                </div>
+                                                <div class="row">
+                                                    <div class="form-group col-6">
+                                                        <label>NPWP/KTP</label>
+                                                        <input type="text" name="npwp_ktp" id="npwp_ktp_edit"
+                                                            class="form-control">
+                                                    </div>
+                                                    <div class="form-group col-6">
+                                                        <label>Upload Document</label>
+                                                        <input type="file" name="document" class="form-control">
+                                                        <div id="file_edit"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-12">
+                                                        <label>Category</label>
+                                                        <div class="custom-controls-stacked d-flex d-inline">
+                                                            <label class="custom-control custom-checkbox">
+                                                                <input type="checkbox" class="custom-control-input"
+                                                                    id="contact_type1" name="contact_type[]"
+                                                                    value="1">
+                                                                <span class="custom-control-label">Customer</span>
+                                                            </label>
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                                            <label class="custom-control custom-checkbox">
+                                                                <input type="checkbox" class="custom-control-input"
+                                                                    id="contact_type2_edit" name="contact_type[]"
+                                                                    value="2">
+                                                                <span class="custom-control-label">Vendor</span>
+                                                            </label>
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;
+                                                            <label class="custom-control custom-checkbox">
+                                                                <input type="checkbox" class="custom-control-input"
+                                                                    id="contact_type3" name="contact_type[]"
+                                                                    value="3">
+                                                                <span class="custom-control-label">Karyawan</span>
+                                                            </label>
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;
+                                                            <label class="custom-control custom-checkbox">
+                                                                <input type="checkbox" class="custom-control-input"
+                                                                    id="contact_type4" name="contact_type[]"
+                                                                    value="4">
+                                                                <span class="custom-control-label">Supplier</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row input_fields_wrap_new edit mt-2">
+
+                                                </div>
+                                                <div class="row mt-2">
+                                                    <div class="col-3">
+                                                        <button type="button" id="tambahKolomNew"
+                                                            class="btn btn-primary btn-sm add_field_button_new"><i
+                                                                class="fe fe-plus me-2"></i>Add New Term</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="tab-pane" id="tab2edit">
+                                                <h4><u>Company</u></h4>
+                                                <div class="form-group">
+                                                    <label>Company Name</label>
+                                                    <input type="text" name="company_name" id="company_name_edit"
+                                                        class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Type Of Company</label>
+                                                    <div class="d-flex d-inline">
+                                                        <label class="custom-control custom-radio">
+                                                            <input type="radio" class="custom-control-input"
+                                                                name="type_of_company" value="1">
+                                                            <span class="custom-control-label">PT / Ltd</span>
+                                                        </label>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;
+                                                        <label class="custom-control custom-radio">
+                                                            <input type="radio" class="custom-control-input"
+                                                                name="type_of_company" value="2">
+                                                            <span class="custom-control-label">CV</span>
+                                                        </label>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;
+                                                        <label class="custom-control custom-radio">
+                                                            <input type="radio" class="custom-control-input"
+                                                                name="type_of_company" value="3">
+                                                            <span class="custom-control-label">UD</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Company Tax Status</label>
+                                                    <div class="d-flex d-inline">
+                                                        <label class="custom-control custom-radio">
+                                                            <input type="radio" class="custom-control-input"
+                                                                name="company_tax_status" value="1">
+                                                            <span class="custom-control-label">Taxable</span>
+                                                        </label>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;
+                                                        <label class="custom-control custom-radio">
+                                                            <input type="radio" class="custom-control-input"
+                                                                name="company_tax_status" value="2">
+                                                            <span class="custom-control-label">Non Taxable</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div id="input_vendor_edit"></div>
+                                            </div>
+                                            <div class="tab-pane" id="tab3edit">
+                                                <h4><u>Address</u></h4>
+                                                <div class="form-group">
+                                                    <label>Address</label>
+                                                    <input type="text" name="address" id="address_edit"
+                                                        class="form-control">
+                                                </div>
+                                                <div class="row">
+                                                    <div class="form-group col-md-6">
+                                                        <label>City</label>
+                                                        <input type="text" name="city" id="city_edit"
+                                                            class="form-control">
+                                                    </div>
+                                                    <div class="form-group col-md-6">
+                                                        <label>Postal Code</label>
+                                                        <input type="text" name="postal_code" id="postal_code_edit"
+                                                            class="form-control">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Country</label>
+                                                    <input type="text" name="country" id="country_edit"
+                                                        class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="tab-pane" id="tab4edit">
+                                                <h4><u>Others</u></h4>
+                                                <div class="form-group">
+                                                    <label>PIC for Urgent Status</label>
+                                                    <input type="text" name="pic_for_urgent_status"
+                                                        id="pic_for_urgent_status_edit" class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Mobile Number</label>
+                                                    <input type="text" name="mobile_number" id="mobile_number_edit"
+                                                        class="form-control">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3" style="text-align: right">
+                                            <a class="btn btn-white color-grey" data-bs-dismiss="modal">Close</a>
+                                            <button type="submit" class="btn btn-primary">Save</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 @endsection
 @push('scripts')
@@ -664,11 +726,13 @@
 
     <script>
         //modal
-        $('select[name="customer_id"]').change(function () {
+        $('select[name="customer_id"]').change(function() {
             var id_contact = this.value;
 
             $("#btn_edit_contact").html("");
-            var editContactBtn = $(`<a href="javascript:void(0)" id="btn-edit" data-id="${id_contact}" class="btn text-primary btn-sm mt-2" data-bs-toggle="tooltip" data-bs-original-title="Edit data customer"><span class="fe fe-edit fs-14"></span></a>`);
+            var editContactBtn = $(
+                `<a href="javascript:void(0)" id="btn-edit" data-id="${id_contact}" class="btn text-primary btn-sm mt-2" data-bs-toggle="tooltip" data-bs-original-title="Edit data customer"><span class="fe fe-edit fs-14"></span></a>`
+                );
             editContactBtn.appendTo('#btn_edit_contact');
         });
 
@@ -699,7 +763,7 @@
                     $('#email_edit').val(response.data.email);
                     $('#npwp_ktp_edit').val(response.data.npwp_ktp);
                     $('#company_name_edit').val(response.data.company_name);
-                    
+
                     $('#address_edit').val(response.data.address);
                     $('#city_edit').val(response.data.city);
                     $('#postal_code_edit').val(response.data.postal_code);
@@ -806,7 +870,7 @@
                                 <button type="button" class="btn text-danger btn-sm remove_field_new" style="margin-top: 30px;"><span class="fe fe-trash-2 fs-14"></span></button>
                             </div>`;
                         }
-                        results +=`
+                        results += `
                             <div class="row input_fields_wrap_new">
                                 <div class="col-10">
                                     <div class="form-group mt-2">
@@ -827,7 +891,9 @@
                     //show document if exist
                     if (response.data.document) {
                         $("#file_edit").html("");
-                        var fileEdit = $(`<a href="/storage/${response.data.document}" target="_blank" class="btn btn-info shadow-sm btn-sm">View File</a>`);
+                        var fileEdit = $(
+                            `<a href="/storage/${response.data.document}" target="_blank" class="btn btn-info shadow-sm btn-sm">View File</a>`
+                            );
                         fileEdit.appendTo('#file_edit');
                     } else {
                         $("#file_edit").html("");
@@ -840,13 +906,30 @@
             });
         });
 
-        $(document).ready(function () {
+        $(document).ready(function() {
+            const today = new Date();
+            const year = today.getFullYear();
+            let month = today.getMonth() + 1; // getMonth() returns 0-11
+            let day = today.getDate();
+
+            // Add leading zero if month or day is less than 10
+            if (month < 10) {
+                month = '0' + month;
+            }
+            if (day < 10) {
+                day = '0' + day;
+            }
+
+            const todayDate = `${year}-${month}-${day}`;
+            document.getElementById('date_sales').value = todayDate;
+            generateNoTransaction(todayDate);
+
             $('#customer_id').select2('destroy').select2({
                 placeholder: "Choose One"
             });
 
             // show beneficiary - siwft code if select checkbox vendor value
-            $("input:checkbox[name^='contact_type']").on('change', function () {
+            $("input:checkbox[name^='contact_type']").on('change', function() {
                 if ($('#contact_type2').prop('checked')) {
                     $("#input_vendor").html("");
                     var radioBtn = $(`<div class="form-group">
@@ -872,14 +955,14 @@
             });
 
             //multiple input dropdown Term of Payment
-            var max_fields_new      = 50; //maximum input boxes allowed
-            var wrapper_new         = $(".input_fields_wrap_new"); //Fields wrapper
-            var add_button_new      = $(".add_field_button_new"); //Add button ID
+            var max_fields_new = 50; //maximum input boxes allowed
+            var wrapper_new = $(".input_fields_wrap_new"); //Fields wrapper
+            var add_button_new = $(".add_field_button_new"); //Add button ID
 
             var x = 1; //initlal text box count
-            $(add_button_new).click(function(e){ //on add input button click
+            $(add_button_new).click(function(e) { //on add input button click
                 e.preventDefault();
-                if(x < max_fields_new){ //max input box allowed
+                if (x < max_fields_new) { //max input box allowed
                     x++; //text box increment
                     $(wrapper_new).append(`
                         <div class="row input_fields_wrap_new">
@@ -889,7 +972,7 @@
                                     <select class="form-control select2 form-select"
                                         data-placeholder="Choose one" name="term_payment_id[]">
                                         @foreach ($terms as $term)
-                                            <option {{ old('term_payment_id[]') == $term->id ? "selected" : "" }} value="{{ $term->id }}">{{ $term->name }}</option>
+                                            <option {{ old('term_payment_id[]') == $term->id ? 'selected' : '' }} value="{{ $term->id }}">{{ $term->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -901,15 +984,16 @@
                 }
             });
 
-            $(wrapper_new).on("click",".remove_field_new", function(e){ //user click on remove text
-                e.preventDefault(); 
-                $(this).parent().parent().remove(); x--;
+            $(wrapper_new).on("click", ".remove_field_new", function(e) { //user click on remove text
+                e.preventDefault();
+                $(this).parent().parent().remove();
+                x--;
             })
         });
         //modal
 
-        $('#choose_job_order').on('change', function () {
-            const job_order_display =  $("#job_order_display");
+        $('#choose_job_order').on('change', function() {
+            const job_order_display = $("#job_order_display");
             if ($('#choose_job_order').prop('checked')) {
                 job_order_display.show();
                 $('#choose_job_order').val("1")
@@ -937,23 +1021,27 @@
             shipper.value = "";
             const commodity = document.getElementById("commodity")
             commodity.value = "";
-            
+
             const defaultOption = document.createElement("option");
             defaultOption.label = "Choose One";
             selectElement.add(defaultOption);
 
             $.ajax({
-                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
                 type: 'GET',
                 dataType: 'json',
-                data: { 'contact': contact, 'currency': currency },
+                data: {
+                    'contact': contact,
+                    'currency': currency
+                },
                 url: '{{ route('finance.piutang.get-job-order') }}',
-                success:function(response) 
-                {
+                success: function(response) {
                     if (response?.data) {
                         response.data.forEach(function(item) {
                             const option = document.createElement("option");
-                            option.value = item.id + ":" + item.source; 
+                            option.value = item.id + ":" + item.source;
                             option.text = item.quotation.quotation_no + " - " + item.source;
                             selectElement.add(option);
                         });
@@ -973,7 +1061,10 @@
         $('#additional_cost').on('change', function() {
             hideButton()
             var additional = $(this).val();
-            $(this).val(Number(additional.replace(/,/g, '')).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+            $(this).val(Number(additional.replace(/,/g, '')).toLocaleString('en', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }))
         })
 
         function hideButton() {
@@ -983,13 +1074,16 @@
         $('#no_referensi').on('change', function() {
             var id = $(this).val();
             $.ajax({
-                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
                 type: 'GET',
                 dataType: 'json',
-                data: { 'id' : id },
+                data: {
+                    'id': id
+                },
                 url: '{{ route('finance.piutang.get-marketing') }}',
-                success:function(response)
-                {
+                success: function(response) {
                     hideButton()
                     $('#job_order_id').val(response.data.marketing.job_order_id);
                     $('#consignee').val(response.data.marketing.consignee);
@@ -998,34 +1092,35 @@
                         $('#transportation').val("Air Freight");
                     } else if (response.data.marketing.transportation == 2) {
                         $('#transportation').val("Sea Freight");
-                    } else if(response.data.marketing.transportation) {
+                    } else if (response.data.marketing.transportation) {
                         $('#transportation').val("Land Trucking");
                     }
 
-                    if(response.data.marketing.transportation_desc){
+                    if (response.data.marketing.transportation_desc) {
                         const transportation_desc = document.getElementById("transportation_desc")
                         transportation_desc.style.display = 'block';
-                        const text_transportation_desc = transportation_desc.querySelector('.custom-control-label')
+                        const text_transportation_desc = transportation_desc.querySelector(
+                            '.custom-control-label')
                         text_transportation_desc.innerText = response.data.marketing.transportation_desc
                     }
 
-                    $('#shipper').val(response.data.marketing.shipper);       
-                    $('#commodity').val(response.data.marketing.description);   
-                    
+                    $('#shipper').val(response.data.marketing.shipper);
+                    $('#commodity').val(response.data.marketing.description);
+
                     const total_display = document.getElementById("total_display")
                     total_display.value = 0;
                     const discount_display = document.getElementById("discount_display")
                     discount_display.value = 0;
                     const additional_cost = document.getElementById("additional_cost")
                     additional_cost.value = 0;
-                    
-                    if(response.data?.item){
+
+                    if (response.data?.item) {
                         var formContainer = document.getElementById('form-container');
                         formContainer.innerHTML = '';
                         response.data.item.forEach(function(data) {
                             var newFormWrapper = document.createElement('tr');
                             newFormWrapper.classList.add('form-wrapper');
-                        
+
                             var formTemplate = `
                             <td></td>
                             <td>
@@ -1058,14 +1153,17 @@
                                 </div>
                             </td>
                             `;
-                        
+
                             newFormWrapper.innerHTML = formTemplate;
                             var desc = newFormWrapper.querySelector('.description-input');
-                            desc.value = data.description; 
+                            desc.value = data.description;
                             var remarkInput = newFormWrapper.querySelector('.remark-input');
-                            remarkInput.value = data.remark; 
+                            remarkInput.value = data.remark;
                             var price = newFormWrapper.querySelector('.price-input');
-                            price.value = Number(data.total).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); 
+                            price.value = Number(data.total).toLocaleString('en', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
                             formContainer.appendChild(newFormWrapper);
                         });
                     }
@@ -1081,24 +1179,30 @@
                 var input = form.querySelectorAll("input, select");
                 var quantity = input[2].value
                 var price = input[6].value
-                if(!price) price = "0"
+                if (!price) price = "0"
                 price = parseFloat(price.replace(/,/g, ''))
                 var discount_type = input[5].value
                 var disc = input[3].value
-                if(!disc) disc = "0"
+                if (!disc) disc = "0"
                 disc = parseFloat(disc.replace(/,/g, ''))
-                
-                let total = quantity*price
-                if(discount_type === "persen") {
-                    disc = (disc/100)*total
+
+                let total = quantity * price
+                if (discount_type === "persen") {
+                    disc = (disc / 100) * total
                 }
-                grand_disc +=  disc
+                grand_disc += disc
                 total -= disc
 
-                if(price > 0) {
-                    input[6].value = price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                if (price > 0) {
+                    input[6].value = price.toLocaleString('en', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })
                 }
-                input[7].value = total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                input[7].value = total.toLocaleString('en', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })
             });
             return {
                 grand_disc
@@ -1109,7 +1213,7 @@
             var formContainer = document.getElementById('form-container');
             var newFormWrapper = document.createElement('tr');
             newFormWrapper.classList.add('form-wrapper');
-        
+
             var formTemplate = `
             <td></td>
             <td>
@@ -1142,7 +1246,7 @@
                 </div>
             </td>
             `;
-        
+
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
         });
@@ -1150,40 +1254,48 @@
         function total() {
             var total = 0;
             var disc = document.querySelector('input[name="discount"]').value;
-            if(!disc) disc = "0";
+            if (!disc) disc = "0";
             disc = parseFloat(disc.replace(/,/g, ''))
 
             var additional = document.querySelector('input[name="additional_cost"]').value;
-            if(!additional) additional = "0";
+            if (!additional) additional = "0";
             additional = parseFloat(additional.replace(/,/g, ''))
-            
+
             var totalDetailInputs = document.querySelectorAll('input[name="total_detail"]');
             totalDetailInputs.forEach(function(input) {
                 totalDetail = input.value;
-                if(!totalDetail) totalDetail = "0";
+                if (!totalDetail) totalDetail = "0";
                 total += parseFloat(totalDetail.replace(/,/g, '')) || 0;
             });
 
             total += additional
 
             var discount_type = document.querySelector('select[name="discount_type"]').value;
-            if(discount_type === "persen") {
-                disc = (disc/100)*(total)
+            if (discount_type === "persen") {
+                disc = (disc / 100) * (total)
             }
             total -= disc
-            
-            var { grand_disc } = calculate()
-            disc +=  grand_disc
 
-            $('#discount_display').val(disc.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-            $('#total_display').val(total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+            var {
+                grand_disc
+            } = calculate()
+            disc += grand_disc
+
+            $('#discount_display').val(disc.toLocaleString('en', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }))
+            $('#total_display').val(total.toLocaleString('en', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }))
             $('#submit-all-form').show()
         }
 
         document.getElementById('submit-all-form').addEventListener('click', function() {
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
-        
+
             forms.forEach(function(form) {
                 var formDataObj = {};
                 form.querySelectorAll('input, select').forEach(function(input) {
@@ -1191,14 +1303,14 @@
                 });
                 formData.push(formDataObj);
             });
-        
+
             // Menyimpan data dalam input tersembunyi untuk dikirimkan ke backend
             var hiddenInput = document.createElement('input');
             hiddenInput.setAttribute('type', 'hidden');
             hiddenInput.setAttribute('name', 'form_data');
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
-        
+
             // Mengirimkan formulir ke backend
             document.forms['dynamic-form'].submit();
         });
@@ -1209,16 +1321,24 @@
         }
 
         $('#date_sales').on('change', function() {
+            console.log(1);
             const date = $(this).val()
+            generateNoTransaction(date);
+        })
+
+        function generateNoTransaction(date) {
             $.ajax({
-                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
                 type: 'GET',
                 dataType: 'json',
-                data: { 'date' : date },
+                data: {
+                    'date': date
+                },
                 url: '{{ route('finance.piutang.transaction-sales-order') }}',
-                success:function(response)
-                {
-                    if(response.message === "Success") {
+                success: function(response) {
+                    if (response.message === "Success") {
                         const year = new Date(date).getFullYear();
                         const month = (new Date(date).getMonth() + 1).toString().padStart(2, '0');
                         const number = response.data.toString().padStart(4, '0');
@@ -1227,6 +1347,6 @@
                     }
                 }
             })
-        })
+        }
     </script>
 @endpush

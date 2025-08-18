@@ -21,7 +21,7 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="card">
-                        <div class="card-body">                
+                        <div class="card-body">
                             @if ($errors->any())
                                 <div class="alert alert-danger" role="alert">
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button>
@@ -39,10 +39,10 @@
                                         <label class="form-label">Customer</label>
                                         <div class="d-flex d-inline">
                                             <select class="form-control select2 form-select"
-                                                data-placeholder="Choose One" name="customer_id" id="customer_id">
+                                                data-placeholder="Choose One" name="customer_id" id="customer_id" onchange="updateTermOfPaymentByContact()">
                                                 <option label="Choose One" selected disabled></option>
                                                 @foreach ($contact as $c)
-                                                    <option value="{{ $c->id }}">{{ $c->customer_name }}</option> 
+                                                    <option value="{{ $c->id }}">{{ $c->customer_name }}</option>
                                                 @endforeach
                                             </select>
                                             <div id="btn_edit_contact"></div>
@@ -66,7 +66,7 @@
                                             data-placeholder="Choose One" name="term_payment" id="term_payment" onchange="updateDueDate()">
                                             <option label="Choose One" selected disabled></option>
                                             @foreach ($terms as $term)
-                                                <option value="{{ $term->id }}:{{ $term->pay_days }}">{{ $term->name }}</option>
+                                                <option value="{{ $term->term_payment->id }}:{{ $term->term_payment->pay_days }}">{{ $term->term_payment->name }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -327,7 +327,7 @@
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type2" name="contact_type[]" value="2" @if(is_array(old('contact_type')) && in_array(2,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Vendor</span>
                                                             </label>
-                                                            &nbsp;&nbsp;&nbsp;&nbsp;    
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;
                                                         <label class="custom-control custom-checkbox">
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type3" name="contact_type[]" value="3" @if(is_array(old('contact_type')) && in_array(3,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Karyawan</span>
@@ -558,7 +558,7 @@
                                                 </div>
                                             </div>
                                             <div class="row input_fields_wrap_new edit mt-2">
-                        
+
                                             </div>
                                             <div class="row mt-2">
                                                 <div class="col-3">
@@ -714,7 +714,7 @@
                     $('#email_edit').val(response.data.email);
                     $('#npwp_ktp_edit').val(response.data.npwp_ktp);
                     $('#company_name_edit').val(response.data.company_name);
-                    
+
                     $('#address_edit').val(response.data.address);
                     $('#city_edit').val(response.data.city);
                     $('#postal_code_edit').val(response.data.postal_code);
@@ -859,7 +859,7 @@
             $('#customer_id').select2('destroy').select2({
                 placeholder: "Choose One"
             });
-            
+
             // show beneficiary - siwft code if select checkbox vendor value
             $("input:checkbox[name^='contact_type']").on('change', function () {
                 if ($('#contact_type2').prop('checked')) {
@@ -917,7 +917,7 @@
             });
 
             $(wrapper_new).on("click",".remove_field_new", function(e){ //user click on remove text
-                e.preventDefault(); 
+                e.preventDefault();
                 $(this).parent().parent().remove(); x--;
             })
         });
@@ -937,12 +937,12 @@
                 dataType: 'json',
                 data: {'id': id},
                 url: '{{ route('finance.piutang.invoice.get-sales-order') }}',
-                success:function(response) 
+                success:function(response)
                 {
                     if (response?.data) {
                         response.data.forEach(function(item) {
                             const option = document.createElement("option");
-                            option.value = item.id; 
+                            option.value = item.id;
                             option.text = item.transaction;
                             selectElement.add(option);
                         });
@@ -1004,10 +1004,10 @@
                     if(response.data?.sales?.details){
                         var formContainer = document.getElementById('form-container');
                         formContainer.innerHTML = '';
-                        response.data.sales.details.forEach(function(data) {   
+                        response.data.sales.details.forEach(function(data) {
                             var newFormWrapper = document.createElement('tr');
                             newFormWrapper.classList.add('form-wrapper');
-                        
+
                             var formTemplate = `
                             <td></td>
                             <td>
@@ -1061,19 +1061,19 @@
 
                             newFormWrapper.innerHTML = formTemplate;
                             var desc = newFormWrapper.querySelector('.description-input');
-                            desc.value = data.description; 
+                            desc.value = data.description;
                             var remarkInput = newFormWrapper.querySelector('.remark-input');
-                            remarkInput.value = data.remark; 
+                            remarkInput.value = data.remark;
                             var quantity = newFormWrapper.querySelector('.qty-input');
-                            quantity.value = data.quantity; 
+                            quantity.value = data.quantity;
                             var discount = newFormWrapper.querySelector('.discount-input');
-                            discount.value = data.discount_nominal;   
+                            discount.value = data.discount_nominal;
                             var discount_type = newFormWrapper.querySelector('.discount-type');
                             discount_type.value = data.discount_type;
                             grand_diskon += Number(data.discount);
-                            
+
                             var uom = newFormWrapper.querySelector('.uom-input');
-                            uom.value = data.uom; 
+                            uom.value = data.uom;
                             var price = newFormWrapper.querySelector('.price-input');
                             price.value = Number(data.price).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             var total = newFormWrapper.querySelector('.total-input');
@@ -1090,10 +1090,33 @@
                         $('#discount').val(Number(response.data.sales.discount_nominal).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
                         $('#discount_display').val(grand_diskon.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
                         $('#total_display').val(Number(response.data.sales.total).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-                    }   
+                    }
                 }
             });
         });
+
+        function updateTermOfPaymentByContact() {
+            var customer_id = $('#customer_id').val();
+            var url = '{{ route("finance.piutang.invoice.get-term-by-contact", ":id") }}';
+            url = url.replace(':id', customer_id);
+
+            $.ajax({
+                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                type: 'GET',
+                dataType: 'json',
+                url: url,
+                success:function(response)
+                {
+                    $('#term_payment').empty();
+                    $('#term_payment').append('<option label="Choose One" selected disabled></option>');
+                    $.each(response.data, function(key, value){
+                        $('#term_payment').append('<option value="'+value.id+':'+value.pay_days+'">'+value.name+'</option>');
+                    });
+                    // auto select first item
+                    $('#term_payment').find('option:eq(1)').prop('selected', true).trigger('change');
+                }
+            });
+        }
 
         function updateDueDate() {
             const date = $('#date_invoice').val()
@@ -1109,7 +1132,6 @@
                 $('#date_expired').val(formatDate(now))
             }
         }
-
         function formatDate(date) {
             let year = date.getFullYear();
             let month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -1140,7 +1162,7 @@
                     pajak = pajak.split(":")[1]
                 }
                 pajak = parseFloat(pajak)
-                
+
                 let total = quantity*price
                 if(discount_type === "persen") {
                     disc = (disc/100)*total
@@ -1189,7 +1211,7 @@
             var formContainer = document.getElementById('form-container');
             var newFormWrapper = document.createElement('tr');
             newFormWrapper.classList.add('form-wrapper');
-        
+
             var formTemplate = `
             <td></td>
             <td>
@@ -1240,7 +1262,7 @@
                 </div>
             </td>
             `;
-        
+
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
         });
@@ -1264,7 +1286,7 @@
             var additional = document.querySelector('input[name="additional_cost"]').value;
             if(!additional) additional = "0";
             additional = parseFloat(additional.replace(/,/g, ''))
-            
+
             var totalDetailInputs = document.querySelectorAll('input[name="total_detail"]');
             totalDetailInputs.forEach(function(input) {
                 totalDetail = input.value;
@@ -1279,7 +1301,7 @@
                 disc = (disc/100)*(total)
             }
             total -= disc
-            
+
             var { grand_disc } = calculate()
             disc +=  grand_disc
 
@@ -1298,6 +1320,7 @@
             element.closest('tr').remove();
         }
 
+
         function changeDp(element) {
             const elementCurrent = element.parentNode.nextElementSibling.style["display"]
             if(elementCurrent === "none") {
@@ -1312,7 +1335,7 @@
         document.getElementById('submit-all-form').addEventListener('click', function() {
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
-        
+
             forms.forEach(function(form) {
                 var formDataObj = {};
                 form.querySelectorAll('input, select').forEach(function(input) {
@@ -1320,14 +1343,14 @@
                 });
                 formData.push(formDataObj);
             });
-        
+
             // Menyimpan data dalam input tersembunyi untuk dikirimkan ke backend
             var hiddenInput = document.createElement('input');
             hiddenInput.setAttribute('type', 'hidden');
             hiddenInput.setAttribute('name', 'form_data');
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
-        
+
             // Mengirimkan formulir ke backend
             document.forms['dynamic-form'].submit();
         });

@@ -28,6 +28,7 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
         Route::get('/piutang/get-job-order', [FinancePiutangController::class, 'getJobOrder'])->name('get-job-order');
         Route::get('/piutang/get-marketing', [FinancePiutangController::class, 'getMarketing'])->name('get-marketing');
         Route::get('/piutang/invoice/get-sales-order', [InvoiceController::class, 'getSalesOrder'])->name('invoice.get-sales-order');
+        Route::get('/piutang/invoice/get-term-by-contact/{id}', [InvoiceController::class, 'getTermByContact'])->name('invoice.get-term-by-contact');
         Route::get('/piutang/receive/get-invoice', [ReceivePaymentController::class, 'getInvoice'])->name('receive.get-invoice');
         Route::get('/piutang/get-invoice-details', [FinancePiutangController::class, 'getInvoice'])->name('get-invoice-details');
         Route::get('/piutang/get-sales-order-details', [FinancePiutangController::class, 'getSalesOrder'])->name('get-sales-order-details');
