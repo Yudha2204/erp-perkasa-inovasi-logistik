@@ -88,6 +88,8 @@ class AccountTypeSeeder extends Seeder
                 'name' => $array_simple[$i][2],
                 'cash_flow' => $array_simple[$i][3],
                 'can_delete' => $array_simple[$i][4],
+                'normal_side' => $array_simple[$i][5],
+                'report_type' => $array_simple[$i][6],
                 'created_at' => Carbon::now()->format('Y-m-d H:i:s')
             ]);
         }
