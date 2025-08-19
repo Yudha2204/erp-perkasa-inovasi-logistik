@@ -51,8 +51,8 @@ class AccountDataController extends Controller
 
         $accountTypes = AccountType::all();
         $currencies = MasterCurrency::all();
-        $headerAccounts = MasterAccount::where('account_type', 'header')->get();
-        
+        $headerAccounts = MasterAccount::where('type', 'header')->get();
+
         return view('financedatamaster::account.index', compact('accounts', 'accountTypes', 'currencies', 'headerAccounts'));
     }
 
@@ -75,7 +75,7 @@ class AccountDataController extends Controller
                 'code'     => 'required|unique:master_account',
                 'account_name'   => 'required'
             ]);
-    
+
             if ($validator->fails()) {
                 $account = MasterAccount::where('code', $request->code)
                             ->where('master_currency_id', $request->master_currency_id)
@@ -94,10 +94,10 @@ class AccountDataController extends Controller
                 'account_name'   => 'required'
                ],
                [
-                 'code.unique'=> 'The code '.$request->code.' has already been taken', // custom message 
+                 'code.unique'=> 'The code '.$request->code.' has already been taken', // custom message
                 ]
             );
-    
+
             if ($validator->fails()) {
                 $account = MasterAccount::where('code', $request->code)
                             ->where('master_currency_id', $request->master_currency_id)
@@ -115,14 +115,14 @@ class AccountDataController extends Controller
             'id' => $request->id
         ],
         [
-            'account_type_id' => $request->account_type_id, 
-            'code' => $request->code, 
+            'account_type_id' => $request->account_type_id,
+            'code' => $request->code,
             'account_name' => $request->account_name,
             'master_currency_id' => $request->master_currency_id,
             'account_type' => $request->account_type,
             'account_parent' => $request->account_parent,
             'can_delete' => 1
-        ]); 
+        ]);
 
         toast('Data Saved Successfully!','success');
         return redirect()->back();
@@ -134,11 +134,11 @@ class AccountDataController extends Controller
             'id' => $request->id_balance_account
         ],
         [
-            'master_account_id' => $request->id_account, 
-            'transaction_type_id' => 1, 
+            'master_account_id' => $request->id_account,
+            'transaction_type_id' => 1,
             'debit' => $request->debit ?? 0,
             'credit' => $request->credit ?? 0,
-        ]); 
+        ]);
 
         toast('Data Saved Successfully!','success');
         return redirect()->back();
@@ -156,7 +156,7 @@ class AccountDataController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $data
-        ]); 
+        ]);
     }
 
     /**
@@ -168,7 +168,7 @@ class AccountDataController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $data
-        ]); 
+        ]);
     }
 
     /**
