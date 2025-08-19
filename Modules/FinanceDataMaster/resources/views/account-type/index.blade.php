@@ -83,7 +83,7 @@
                                                             <form id="delete-{{$a->id}}" action="{{route('finance.master-data.account-type.destroy',$a->id)}}" style="display: none;" method="POST">
                                                                 @csrf
                                                                 @method('DELETE')
-                                                            </form>    
+                                                            </form>
                                                         @endif
                                                     </div>
                                                 </td>
@@ -142,10 +142,27 @@
                                 <input type="text" name="name" value="{{ old('name') }}" id="name" class="form-control">
                             </div>
                             <div class="form-group">
+                                <label>Normal Side</label>
+                                <select class="form-control select2 form-select"
+                                    data-placeholder="Choose one" name="normal_side">
+                                    <option {{ old('normal_side') == 'debit' ? "selected" : "" }} value="debit">Debit</option>
+                                    <option {{ old('normal_side') == 'credit' ? "selected" : "" }} value="credit">Kredit</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Report Type</label>
+                                <select class="form-control select2 form-select"
+                                    data-placeholder="Choose one" name="report_type">
+                                    <option {{ old('report_type') == 'BS' ? "selected" : "" }} value="BS">BS</option>
+                                    <option {{ old('report_type') == 'PL' ? "selected" : "" }} value="PL">PL</option>
+                                    <option {{ old('report_type') == 'NONE' ? "selected" : "" }} value="NONE">NONE</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label>Cash Flow</label>
                                 <select class="form-control select2 form-select"
                                     data-placeholder="Choose one" name="cash_flow">
-                                    <option {{ old('cash_flow') == 0 ? "selected" : "" }} value="0">Undefined</option>
+                                    <option {{ old('cash_flow') == 0 ? "selected" : "" }} value="0">Null</option>
                                     <option {{ old('cash_flow') == 1 ? "selected" : "" }} value="1">Operation Activities</option>
                                     <option {{ old('cash_flow') == 2 ? "selected" : "" }} value="2">Investing Activities</option>
                                     <option {{ old('cash_flow') == 3 ? "selected" : "" }} value="3">Financing Activities</option>
@@ -195,6 +212,23 @@
                             <div class="form-group">
                                 <label>Name</label>
                                 <input type="text" name="name" id="name_edit" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Normal Side</label>
+                                <select class="form-control select2 form-select"
+                                    data-placeholder="Choose one" name="normal_side" id="normal_side_edit">
+                                    <option value="debit">Debit</option>
+                                    <option value="credit">Credit</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Report Type</label>
+                                <select class="form-control select2 form-select"
+                                    data-placeholder="Choose one" name="report_type" id="report_type_edit">
+                                    <option  value="BS">BS</option>
+                                    <option value="PL">PL</option>
+                                    <option value="NONE">NONE</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Cash Flow</label>
@@ -249,10 +283,27 @@
                             <input type="text" name="name" id="name_show" class="form-control" disabled>
                         </div>
                         <div class="form-group">
+                            <label>Normal Side</label>
+                            <select class="form-control select2 form-select"
+                                data-placeholder="Choose one" name="normal_side" id="normal_side_show" disabled>
+                                <option value="debit">Debit</option>
+                                <option value="credit">Credit</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Report Type</label>
+                            <select class="form-control select2 form-select"
+                                data-placeholder="Choose one" name="report_type" id="report_type_show" disabled>
+                                <option  value="BS">BS</option>
+                                <option value="PL">PL</option>
+                                <option value="NONE">NONE</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label>Cash Flow</label>
                             <select class="form-control select2 form-select"
                                 data-placeholder="Choose one" name="cash_flow" id="cash_flow_show" disabled>
-                                <option value="0">Undefined</option>
+                                <option value="0">Null</option>
                                 <option value="1">Operation Activities</option>
                                 <option value="2">Investing Activities</option>
                                 <option value="3">Financing Activities</option>
@@ -284,12 +335,15 @@
             dataType: 'json',
             url: url,
             success:function(response){
+                console.log(response);
                     // //fill data to form
                     $('#id_edit').val(response.data.id);
                     $("#classification_id_edit").val(response.data.classification_id).change();
                     $('#code_edit').val(response.data.code);
                     $('#name_edit').val(response.data.name);
-                    $("#cash_flow_edit").val(response.data.cash_flow).change();
+                    $('#normal_side_edit').val(response.data.normal_side).trigger('change');
+                    $('#report_type_edit').val(response.data.report_type).trigger('change');
+                    $("#cash_flow_edit").val(response.data.cash_flow).trigger('change');
 
                     $('#modal-edit').modal('show');
                 }
@@ -313,6 +367,8 @@
                     $("#classification_id_show").val(response.data.classification_id).change();
                     $('#code_show').val(response.data.code);
                     $('#name_show').val(response.data.name);
+                    $('#normal_side_show').val(response.data.normal_side).trigger('change');
+                    $('#report_type_show').val(response.data.report_type).trigger('change');
                     $("#cash_flow_show").val(response.data.cash_flow).change();
 
                     $('#modal-show').modal('show');

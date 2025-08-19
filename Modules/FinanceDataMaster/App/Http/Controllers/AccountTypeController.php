@@ -38,7 +38,7 @@ class AccountTypeController extends Controller
         }
 
         $classifications = ClassificationAccountType::all();
-        
+
         return view('financedatamaster::account-type.index', compact('accountTypes', 'classifications'));
     }
 
@@ -60,10 +60,12 @@ class AccountTypeController extends Controller
             $validator = Validator::make($request->all(), [
                 'code'     => 'required|unique:account_type',
                 'name'   => 'required',
+                'report_type' => 'required',
+                'normal_side' => 'required',
                 'cash_flow' => 'required',
                 'classification_id' => 'required'
             ]);
-    
+
             if ($validator->fails()) {
                 toast('failed to add data!','error');
                 return redirect()->back()
@@ -75,14 +77,16 @@ class AccountTypeController extends Controller
             $validator = Validator::make($request->all(),[
                 'code'     => 'required|unique:account_type,code,'.$request->id,
                 'name'   => 'required',
+                'report_type' => 'required',
+                'normal_side' => 'required',
                 'cash_flow' => 'required',
                 'classification_id' => 'required'
                ],
                [
-                 'code.unique'=> 'The code '.$request->code.' has already been taken', // custom message 
+                 'code.unique'=> 'The code '.$request->code.' has already been taken', // custom message
                 ]
             );
-    
+
             if ($validator->fails()) {
                 toast('failed to update data!','error');
                 return redirect()->back()
@@ -94,12 +98,14 @@ class AccountTypeController extends Controller
             'id' => $request->id
         ],
         [
-            'classification_id' => $request->classification_id, 
-            'code' => $request->code, 
+            'classification_id' => $request->classification_id,
+            'code' => $request->code,
             'name' => $request->name,
+            'report_type' => $request->report_type,
+            'normal_side' => $request->normal_side,
             'cash_flow' => $request->cash_flow,
             'can_delete' => 1
-        ]); 
+        ]);
 
         toast('Data Saved Successfully!','success');
         return redirect()->back();
@@ -114,7 +120,7 @@ class AccountTypeController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $data
-        ]); 
+        ]);
     }
 
     /**
@@ -126,7 +132,7 @@ class AccountTypeController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $data
-        ]); 
+        ]);
     }
 
     /**
