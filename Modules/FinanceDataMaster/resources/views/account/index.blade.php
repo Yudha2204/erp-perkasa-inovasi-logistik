@@ -151,6 +151,14 @@
                         <form action="{{ route('finance.master-data.account.store') }}" method="POST">
                             @csrf
                             <div class="form-group">
+                                <label>Type</label>
+                                <select class="form-control select2 form-select"
+                                    data-placeholder="Choose one" name="type">
+                                    <option value="header">Header</option>
+                                    <option value="detail">Detail</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label>Classification</label>
                                 <select class="form-control select2 form-select"
                                     data-placeholder="Choose one" name="account_type_id">
@@ -166,14 +174,6 @@
                             <div class="form-group">
                                 <label>Account Name</label>
                                 <input type="text" name="account_name" value="{{ old('account_name') }}" id="account_name" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label>Type</label>
-                                <select class="form-control select2 form-select"
-                                    data-placeholder="Choose one" name="type">
-                                    <option value="header">Header</option>
-                                    <option value="detail">Detail</option>
-                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Parent</label>
@@ -268,6 +268,14 @@
                             @csrf
                             <input type="hidden" name="id" id="id_edit">
                             <div class="form-group">
+                                <label>Type</label>
+                                <select class="form-control select2 form-select"
+                                    data-placeholder="Choose one" name="type_edit">
+                                    <option value="header">Header</option>
+                                    <option value="detail">Detail</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label>Account Type</label>
                                 <select class="form-control select2 form-select"
                                     data-placeholder="Choose one" name="account_type_id" id="account_type_id_edit">
@@ -285,19 +293,12 @@
                                 <input type="text" name="account_name" id="account_name_edit" class="form-control">
                             </div>
                             <div class="form-group">
-                                <label>Type</label>
-                                <select class="form-control select2 form-select"
-                                    data-placeholder="Choose one" name="type_edit" disabled>
-                                    <option value="header">Header</option>
-                                    <option value="detail">Detail</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
                                 <label>Parent</label>
                                 <select class="form-control select2 form-select"
-                                    data-placeholder="Choose one" name="parent_edit" disabled>
+                                    data-placeholder="Choose one" name="parent_edit">
+                                    <option>Not Selected</option>
                                     @foreach ($headerAccounts as $account)
-                                        <option {{ old('parent') == $account->id ? "selected" : "" }} value="{{ $account->id }}">{{ $account->code }} - {{ $account->account_name }}</option>
+                                        <option value="{{ $account->id }}">{{ $account->code }} - {{ $account->account_name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -336,6 +337,14 @@
                 <div class="row">
                     <div class="col-md-12">
                         <div class="form-group">
+                            <label>Type</label>
+                            <select class="form-control select2 form-select"
+                                data-placeholder="Choose one" name="type_show" disabled>
+                                <option value="header">Header</option>
+                                <option value="detail">Detail</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label>Account Type</label>
                             <select class="form-control select2 form-select"
                                 data-placeholder="Choose one" name="account_type_id" id="account_type_id_show" disabled>
@@ -351,14 +360,6 @@
                         <div class="form-group">
                             <label>Account Name</label>
                             <input type="text" name="account_name" id="account_name_show" class="form-control" disabled>
-                        </div>
-                        <div class="form-group">
-                            <label>Type</label>
-                            <select class="form-control select2 form-select"
-                                data-placeholder="Choose one" name="type_show" disabled>
-                                <option value="header">Header</option>
-                                <option value="detail">Detail</option>
-                            </select>
                         </div>
                         <div class="form-group">
                             <label>Parent</label>
@@ -408,31 +409,41 @@
 @endsection
 @push('scripts')
     <script>
-    $('select[name="parent"]').closest('.form-group').hide();
-    $('select[name="parent"]').val("");
 
     // Show/hide Account Header field based on Account Type selection
     $('select[name="type"]').on('change', function() {
         if ($(this).val() === 'detail') {
             $('select[name="parent"]').closest('.form-group').show();
+            $('select[name="account_type_id"]').closest('.form-group').show();
+            $('select[name="master_currency_id"]').closest('.form-group').show();
         } else {
             $('select[name="parent"]').val("");
+            $('select[name="account_type_id"]').val("");
+            $('select[name="master_currency_id"]').val("");
             $('select[name="parent"]').closest('.form-group').hide();
+            $('select[name="account_type_id"]').closest('.form-group').hide();
+            $('select[name="master_currency_id"]').closest('.form-group').hide();
         }
     });
 
     $('select[name="type_edit"]').on('change', function() {
         if ($(this).val() === 'detail') {
             $('select[name="parent_edit"]').closest('.form-group').show();
+            $('select[name="account_type_id_edit"]').closest('.form-group').show();
+            $('select[name="master_currency_id_edit"]').closest('.form-group').show();
         } else {
             $('select[name="parent_edit"]').val("");
+            $('select[name="account_type_id_edit"]').val("");
+            $('select[name="master_currency_id_edit"]').val("");
             $('select[name="parent_edit"]').closest('.form-group').hide();
+            $('select[name="account_type_id_edit"]').closest('.form-group').hide();
+            $('select[name="master_currency_id_edit"]').closest('.form-group').hide();
         }
     });
 
     // On page load, trigger change to set initial state
     $(document).ready(function() {
-        $('#account_type').trigger('change');
+        $('select[name="type"]').val("header").change();
     });
     
     //create beginning balance
@@ -482,17 +493,9 @@
                     $("#account_type_id_edit").val(response.data.account_type_id).change();
                     $('#code_edit').val(response.data.code);
                     $('#account_name_edit').val(response.data.account_name);
-                    $("#type_show").val(response.data.type).change();
-
-                    if (response.data.type == 'detail') {
-                        $("#parent_show").show();
-                        $("#parent_show").val(response.data.parent).change();
-                    } else {
-                        $("#parent_show").hide();
-                    }
-
+                    $("#type_edit").val(response.data.type).change();
+                    $("#parent_edit").val(response.data.parent).change();
                     $("#master_currency_id_edit").val(response.data.master_currency_id).change();
-
                     $('#modal-edit').modal('show');
                 }
         });
@@ -517,13 +520,7 @@
                     $('#account_name_show').val(response.data.account_name);
                     $("#master_currency_id_show").val(response.data.master_currency_id).change();
                     $("#type_show").val(response.data.type).change();
-                    if (response.data.type == 'detail') {
-                        $("#parent_show").show();
-                        $("#parent_show").val(response.data.parent).change();
-                    } else {
-                        $("#parent_show").hide();
-                    }
-
+                    $("#parent_show").val(response.data.parent).change();
                     $('#credit_show').val(response.data.credit);
                     $('#debit_show').val(response.data.debit);
 

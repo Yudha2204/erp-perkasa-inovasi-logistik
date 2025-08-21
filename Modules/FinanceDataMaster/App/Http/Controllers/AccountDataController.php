@@ -115,12 +115,12 @@ class AccountDataController extends Controller
             'id' => $request->id
         ],
         [
-            'account_type_id' => $request->account_type_id,
+            'account_type_id' => $request->account_type_id ?? null,
             'code' => $request->code,
             'account_name' => $request->account_name,
-            'master_currency_id' => $request->master_currency_id,
+            'master_currency_id' => $request->master_currency_id ?? null,
             'type' => $request->type,
-            'parent' => $request->parent,
+            'parent' => $request->parent ?? null,
             'can_delete' => 1
         ]);
 
