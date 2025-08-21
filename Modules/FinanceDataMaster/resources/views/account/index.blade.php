@@ -50,6 +50,7 @@
                                         <tr>
                                             <th>No</th>
                                             <th>Code</th>
+                                            <th>Type</th>
                                             <th>Account Name</th>
                                             <th>Account Type</th>
                                             <th>Currency</th>
@@ -62,9 +63,10 @@
                                             <tr>
                                                 <td>{{ $accounts->firstItem() + $key }}</td>
                                                 <td>{{ $a->code }}</td>
+                                                <td>{{ \Illuminate\Support\Str::title($a->type) }}</td>
                                                 <td>{{ $a->account_name }}</td>
-                                                <td>{{ $a->account_type->name }}</td>
-                                                <td>{{ $a->currency->initial }}</td>
+                                                <td>{{ $a->account_type?->name ?? '-' }}</td>
+                                                <td>{{ $a->currency?->initial ?? '-'}}</td>
                                                 <td>
                                                     @php
                                                         $grand_total = 0;
@@ -270,7 +272,7 @@
                             <div class="form-group">
                                 <label>Type</label>
                                 <select class="form-control select2 form-select"
-                                    data-placeholder="Choose one" name="type_edit">
+                                    data-placeholder="Choose one" name="type" id="type_edit">
                                     <option value="header">Header</option>
                                     <option value="detail">Detail</option>
                                 </select>
@@ -295,7 +297,7 @@
                             <div class="form-group">
                                 <label>Parent</label>
                                 <select class="form-control select2 form-select"
-                                    data-placeholder="Choose one" name="parent_edit">
+                                    data-placeholder="Choose one" name="parent" id="parent_edit">
                                     <option>Not Selected</option>
                                     @foreach ($headerAccounts as $account)
                                         <option value="{{ $account->id }}">{{ $account->code }} - {{ $account->account_name }}</option>
@@ -339,7 +341,7 @@
                         <div class="form-group">
                             <label>Type</label>
                             <select class="form-control select2 form-select"
-                                data-placeholder="Choose one" name="type_show" disabled>
+                                data-placeholder="Choose one" name="type" id="type_show" disabled>
                                 <option value="header">Header</option>
                                 <option value="detail">Detail</option>
                             </select>
@@ -364,7 +366,7 @@
                         <div class="form-group">
                             <label>Parent</label>
                             <select class="form-control select2 form-select"
-                                data-placeholder="Choose one" name="parent_show" disabled>
+                                data-placeholder="Choose one" name="parent" id="parent_show" disabled>
                                 @foreach ($headerAccounts as $account)
                                     <option {{ old('parent') == $account->id ? "selected" : "" }} value="{{ $account->id }}">{{ $account->code }} - {{ $account->account_name }}</option>
                                 @endforeach
@@ -426,21 +428,6 @@
         }
     });
 
-    $('select[name="type_edit"]').on('change', function() {
-        if ($(this).val() === 'detail') {
-            $('select[name="parent_edit"]').closest('.form-group').show();
-            $('select[name="account_type_id_edit"]').closest('.form-group').show();
-            $('select[name="master_currency_id_edit"]').closest('.form-group').show();
-        } else {
-            $('select[name="parent_edit"]').val("");
-            $('select[name="account_type_id_edit"]').val("");
-            $('select[name="master_currency_id_edit"]').val("");
-            $('select[name="parent_edit"]').closest('.form-group').hide();
-            $('select[name="account_type_id_edit"]').closest('.form-group').hide();
-            $('select[name="master_currency_id_edit"]').closest('.form-group').hide();
-        }
-    });
-
     // On page load, trigger change to set initial state
     $(document).ready(function() {
         $('select[name="type"]').val("header").change();
@@ -482,6 +469,7 @@
         var url = "{{ route('finance.master-data.account.edit', ":id") }}";
         url = url.replace(':id', id);
 
+        debugger
         $.ajax({
             headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
             type: 'GET',
