@@ -119,8 +119,8 @@ class AccountDataController extends Controller
             'code' => $request->code,
             'account_name' => $request->account_name,
             'master_currency_id' => $request->master_currency_id,
-            'account_type' => $request->account_type,
-            'account_parent' => $request->account_parent,
+            'type' => $request->type,
+            'parent' => $request->parent,
             'can_delete' => 1
         ]);
 
