@@ -1,4 +1,4 @@
-version: '3.8'
+# version: '3.8'
 
 services:
   app:
@@ -28,4 +28,4 @@ services:
       MYSQL_DATABASE: aplpil_dev
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_PASSWORD: aplpil_password
-      MYSQL_USER: aplpil_user 
+      MYSQL_USER: aplpil_user

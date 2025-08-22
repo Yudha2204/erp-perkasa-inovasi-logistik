@@ -1,0 +1,2 @@
+GRANT ALL PRIVILEGES ON aplpil.* TO 'aplpil_user'@'%';
+FLUSH PRIVILEGES;

@@ -41,7 +41,7 @@ RUN chown -R www-data:www-data /var/www \
     && chmod -R 755 /var/www/bootstrap/cache
 
 # Create .env file if it doesn't exist
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
+RUN if [ ! -f .env ]; then cp env.docker.example .env; fi
 
 # Generate application key
 RUN php artisan key:generate
@@ -58,4 +58,4 @@ RUN npm install && npm run build
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
-CMD ["php-fpm"] 
+CMD ["php-fpm"]

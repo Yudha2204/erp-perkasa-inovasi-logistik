@@ -41,10 +41,11 @@ services:
       SERVICE_TAGS: dev
       SERVICE_NAME: mysql
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - dbdata:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
+      - ./docker/mysql/my.cnf:/etc/mysql/init.sql
     networks:
       - aplpil_network
 
@@ -92,4 +93,4 @@ volumes:
 
 networks:
   aplpil_network:
-    driver: bridge 
+    driver: bridge
