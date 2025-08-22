@@ -20,7 +20,7 @@
                             <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #467FF7;">Buku Besar</p>
                             <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #B14F4B;">{{ \Carbon\Carbon::parse($startDate)->format('j F, Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('j F, Y') }}</p>
                             <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #B14F4B;">
-                                Currency: 
+                                Currency:
                                 {{ $currency->initial }}
                             </p>
                        </div>
@@ -57,12 +57,12 @@
                                 $grandDebit = 0;
                                 $grandKredit = 0;
                             @endphp
-                            
+
                             @foreach ($groupedData as $type)
                                 @php
                                     $filteredData = collect($type['data'])->filter(fn($d) => ($d['total_debit'] ?? 0) != 0 || ($d['total_kredit'] ?? 0) != 0);
                                 @endphp
-                            
+
                                 @if($filteredData->isNotEmpty())
                                     <tr style="background-color:#F0F6F9;">
                                         <td style="cursor: pointer;" onclick="arrow(this)" class="tableTd">
@@ -75,31 +75,31 @@
                                         </td>
                                         <td></td><td></td><td></td><td></td><td></td><td></td>
                                     </tr>
-                            
+
                                     @php
                                         // RESET saldo per akun
                                         $runningSaldoAkun = 0;
-                            
+
                                         // tentukan normal side akun
-                                        $normalDebit = in_array(strtolower($type['master_account']->account_type->normal_side ?? 'debit'), ['debit']);
-                            
+                                        $normalDebit = in_array(strtolower($type['master_account']->account_type->classification->normal_side ?? 'debit'), ['debit']);
+
                                         // pastikan data diurutkan juga di view (jaga-jaga)
                                         $rows = $filteredData->sortBy('created_at');
-                            
+
                                         // total per akun
                                         $debitAkun = 0;
                                         $kreditAkun = 0;
                                     @endphp
-                            
+
                                     @foreach ($rows as $data)
                                         @php
                                             $debit  = (float)($data['total_debit'] ?? 0);
                                             $kredit = (float)($data['total_kredit'] ?? 0);
-                            
+
                                             // akumulasi per akun & grand total
                                             $debitAkun  += $debit;  $grandDebit  += $debit;
                                             $kreditAkun += $kredit; $grandKredit += $kredit;
-                            
+
                                             // DELTA saldo sesuai normal side
                                             $delta = $normalDebit ? ($debit - $kredit) : ($kredit - $debit);
                                             $runningSaldoAkun += $delta;
@@ -125,11 +125,11 @@
                                             </td>
                                             <td>{{ $data['transaksi']->transaction ?? '' }}</td>
                                             <td>{{ $data['transaksi']->description ?? '' }}</td>
-                            
+
                                             {{-- ✅ debit & kredit selalu POSITIF di tampilan --}}
                                             <td>{{ number_format($debit, 2, '.', ',') }}</td>
                                             <td>{{ number_format($kredit, 2, '.', ',') }}</td>
-                            
+
                                             {{-- saldo berjalan per akun, tanpa manipulasi tanda di kredit --}}
                                             <td>
                                                 {{ round($runningSaldoAkun,2) == 0 ? '0.00'
@@ -143,7 +143,7 @@
                                     @endforeach
                                 @endif
                             @endforeach
-                            
+
                             {{-- GRAND TOTAL (semua akun) --}}
                             <tr style="background-color:#597FB3;">
                                 <th style="color:white;"></th>
@@ -155,7 +155,7 @@
                                 <th style="color:white;">{{ number_format($grandKredit, 2, '.', ',') }}</th>
                                 <th style="color:white;"></th>
                             </tr>
-                            
+
                             </tbody>
                         </table>
                     </div>
@@ -194,22 +194,22 @@
                 var tableTd = document.querySelectorAll(".tableTd");
 
                 if (printButton.style.display === "none") {
-                    printButton.style.display = "block"; 
+                    printButton.style.display = "block";
                 } else {
-                    printButton.style.display = "none"; 
+                    printButton.style.display = "none";
                 }
                 if (printTitle.style.display === "none") {
-                    printTitle.style.display = "block"; 
+                    printTitle.style.display = "block";
                 } else {
-                    printTitle.style.display = "none"; 
+                    printTitle.style.display = "none";
                 }
                 if (printIcon.style.display === "none") {
-                    printIcon.style.display = "block"; 
+                    printIcon.style.display = "block";
                 } else {
-                    printIcon.style.display = "none"; 
+                    printIcon.style.display = "none";
                 }
                 if (titleTop.style.display === "none") {
-                    titleTop.style.display = "block"; 
+                    titleTop.style.display = "block";
                 } else {
                     titleTop.style.display = "none";
                 }
@@ -231,12 +231,12 @@
                     }
                 });
             });
-            
+
             document.getElementById("print").addEventListener("click", function() {
                 var printContent = document.getElementById("onPrint");
                 var originalContents = document.body.innerHTML;
                 var exportButton = document.getElementById("print");
-                exportButton.style.display = 'none'; 
+                exportButton.style.display = 'none';
                 var backBtn = document.getElementById("back-btn");
                 backBtn.style.display = 'none';
                 document.body.innerHTML = printContent.innerHTML;
