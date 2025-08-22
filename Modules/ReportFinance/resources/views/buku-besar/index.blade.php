@@ -81,7 +81,7 @@
                                         $runningSaldoAkun = 0;
 
                                         // tentukan normal side akun
-                                        $normalDebit = in_array(strtolower($type['master_account']->account_type->classification->normal_side ?? 'debit'), ['debit']);
+                                        $normalDebit = in_array(strtolower($type['master_account']->account_type->normal_side ?? 'debit'), ['debit']);
 
                                         // pastikan data diurutkan juga di view (jaga-jaga)
                                         $rows = $filteredData->sortBy('created_at');

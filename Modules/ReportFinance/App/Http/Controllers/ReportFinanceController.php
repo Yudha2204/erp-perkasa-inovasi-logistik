@@ -51,7 +51,7 @@ class ReportFinanceController extends Controller
                     ->orderBy('date', 'asc')
                     ->orderBy('id', 'asc');
                 },
-                'account_type:id,code,name,classification_id', // sesuaikan kolom di account_types
+                'account_type:id,code,name,classification_id,normal_side,report_type', // sesuaikan kolom di account_types
                 'account_type.classification:id,code,classification,normal_side,report_type',
             ])
 
@@ -141,17 +141,17 @@ class ReportFinanceController extends Controller
 
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
-        if($start_datepicker){ 
+        if($start_datepicker){
             $startDate = date('Y-m-d', strtotime($start_datepicker));
         }
         if($end_datepicker){
-            $endDate = date('Y-m-d', strtotime($end_datepicker)); 
+            $endDate = date('Y-m-d', strtotime($end_datepicker));
         }
 
         $groupedData = $this->BukuBesarFilter($startDate, $endDate, $currency_id);
 
         $currency = MasterCurrency::find($currency_id);
-        
+
         return view('reportfinance::buku-besar.index', compact('groupedData', 'startDate', 'endDate', 'currency'));
     }
 
@@ -165,16 +165,16 @@ class ReportFinanceController extends Controller
             $startDate = Carbon::create($year, $month, 1)->startOfMonth();
             $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-            $monthBukuBesar = $this->BukuBesarFilter($startDate, $endDate, $currency_id);   
+            $monthBukuBesar = $this->BukuBesarFilter($startDate, $endDate, $currency_id);
             $yearBukuBesar["month_name"][] = $startDate->format('F');
             $yearBukuBesar["data"][] = $monthBukuBesar;
         }
 
         $currency = MasterCurrency::find($currency_id);
-        
+
         return view('reportfinance::buku-besar.year', compact('yearBukuBesar', 'startDate', 'endDate', 'currency', 'year'));
     }
-    
+
     public function JurnalUmum(Request $request)
     {
         $currency = $request->currency;
@@ -186,15 +186,15 @@ class ReportFinanceController extends Controller
 
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
-        if($start_picker){ 
+        if($start_picker){
             $startDate = date('Y-m-d', strtotime($start_picker));
         }
         if($end_picker){
-            $endDate = date('Y-m-d', strtotime($end_picker)); 
+            $endDate = date('Y-m-d', strtotime($end_picker));
         }
 
         $query->whereBetween('date', [$startDate, $endDate]);
-        
+
         if ($currency) {
             $query->whereHas('master_account', function ($query) use ($currency) {
                 $query->where('master_currency_id', $currency);
@@ -218,35 +218,35 @@ class ReportFinanceController extends Controller
     {
         $currency = $request->currency;
         $year = $request->year;
-    
+
         $query = BalanceAccount::query()
             ->with('master_account', 'transaction_type');
-    
+
         $startDate = date('Y-m-d', strtotime("first day of January $year"));
         $endDate = date('Y-m-d', strtotime("last day of December $year"));
-    
+
         $query->whereBetween('date', [$startDate, $endDate]);
-    
+
         if ($currency) {
             $query->whereHas('master_account', function ($query) use ($currency) {
                 $query->where('master_currency_id', $currency);
             });
         }
-    
+
         $balanceAccountData = $query->get();
-    
+
         $groupedData = [];
-    
+
         foreach ($balanceAccountData as $data) {
             $month = Carbon::parse($data->date)->format('F');
             $groupedData[$month][$data->transaction_type_id][$data->transaction_id] = $data->getTransaction();
         }
-    
+
         $currency = MasterCurrency::find($currency);
-    
+
         return view('reportfinance::jurnal-umum.year', compact('groupedData','startDate','endDate','currency', 'year'));
     }
-    
+
 
     public function ArusKas(Request $request)
     {
@@ -256,11 +256,11 @@ class ReportFinanceController extends Controller
 
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
-        if($start_datepicker){ 
+        if($start_datepicker){
             $startDate = date('Y-m-d', strtotime($start_datepicker));
         }
         if($end_datepicker){
-            $endDate = date('Y-m-d', strtotime($end_datepicker)); 
+            $endDate = date('Y-m-d', strtotime($end_datepicker));
         }
 
         $account = $this->ArusKasFilter($startDate, $endDate, $currency_id);
@@ -279,7 +279,7 @@ class ReportFinanceController extends Controller
             $startDate = Carbon::create($year, $month, 1)->startOfMonth();
             $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-            $monthCashFlow = $this->ArusKasFilter($startDate, $endDate, $currency_id);   
+            $monthCashFlow = $this->ArusKasFilter($startDate, $endDate, $currency_id);
             $yearCashFlow["month_name"][] = $startDate->format('F');
             $yearCashFlow["data"][] = $monthCashFlow;
         }
@@ -316,11 +316,11 @@ class ReportFinanceController extends Controller
 
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
-        if($start_datepicker){ 
+        if($start_datepicker){
             $startDate = date('Y-m-d', strtotime($start_datepicker));
         }
         if($end_datepicker){
-            $endDate = date('Y-m-d', strtotime($end_datepicker)); 
+            $endDate = date('Y-m-d', strtotime($end_datepicker));
         }
 
         $labaRugi = $this->LabaRugiFilter($startDate, $endDate, $currency_id);
@@ -329,7 +329,7 @@ class ReportFinanceController extends Controller
         $beban_operasional = $labaRugi["beban_operasional"];
 
         $currency = MasterCurrency::find($currency_id);
-        
+
 
         return view('reportfinance::laba-rugi.spesific', compact('currency','startDate','endDate','pendapatan','beban','beban_operasional'));
     }
@@ -343,7 +343,7 @@ class ReportFinanceController extends Controller
             $startDate = Carbon::create($year, $month, 1)->startOfMonth();
             $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-            $monthProfitLoss = $this->LabaRugiFilter($startDate, $endDate, $currency_id);   
+            $monthProfitLoss = $this->LabaRugiFilter($startDate, $endDate, $currency_id);
             $yearProfitLoss["month_name"][] = $startDate->format('F');
             $yearProfitLoss["data"][] = [
                "pendapatan" => $monthProfitLoss["pendapatan"],
@@ -415,11 +415,11 @@ class ReportFinanceController extends Controller
         $end_datepicker = $request->end_date_neraca;
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
-        if($start_datepicker){ 
+        if($start_datepicker){
             $startDate = date('Y-m-d', strtotime($start_datepicker));
         }
         if($end_datepicker){
-            $endDate = date('Y-m-d', strtotime($end_datepicker)); 
+            $endDate = date('Y-m-d', strtotime($end_datepicker));
         }
 
         $filter = $this->NeracaSaldoFilter($startDate, $endDate, $currency_id);
@@ -429,7 +429,7 @@ class ReportFinanceController extends Controller
 
         return view('reportfinance::neraca-saldo.spesific', compact('startDate', 'endDate','currency','masterAccounts', 'footer'));
     }
-    
+
     private function NeracaSaldoFilter($startDate, $endDate, $currency)
     {
         $masterAccounts = MasterAccount::whereHas('balance_accounts', function ($query) use ($startDate, $endDate) {
@@ -444,7 +444,7 @@ class ReportFinanceController extends Controller
         $footer = [
             'saldoAwalDebit' => 0,
             'saldoAwalKredit' => 0,
-            'mutasDebit' => 0, 
+            'mutasDebit' => 0,
             'mutasKredit' => 0,
             'netMutasi' => 0,
             'saldoAkhirDebit' => 0,
@@ -455,8 +455,8 @@ class ReportFinanceController extends Controller
             $footer['saldoAwalDebit'] += $saldoAwal["debit"];
             $footer['saldoAwalKredit'] += $saldoAwal["kredit"];
 
-            $data = $ma->getDebitKreditAll($startDate, $endDate);            
-            $footer['mutasDebit'] += $data["debit"];    
+            $data = $ma->getDebitKreditAll($startDate, $endDate);
+            $footer['mutasDebit'] += $data["debit"];
             $footer['mutasKredit'] += $data["kredit"];
 
             $netMutation = $ma->getNetMutation($startDate, $endDate);
@@ -482,7 +482,7 @@ class ReportFinanceController extends Controller
             $startDate = Carbon::create($year, $month, 1)->startOfMonth();
             $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-            $monthTrialBalance = $this->NeracaSaldoFilter($startDate, $endDate, $currency_id);   
+            $monthTrialBalance = $this->NeracaSaldoFilter($startDate, $endDate, $currency_id);
             $yearTrialBalance["month_name"][] = $startDate->format('F');
             $yearTrialBalance["data"][] = $monthTrialBalance["masterAccounts"];
             $yearTrialBalance["total"][] = $monthTrialBalance["footer"];
@@ -501,11 +501,11 @@ class ReportFinanceController extends Controller
 
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
-        if($start_datepicker){ 
+        if($start_datepicker){
             $startDate = date('Y-m-d', strtotime($start_datepicker));
         }
         if($end_datepicker){
-            $endDate = date('Y-m-d', strtotime($end_datepicker)); 
+            $endDate = date('Y-m-d', strtotime($end_datepicker));
         }
 
         $query = Sao::with(['contact', 'currency'])
@@ -516,7 +516,7 @@ class ReportFinanceController extends Controller
 
         if ($request->has('search') && $request->search != '') {
             $query->whereHas('contact', function ($subQuery) use ($request) {
-                $subQuery->where('customer_name', 'LIKE', '%' . $request->search . '%'); 
+                $subQuery->where('customer_name', 'LIKE', '%' . $request->search . '%');
             });
         }
         $sao = [];
@@ -527,7 +527,7 @@ class ReportFinanceController extends Controller
     }
     public function PrintLaporanKeuangan($id)
     {
-        $sao = Sao::with(['contact', 'currency'])->findOrFail($id); 
+        $sao = Sao::with(['contact', 'currency'])->findOrFail($id);
         $relatedSaos = [];
         if($sao->account == 'piutang'){
             $relatedSaos = Sao::where('contact_id', $sao->contact_id)
@@ -540,7 +540,7 @@ class ReportFinanceController extends Controller
                                 ->where('isPaid', false)
                                 ->get();
         }
-    
+
         return view('reportfinance::laporan-rekening.pdf', compact('relatedSaos'));
     }
 
@@ -591,6 +591,6 @@ class ReportFinanceController extends Controller
     public function destroy($id)
     {
         //
-        // Log::info("destroy"); 
+        // Log::info("destroy");
     }
 }
