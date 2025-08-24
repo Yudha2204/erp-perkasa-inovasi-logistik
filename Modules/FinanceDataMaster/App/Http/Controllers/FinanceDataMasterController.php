@@ -69,7 +69,7 @@ class FinanceDataMasterController extends Controller
     public function getAccount(Request $request)
     {
         $currency_id = $request->currency_id;
-        $account = MasterAccount::where('master_currency_id', $currency_id)->get();
+        $account = MasterAccount::filter($request->all())->get();
 
         return response()->json([
             "message" => "Success",

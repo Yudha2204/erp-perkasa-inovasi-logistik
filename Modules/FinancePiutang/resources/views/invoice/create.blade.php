@@ -75,6 +75,17 @@
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="form-group">
+                                        <label for="coa_ar" class="form-label">Account Name</label>
+                                        <select class="form-control select2 form-select"
+                                            data-placeholder="Choose One" name="coa_ar" id="coa_ar">
+                                            <option label="Choose One" selected disabled></option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
                                         <label for="job_order" class="form-label">Job Order</label>
                                         <input type="text" class="form-control" name="job_order" id="job_order" value="{{ old('no_cipl') }}" placeholder="Link" readonly>
                                     </div>
@@ -167,14 +178,14 @@
                             <div class="row justify-content-end">
                                 <div class="col-lg-6">
                                     <table class="table mt-5">
-                                        <tr>
+                                        {{-- <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between">
                                                     Biaya Lain
                                                     <input type="text" style="width: 50%" class="form-control" id="additional_cost" name="additional_cost" value="0" />
                                                 </div>
                                             </td>
-                                        </tr>
+                                        </tr> --}}
                                         <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between">
@@ -945,6 +956,7 @@
                             option.value = item.id;
                             option.text = item.transaction;
                             selectElement.add(option);
+                            option.setAttribute("data-currency-id", item.currency_id);
                         });
                     }
                 }
@@ -963,7 +975,26 @@
 
         $('#sales_no').on('change', function() {
             var id = $(this).val();
+            var currency_id = $(this).find(':selected').data('currency-id');
             resetOption();
+            // Get Account Receivable
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route('finance.master-data.account') }}',
+                data: { 'currency_id': currency_id , 'account_type_id' :4 },
+                success: function(response) {
+                    if(response.data) {
+                        response.data.forEach(element => {
+                            const newOption = new Option(element.account_name, element.id)
+                            $('#coa_ar').append(newOption)
+                        });
+                    }
+                }
+            })
             $('#form-container').html('')
             $('#submit-all-form').hide()
             $.ajax({
@@ -1058,7 +1089,22 @@
                                 </div>
                             </td>
                             `;
+// === row baru khusus Account Name ===
+var accountRow = document.createElement('tr');
+accountRow.classList.add('account-row');
 
+accountRow.innerHTML = `
+    <td></td>
+    <td>
+        <div class="form-group">
+            <label for="coa_sales" class="form-label">Account Name</label>
+            <select class="form-control select2 form-select coa-sales-select"
+                data-placeholder="Choose One" name="coa_sales" id="coa_sales" >
+                <option label="Choose One" selected disabled></option>
+            </select>
+        </div>
+    </td>
+`;
                             newFormWrapper.innerHTML = formTemplate;
                             var desc = newFormWrapper.querySelector('.description-input');
                             desc.value = data.description;
@@ -1080,11 +1126,29 @@
                             total.value = Number(data.total).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                             formContainer.appendChild(newFormWrapper);
+                            formContainer.appendChild(accountRow);
+                            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route('finance.master-data.account') }}',
+                data: { 'currency_id': currency_id , 'account_type_id' :11 },
+                success: function(response) {
+                    if(response.data) {
+                        response.data.forEach(element => {
+                            const newOption = new Option(element.account_name, element.id)
+                            $('#coa_sales').append(newOption)
+                        });
+                    }
+                }
+            })
                         });
 
                         grand_diskon += Number(response.data.sales.discount)
 
-                        $('#additional_cost').val(Number(response.data.sales.additional_cost).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+                        // $('#additional_cost').val(Number(response.data.sales.additional_cost).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
                         $('#discount_type').val(response.data.sales.discount_type);
                         $('#discount_type').trigger('change');
                         $('#discount').val(Number(response.data.sales.discount_nominal).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
@@ -1271,11 +1335,11 @@
             $('#submit-all-form').hide()
         }
 
-        $('#additional_cost').on('change', function() {
-            hideButton()
-            var additional = $(this).val();
-            $(this).val(Number(additional.replace(/,/g, '')).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-        })
+        // $('#additional_cost').on('change', function() {
+        //     hideButton()
+        //     var additional = $(this).val();
+        //     $(this).val(Number(additional.replace(/,/g, '')).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+        // })
 
         function total() {
             var total = 0;
@@ -1283,9 +1347,9 @@
             if(!disc) disc = "0";
             disc = parseFloat(disc.replace(/,/g, ''))
 
-            var additional = document.querySelector('input[name="additional_cost"]').value;
-            if(!additional) additional = "0";
-            additional = parseFloat(additional.replace(/,/g, ''))
+            // var additional = document.querySelector('input[name="additional_cost"]').value;
+            // if(!additional) additional = "0";
+            // additional = parseFloat(additional.replace(/,/g, ''))
 
             var totalDetailInputs = document.querySelectorAll('input[name="total_detail"]');
             totalDetailInputs.forEach(function(input) {
@@ -1294,7 +1358,7 @@
                 total += parseFloat(totalDetail.replace(/,/g, '')) || 0;
             });
 
-            total += additional
+            // total += additional
 
             var discount_type = document.querySelector('select[name="discount_type"]').value;
             if(discount_type === "persen") {

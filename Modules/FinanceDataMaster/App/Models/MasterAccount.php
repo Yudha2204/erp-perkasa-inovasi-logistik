@@ -11,7 +11,7 @@ use Spatie\Permission\Traits\HasRoles;
 class MasterAccount extends Model
 {
     use HasFactory, HasRoles, SoftDeletes;
-    
+
     protected $table = 'master_account';
     protected $guarded = [];
 
@@ -74,7 +74,20 @@ class MasterAccount extends Model
         $kreditNet = $data['kredit'] - $saldoAwal['kredit'];
 
         $bigger = $kreditNet - $debitNet;
-    
+
         return $bigger;
+    }
+    public function scopeFilter($query, array $filters)
+    {
+        if (!empty($filters['currency_id'])) {
+            $query->where('master_currency_id', $filters['currency_id']);
+        }
+
+        if (!empty($filters['account_type_id'])) {
+            $query->where('account_type_id', $filters['account_type_id']);
+        }
+
+        // tambahkan filter lain sesuai kebutuhan
+        return $query;
     }
 }

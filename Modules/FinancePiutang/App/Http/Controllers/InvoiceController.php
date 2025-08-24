@@ -22,7 +22,8 @@ use Modules\Notification\App\Models\NotificationCustom;
 use Modules\ReportFinance\App\Models\Sao;
 use Modules\Setting\App\Models\LogoAddress;
 use Modules\FinanceDataMaster\App\Models\TermPaymentContact;
-
+use Modules\ExchangeRate\App\Models\ExchangeRate;
+use Illuminate\Support\Facades\DB;
 class InvoiceController extends Controller
 {
     public function __construct()
@@ -157,225 +158,249 @@ class InvoiceController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'customer_id'   => 'required',
-            'sales_no' => 'required',
-            'no_transactions'    => 'required',
-            'date_invoice' => 'required',
-            'term_payment' => 'required'
-        ], [
-            "customer_id.required" => "The customer field is required.",
-            "sales_no.required" => "The sales no field is required.",
-            "no_transaction.required" => "The transaction number is required.",
-            "date_invoice.required" => "The date is required.",
-            "term_payment.required" => "The term of payment field is required."
-        ]);
-
-        if ($validator->fails()) {
-            toast('Failed to Add Data!','error');
-            return redirect()->back()
-                        ->withErrors($validator);
-        }
-
-        $contact_id = $request->input('customer_id');
-        $sales_id = $request->input('sales_no');
-        $currency_id = SalesOrderHead::find($sales_id)->currency_id;
-        $term_payment = $request->input('term_payment');
-        $no_transactions = $request->input('no_transactions');
-        $date_invoice = $request->input('date_invoice');
-        $sell_des = $request->input('sell_des');
-        $discount_type = $request->input('discount_type');
-        $discount_nominal = $this->numberToDatabase($request->input('discount'));
-        $additional_cost = $this->numberToDatabase($request->input('additional_cost'));
-
-        $total_display = $this->numberToDatabase($request->input('total_display'));
-        $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
-        $display_dp = $this->numberToDatabase($request->input('display_dp'));
-        $discount_display = $this->numberToDatabase($request->input('discount_display'));
-
-        $exp_term = explode(":", $term_payment);
-        $exp_transaction = explode("-", $no_transactions);
-        $number = $exp_transaction[3];
-
-        $data = [
-            'contact_id' => $contact_id,
-            'sales_id' => $sales_id,
-            'term_payment' => $exp_term[0],
-            'number' => $number,
-            'currency_id' => $currency_id,
-            'date_invoice' => $date_invoice,
-            'description' => $sell_des,
-            'additional_cost' => $additional_cost,
-            'discount_type' => $discount_type,
-            'discount_nominal' => $discount_nominal,
-            'status' => "open",
-        ];
-
-        $piutang_usaha_id = MasterAccount::where('code', '110100')
-                                ->where('account_name', 'Piutang Usaha')
-                                ->where('master_currency_id', $currency_id)->first();
-        if(!$piutang_usaha_id) {
-            return redirect()->back()->withErrors(['piutang_usaha' => 'Please add the account of Piutang Usaha with code number is 110100']);
-        }
-        $piutang_usaha_id = $piutang_usaha_id->id;
-
-        $diskon_penjualan_id = MasterAccount::where('code', '440100')
-                                ->where('account_name', 'Diskon Penjualan')
-                                ->where('master_currency_id', $currency_id)->first();
-        if(!$diskon_penjualan_id) {
-            return redirect()->back()->withErrors(['diskon_penjualan' => 'Please add the account of Diskon Penjualan with code number is 440100']);
-        }
-        $diskon_penjualan_id = $diskon_penjualan_id->id;
-
-        $ppn_keluaran_id = MasterAccount::where('code', "220500")
-                                ->where('account_name', 'PPN Keluaran')
-                                ->where('master_currency_id', $currency_id)->first();
-        if(!$ppn_keluaran_id) {
-            return redirect()->back()->withErrors(['ppn_keluaran' => 'Please add the account of PPN Keluaran with code number is 220500']);
-        }
-        $ppn_keluaran_id = $ppn_keluaran_id->id;
-
-        $pendapatan_lain_id = MasterAccount::where('code', "440010")
-                                ->where('account_name', 'Pendapatan Lain')
-                                ->where('master_currency_id', $currency_id)->first();
-        if(!$pendapatan_lain_id) {
-            return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Pendapatan Lain with code number is 440010']);
-        }
-        $pendapatan_lain_id = $pendapatan_lain_id->id;
-
-        $pendapatan_jasa_id = MasterAccount::where('code', "440000")
-                                ->where('account_name', 'Pendapatan Jasa')
-                                ->where('master_currency_id', $currency_id)->first();
-        if(!$pendapatan_jasa_id) {
-            return redirect()->back()->withErrors(['pendapatan_jasa' => 'Please add the account of Pendapatan Jasa with code number is 440000']);
-        }
-        $pendapatan_jasa_id = $pendapatan_jasa_id->id;
-
-        $kas_id = MasterAccount::where('code', "110001")
-                                ->where('account_name', 'Kas')
-                                ->where('master_currency_id', $currency_id)->first();
-        if(!$kas_id) {
-            return redirect()->back()->withErrors(['kas' => 'Please add the account of Kas with code number is 110001']);
-        }
-        $kas_id = $kas_id->id;
-
-        $dp_id = MasterAccount::where('code', "220203")
-                                ->where('account_name', 'Pendapatan Diterima Di Muka')
-                                ->where('master_currency_id', $currency_id)->first();
-        if(!$dp_id) {
-            return redirect()->back()->withErrors(['dp' => 'Please add the account of Pendapatan Diterima Di Muka with code number is 220203']);
-        }
-        $dp_id = $dp_id->id;
-
-        InvoiceHead::create($data);
-        $newestInvoice = InvoiceHead::latest()->first();
-        $head_id = $newestInvoice->id;
-
-        $totBalance = 0;
-        $formData = json_decode($request->input('form_data'), true);
-        $grand_dp = 0;
-        foreach ($formData as $data) {
-            $des_detail = $data['des_detail'];
-            $renark_detail = $data['remark_detail'];
-            $qty_detail = $this->numberToDatabase($data['qty_detail']);
-            $uom_detail = $data['uom_detail'];
-            $pajak_detail = $data['pajak_detail'];
-            $price_detail = $this->numberToDatabase($data['price_detail']);
-            $discount_detail = $this->numberToDatabase($data['disc_detail']);
-            $disc_type_detail = $data['disc_type_detail'];
-
-            $exp_tax = explode(":", $pajak_detail);
-            $tax_id = $exp_tax[0];
-            if(!$tax_id) {
-                $tax_id = null;
-            }
-
-            $is_dp = $data['dp_desc'];
-            $dp_type_detail = null;
-            $dp_detail = null;
-            if($is_dp == 1) {
-                $dp_type_detail = $data['dp_type_detail'];
-                $dp_detail = $this->numberToDatabase($data['dp_detail']);
-            }
-
-            $totBalance += ($price_detail*$qty_detail);
-            $totalFull = ($price_detail*$qty_detail);
-            $discTotal = 0;
-            if($disc_type_detail === "persen") {
-                $discTotal = ($discount_detail/100)*$totalFull;
-            }else{
-                $discTotal = $discount_detail;
-            }
-            $totalFull -= $discTotal;
-            $pajak = 0;
-            if($tax_id == 2 ) {
-                $pajak += (10/100)*$totalFull;
-            } else if($tax_id == 3 ) {
-                $pajak += (5/100)*$totalFull;
-            }
-            $totalFull -= $pajak;
-            $dp = 0;
-            if($dp_type_detail == "persen") {
-                $dp += ($dp_detail/100)*$totalFull;
-            } else {
-                $dp += $dp_detail;
-            }
-            $grand_dp += $dp;
-
-            InvoiceDetail::create([
-                'head_id' => $head_id,
-                'description' => $des_detail,
-                'quantity' => $qty_detail,
-                'uom' => $uom_detail,
-                'price' => $price_detail,
-                'tax_id' => $tax_id,
-                'remark' => $renark_detail,
-                'discount_type' => $disc_type_detail,
-                'discount_nominal' => $discount_detail,
-                'dp_type' => $dp_type_detail,
-                'dp_nominal' => $dp_detail
+        DB::beginTransaction();
+        try {
+            $validator = Validator::make($request->all(), [
+                'customer_id'   => 'required',
+                'sales_no' => 'required',
+                'no_transactions'    => 'required',
+                'date_invoice' => 'required',
+                'term_payment' => 'required'
+            ], [
+                "customer_id.required" => "The customer field is required.",
+                "sales_no.required" => "The sales no field is required.",
+                "no_transaction.required" => "The transaction number is required.",
+                "date_invoice.required" => "The date is required.",
+                "term_payment.required" => "The term of payment field is required."
             ]);
-        }
 
-        $flow = [
-            //debit, kredit
-            [$total_display, 0, $piutang_usaha_id],
-            [$discount_display, 0, $diskon_penjualan_id],
-            [$display_pajak, 0, $ppn_keluaran_id],
-            [$display_dp, 0, $kas_id],
-            [0, $display_dp, $dp_id],
-            [0, $additional_cost, $pendapatan_lain_id],
-            [0, $totBalance, $pendapatan_jasa_id]
-        ];
+            if ($validator->fails()) {
+                toast('Failed to Add Data!','error');
+                return redirect()->back()
+                            ->withErrors($validator);
+            }
+            // Check Exchange Rate
+            $exchange_rate = ExchangeRate::whereDate('date', $request->input('date_invoice'))->first();
+            if (!$exchange_rate) {
+                toast('Exchange rate not found for this date!','error');
+                return redirect()->back()
+                    ->withErrors(['exchange_rate' => 'Exchange rate for this date is not available.']);
+                    // ->withInput();
+            }
+            $contact_id = $request->input('customer_id');
+            $sales_id = $request->input('sales_no');
+            $currency_id = SalesOrderHead::find($sales_id)->currency_id;
+            $term_payment = $request->input('term_payment');
+            $no_transactions = $request->input('no_transactions');
+            $date_invoice = $request->input('date_invoice');
+            $sell_des = $request->input('sell_des');
+            $discount_type = $request->input('discount_type');
+            $coa_ar = $request->input('coa_ar');
+            $coa_sales = $request->input('coa_sales');
+            $discount_nominal = $this->numberToDatabase($request->input('discount'));
+            // $additional_cost = $this->numberToDatabase($request->input('additional_cost'));
 
-        foreach ($flow as $item) {
-            $cashflowData = [
-                'transaction_id' => $head_id,
-                'master_account_id' => $item[2],
-                'transaction_type_id' => 3,
-                "date" => $date_invoice,
-                'debit' => $item[0],
-                'credit' => $item[1]
+            $total_display = $this->numberToDatabase($request->input('total_display'));
+            $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
+            $display_dp = $this->numberToDatabase($request->input('display_dp'));
+            $discount_display = $this->numberToDatabase($request->input('discount_display'));
+
+            $exp_term = explode(":", $term_payment);
+            $exp_transaction = explode("-", $no_transactions);
+            $number = $exp_transaction[3];
+
+            $data = [
+                'contact_id' => $contact_id,
+                'sales_id' => $sales_id,
+                'term_payment' => $exp_term[0],
+                'number' => $number,
+                'currency_id' => $currency_id,
+                'date_invoice' => $date_invoice,
+                'description' => $sell_des,
+                // 'additional_cost' => $additional_cost,
+                'discount_type' => $discount_type,
+                'discount_nominal' => $discount_nominal,
+                'status' => "open",
             ];
-            BalanceAccount::create($cashflowData);
+
+            // $piutang_usaha_id = MasterAccount::where('code', '110100')
+            //                         ->where('account_name', 'Piutang Usaha')
+            //                         ->where('master_currency_id', $currency_id)->first();
+            // if(!$piutang_usaha_id) {
+            //     return redirect()->back()->withErrors(['piutang_usaha' => 'Please add the account of Piutang Usaha with code number is 110100']);
+            // }
+            // $piutang_usaha_id = $piutang_usaha_id->id;
+
+            $diskon_penjualan_id = MasterAccount::where('code', '440100')
+                                    ->where('account_name', 'Diskon Penjualan')
+                                    ->where('master_currency_id', $currency_id)->first();
+            if(!$diskon_penjualan_id) {
+                return redirect()->back()->withErrors(['diskon_penjualan' => 'Please add the account of Diskon Penjualan with code number is 440100']);
+            }
+            $diskon_penjualan_id = $diskon_penjualan_id->id;
+
+            $ppn_keluaran_id = MasterAccount::where('code', "220500")
+                                    ->where('account_name', 'PPN Keluaran')
+                                    ->where('master_currency_id', $currency_id)->first();
+            if(!$ppn_keluaran_id) {
+                return redirect()->back()->withErrors(['ppn_keluaran' => 'Please add the account of PPN Keluaran with code number is 220500']);
+            }
+            $ppn_keluaran_id = $ppn_keluaran_id->id;
+
+            // $pendapatan_lain_id = MasterAccount::where('code', "440010")
+            //                         ->where('account_name', 'Pendapatan Lain')
+            //                         ->where('master_currency_id', $currency_id)->first();
+            // if(!$pendapatan_lain_id) {
+            //     return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Pendapatan Lain with code number is 440010']);
+            // }
+            // $pendapatan_lain_id = $pendapatan_lain_id->id;
+
+            // $pendapatan_jasa_id = MasterAccount::where('code', "440000")
+            //                         ->where('account_name', 'Pendapatan Jasa')
+            //                         ->where('master_currency_id', $currency_id)->first();
+            // if(!$pendapatan_jasa_id) {
+            //     return redirect()->back()->withErrors(['pendapatan_jasa' => 'Please add the account of Pendapatan Jasa with code number is 440000']);
+            // }
+            // $pendapatan_jasa_id = $pendapatan_jasa_id->id;
+
+            // $kas_id = MasterAccount::where('code', "110001")
+            //                         ->where('account_name', 'Kas')
+            //                         ->where('master_currency_id', $currency_id)->first();
+            // if(!$kas_id) {
+            //     return redirect()->back()->withErrors(['kas' => 'Please add the account of Kas with code number is 110001']);
+            // }
+            // $kas_id = $kas_id->id;
+
+            $dp_id = MasterAccount::where('code', "220203")
+                                    ->where('account_name', 'Pendapatan Diterima Di Muka')
+                                    ->where('master_currency_id', $currency_id)->first();
+            if(!$dp_id) {
+                return redirect()->back()->withErrors(['dp' => 'Please add the account of Pendapatan Diterima Di Muka with code number is 220203']);
+            }
+            $dp_id = $dp_id->id;
+
+            InvoiceHead::create($data);
+            $newestInvoice = InvoiceHead::latest()->first();
+            $head_id = $newestInvoice->id;
+
+            $totBalance = 0;
+            $formData = json_decode($request->input('form_data'), true);
+            $grand_dp = 0;
+            foreach ($formData as $data) {
+                $des_detail = $data['des_detail'];
+                $renark_detail = $data['remark_detail'];
+                $qty_detail = $this->numberToDatabase($data['qty_detail']);
+                $uom_detail = $data['uom_detail'];
+                $pajak_detail = $data['pajak_detail'];
+                $price_detail = $this->numberToDatabase($data['price_detail']);
+                $discount_detail = $this->numberToDatabase($data['disc_detail']);
+                $disc_type_detail = $data['disc_type_detail'];
+
+                $exp_tax = explode(":", $pajak_detail);
+                $tax_id = $exp_tax[0];
+                if(!$tax_id) {
+                    $tax_id = null;
+                }
+
+                $is_dp = $data['dp_desc'];
+                $dp_type_detail = null;
+                $dp_detail = null;
+                if($is_dp == 1) {
+                    $dp_type_detail = $data['dp_type_detail'];
+                    $dp_detail = $this->numberToDatabase($data['dp_detail']);
+                }
+
+                $totBalance += ($price_detail*$qty_detail);
+                $totalFull = ($price_detail*$qty_detail);
+                $discTotal = 0;
+                if($disc_type_detail === "persen") {
+                    $discTotal = ($discount_detail/100)*$totalFull;
+                }else{
+                    $discTotal = $discount_detail;
+                }
+                $totalFull -= $discTotal;
+                $pajak = 0;
+                if($tax_id == 2 ) {
+                    $pajak += (10/100)*$totalFull;
+                } else if($tax_id == 3 ) {
+                    $pajak += (5/100)*$totalFull;
+                }
+                $totalFull -= $pajak;
+                $dp = 0;
+                if($dp_type_detail == "persen") {
+                    $dp += ($dp_detail/100)*$totalFull;
+                } else {
+                    $dp += $dp_detail;
+                }
+                $grand_dp += $dp;
+
+                InvoiceDetail::create([
+                    'head_id' => $head_id,
+                    'description' => $des_detail,
+                    'quantity' => $qty_detail,
+                    'uom' => $uom_detail,
+                    'price' => $price_detail,
+                    'tax_id' => $tax_id,
+                    'remark' => $renark_detail,
+                    'discount_type' => $disc_type_detail,
+                    'discount_nominal' => $discount_detail,
+                    'dp_type' => $dp_type_detail,
+                    'dp_nominal' => $dp_detail
+                ]);
+            }
+
+            $flow = [
+                //debit, kredit
+                // [$total_display, 0, $piutang_usaha_id],
+                [$total_display, 0, $coa_ar],
+                [$discount_display, 0, $diskon_penjualan_id],
+                [$display_pajak, 0, $ppn_keluaran_id],
+                // [$display_dp, 0, $kas_id],
+                [0, $display_dp, $dp_id],
+                // [0, $additional_cost, $pendapatan_lain_id],
+                [0, $totBalance, $coa_sales]
+            ];
+
+            foreach ($flow as $item) {
+                $cashflowData = [
+                    'transaction_id' => $head_id,
+                    'master_account_id' => $item[2],
+                    'transaction_type_id' => 3,
+                    "date" => $date_invoice,
+                    'debit' => $item[0],
+                    'credit' => $item[1]
+                ];
+            //     DB::rollBack();
+            // dd($cashflowData);
+                BalanceAccount::create($cashflowData);
+            }
+
+            $remain = $total_display - $grand_dp;
+            $dataSao = [
+                "invoice_id" => $head_id,
+                "contact_id" => $contact_id,
+                "currency_id" => $currency_id,
+                "date" => $date_invoice,
+                "account" => "piutang",
+                "total" => $total_display,
+                "already_paid" => $grand_dp,
+                "remaining" => $remain,
+                "isPaid" => false,
+                "type" => "customer",
+            ];
+            Sao::create($dataSao);
+            DB::commit();
+            return redirect()->route('finance.piutang.invoice.index')->with('success', 'create successfully!');
+            //code...
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // dd($e->getMessage());
+            toast('Exchange rate not found for this date!','error');
+                return redirect()->back()
+                    ->withErrors(['error' => 'Error On App Please Contact IT Support']);
+            //throw $th;
         }
 
-        $remain = $total_display - $grand_dp;
-        $dataSao = [
-            "invoice_id" => $head_id,
-            "contact_id" => $contact_id,
-            "currency_id" => $currency_id,
-            "date" => $date_invoice,
-            "account" => "piutang",
-            "total" => $total_display,
-            "already_paid" => $grand_dp,
-            "remaining" => $remain,
-            "isPaid" => false,
-            "type" => "customer",
-        ];
-        Sao::create($dataSao);
-
-        return redirect()->route('finance.piutang.invoice.index')->with('success', 'create successfully!');
     }
 
     /**
