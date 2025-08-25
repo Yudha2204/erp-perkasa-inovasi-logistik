@@ -21,7 +21,7 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="card">
-                        <div class="card-body">                
+                        <div class="card-body">
                             @if ($errors->any())
                                 <div class="alert alert-danger" role="alert">
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button>
@@ -42,7 +42,7 @@
                                                 data-placeholder="Choose One" name="customer_id" id="customer_id">
                                                 <option label="Choose One" selected disabled></option>
                                                 @foreach ($contact as $c)
-                                                    <option value="{{ $c->id }}" {{ $c->id === $invoice->contact->id ? "selected" : "" }}>{{ $c->customer_name }}</option> 
+                                                    <option value="{{ $c->id }}" {{ $c->id === $invoice->contact->id ? "selected" : "" }}>{{ $c->customer_name }}</option>
                                                 @endforeach
                                             </select>
                                             <div id="btn_edit_contact"></div>
@@ -87,7 +87,7 @@
                                                 $transportation = 'Land Trucking';
                                             }
                                             $transportation_desc = $invoice->sales->marketing->transportation_desc;
-                                          }  
+                                          }
                                         @endphp
                                         <label for="" class="form-label">Term Of Payment</label>
                                         <select class="form-control select2 form-select"
@@ -96,6 +96,19 @@
                                             @foreach ($terms as $term)
                                                 <option value="{{ $term->id }}:{{ $term->pay_days }}" {{ $term->id === $invoice->term->id ? "selected" : "" }}>{{ $term->name }}</option>
                                             @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="coa_ar" class="form-label">Account Name</label>
+                                        <select class="form-control select2 form-select"
+                                            data-placeholder="Choose One" name="coa_ar" id="coa_ar">
+                                            @foreach ($coa_ar as $ca)
+                                                    <option value="{{ $ca->id }}" {{ $coa_ar_selected->master_account_id == $ca->id ? 'selected' : ""}}>{{ $ca->account_name }}</option>
+                                                @endforeach
                                         </select>
                                     </div>
                                 </div>
@@ -205,7 +218,7 @@
                                                 <input type="text" class="form-control uom-input" name="uom_detail" value="{{ $data->uom }}" onchange="toUpdate(this)"/>
                                                 <label class="form-label" style="visibility: hidden;">Disc</label>
                                                 <select class="form-control select2 form-select discount-type" data-placeholder="Choose One" name="disc_type_detail" onchange="calculate(); toUpdate(this)">
-                                                    @php 
+                                                    @php
                                                         $discount_total += $data->discount;
                                                     @endphp
                                                     <option value="persen" {{ $data->discount_type === "persen" ? "selected" : "" }}>%</option>
@@ -217,7 +230,7 @@
                                                 <label for="" class="form-label">Pajak</label>
                                                 <select class="form-control select2 form-select" data-placeholder="Tax" name="pajak_detail" id="pajak_detail" onchange="calculate(); toUpdate(this)">
                                                     @php
-                                                        $tax_total += $data->tax;    
+                                                        $tax_total += $data->tax;
                                                     @endphp
                                                     @foreach ($taxs as $tax)
                                                         <option value="{{ $tax->id }}:{{ $tax->tax_rate }}" {{ isset($data->tax_detail) && $tax->id === $data->tax_detail->id ? "selected" : ""}}>{{ $tax->tax_rate }}%</option>
@@ -241,7 +254,7 @@
                                                 @php
                                                   if(isset($data->dp_nominal)) {
                                                     $dp += $data->dp;
-                                                  }  
+                                                  }
                                                 @endphp
                                             </td>
                                             <td>
@@ -250,6 +263,25 @@
                                                 </div>
                                                 <input type="text" hidden value="{{ $data->id }}:nothing" name="operator">
                                             </td>
+                                        </tr>
+                                        <tr class="account-row">
+                                            <td></td>
+                                            <td>
+                                                <div class="form-group">
+                                                    <label for="coa_sales" class="form-label">Account Name</label>
+                                                    <select class="form-control select2 form-select coa-sales-select"
+                                                        data-placeholder="Choose One" name="coa_sales" id="coa_sales" >
+                                                        @foreach ($coa_sales as $cs)
+                                                    <option value="{{ $cs->id }}"  {{ $coa_sales_selected->master_account_id == $cs->id ? 'selected' : ""}}>{{ $cs->account_name }}</option>
+                                                @endforeach
+                                                    </select>
+                                                </div>
+                                            </td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
                                         </tr>
                                         @endforeach
                                     </tbody>
@@ -266,10 +298,10 @@
                                     <table class="table mt-5">
                                         <tr>
                                             <td>
-                                                <div class="d-flex justify-content-between">
+                                                {{-- <div class="d-flex justify-content-between">
                                                     Biaya Lain
                                                     <input type="text" style="width: 50%" class="form-control" id="additional_cost" name="additional_cost" value="{{ number_format($invoice->additional_cost, 2, '.',',') }}" />
-                                                </div>
+                                                </div> --}}
                                             </td>
                                         </tr>
                                         <tr>
@@ -424,7 +456,7 @@
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type2" name="contact_type[]" value="2" @if(is_array(old('contact_type')) && in_array(2,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Vendor</span>
                                                             </label>
-                                                            &nbsp;&nbsp;&nbsp;&nbsp;    
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;
                                                         <label class="custom-control custom-checkbox">
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type3" name="contact_type[]" value="3" @if(is_array(old('contact_type')) && in_array(3,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Karyawan</span>
@@ -655,7 +687,7 @@
                                                 </div>
                                             </div>
                                             <div class="row input_fields_wrap_new edit mt-2">
-                        
+
                                             </div>
                                             <div class="row mt-2">
                                                 <div class="col-3">
@@ -811,7 +843,7 @@
                     $('#email_edit').val(response.data.email);
                     $('#npwp_ktp_edit').val(response.data.npwp_ktp);
                     $('#company_name_edit').val(response.data.company_name);
-                    
+
                     $('#address_edit').val(response.data.address);
                     $('#city_edit').val(response.data.city);
                     $('#postal_code_edit').val(response.data.postal_code);
@@ -956,7 +988,7 @@
             $('#customer_id').select2('destroy').select2({
                 placeholder: "Choose One"
             });
-            
+
             // show beneficiary - siwft code if select checkbox vendor value
             $("input:checkbox[name^='contact_type']").on('change', function () {
                 if ($('#contact_type2').prop('checked')) {
@@ -1014,7 +1046,7 @@
             });
 
             $(wrapper_new).on("click",".remove_field_new", function(e){ //user click on remove text
-                e.preventDefault(); 
+                e.preventDefault();
                 $(this).parent().parent().remove(); x--;
             })
         });
@@ -1025,20 +1057,20 @@
             const customerReal = @json($invoice->sales);
             const $select = $('#sales_no');
             $select.empty();
-            
+
             const selectElement = document.getElementById("sales_no");
             selectElement.innerHTML = ""
             const defaultOption = document.createElement("option");
             defaultOption.label = "Choose One";
             selectElement.add(defaultOption);
-            
+
             $.ajax({
                 headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
                 type: 'GET',
                 dataType: 'json',
                 data: {'id': id},
                 url: '{{ route('finance.piutang.invoice.get-sales-order') }}',
-                success:function(response) 
+                success:function(response)
                 {
                     if (id == customerReal.contact_id) {
                         const realOption = new Option(customerReal.transaction, customerReal.id)
@@ -1053,7 +1085,7 @@
                             }
                         });
                     }
-                    
+
                     $select.trigger('change.select2');
                 }
             });
@@ -1161,7 +1193,7 @@
                     pajak = pajak.split(":")[1]
                 }
                 pajak = parseFloat(pajak)
-                
+
                 let total = quantity*price
                 if(discount_type === "persen") {
                     disc = (disc/100)*total
@@ -1210,7 +1242,7 @@
             var formContainer = document.getElementById('form-container');
             var newFormWrapper = document.createElement('tr');
             newFormWrapper.classList.add('form-wrapper');
-        
+
             var formTemplate = `
             <td></td>
             <td>
@@ -1262,7 +1294,7 @@
                 <input type="text" hidden name="operator" value="0:create">
             </td>
             `;
-        
+
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
         });
@@ -1271,11 +1303,11 @@
             $('#submit-all-form').hide()
         }
 
-        $('#additional_cost').on('change', function() {
-            hideButton()
-            var additional = $(this).val();
-            $(this).val(Number(additional.replace(/,/g, '')).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-        })
+        // $('#additional_cost').on('change', function() {
+        //     hideButton()
+        //     var additional = $(this).val();
+        //     $(this).val(Number(additional.replace(/,/g, '')).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+        // })
 
         function total() {
             var total = 0;
@@ -1283,10 +1315,10 @@
             if(!disc) disc = "0";
             disc = parseFloat(disc.replace(/,/g, ''))
 
-            var additional = document.querySelector('input[name="additional_cost"]').value;
-            if(!additional) additional = "0";
-            additional = parseFloat(additional.replace(/,/g, ''))
-            
+            // var additional = document.querySelector('input[name="additional_cost"]').value;
+            // if(!additional) additional = "0";
+            // additional = parseFloat(additional.replace(/,/g, ''))
+
             var totalDetailInputs = document.querySelectorAll('input[name="total_detail"]');
             totalDetailInputs.forEach(function(input) {
                 totalDetail = input.value;
@@ -1294,14 +1326,14 @@
                 total += parseFloat(totalDetail.replace(/,/g, '')) || 0;
             });
 
-            total += additional
+            // total += additional
 
             var discount_type = document.querySelector('select[name="discount_type"]').value;
             if(discount_type === "persen") {
                 disc = (disc/100)*(total)
             }
             total -= disc
-            
+
             var { grand_disc } = calculate()
             disc +=  grand_disc
 
@@ -1340,7 +1372,7 @@
         document.getElementById('submit-all-form').addEventListener('click', function() {
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
-        
+
             forms.forEach(function(form) {
                 var formDataObj = {};
                 form.querySelectorAll('input, select').forEach(function(input) {
@@ -1348,14 +1380,14 @@
                 });
                 formData.push(formDataObj);
             });
-        
+
             // Menyimpan data dalam input tersembunyi untuk dikirimkan ke backend
             var hiddenInput = document.createElement('input');
             hiddenInput.setAttribute('type', 'hidden');
             hiddenInput.setAttribute('name', 'form_data');
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
-        
+
             // Mengirimkan formulir ke backend
             document.forms['dynamic-form'].submit();
         });

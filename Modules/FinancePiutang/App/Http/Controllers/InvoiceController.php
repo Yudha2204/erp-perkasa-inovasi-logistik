@@ -271,13 +271,13 @@ class InvoiceController extends Controller
             // }
             // $kas_id = $kas_id->id;
 
-            $dp_id = MasterAccount::where('code', "220203")
-                                    ->where('account_name', 'Pendapatan Diterima Di Muka')
-                                    ->where('master_currency_id', $currency_id)->first();
-            if(!$dp_id) {
-                return redirect()->back()->withErrors(['dp' => 'Please add the account of Pendapatan Diterima Di Muka with code number is 220203']);
-            }
-            $dp_id = $dp_id->id;
+            // $dp_id = MasterAccount::where('code', "220203")
+            //                         ->where('account_name', 'Pendapatan Diterima Di Muka')
+            //                         ->where('master_currency_id', $currency_id)->first();
+            // if(!$dp_id) {
+            //     return redirect()->back()->withErrors(['dp' => 'Please add the account of Pendapatan Diterima Di Muka with code number is 220203']);
+            // }
+            // $dp_id = $dp_id->id;
 
             InvoiceHead::create($data);
             $newestInvoice = InvoiceHead::latest()->first();
@@ -302,13 +302,13 @@ class InvoiceController extends Controller
                     $tax_id = null;
                 }
 
-                $is_dp = $data['dp_desc'];
-                $dp_type_detail = null;
-                $dp_detail = null;
-                if($is_dp == 1) {
-                    $dp_type_detail = $data['dp_type_detail'];
-                    $dp_detail = $this->numberToDatabase($data['dp_detail']);
-                }
+                // $is_dp = $data['dp_desc'];
+                // $dp_type_detail = null;
+                // $dp_detail = null;
+                // if($is_dp == 1) {
+                //     $dp_type_detail = $data['dp_type_detail'];
+                //     $dp_detail = $this->numberToDatabase($data['dp_detail']);
+                // }
 
                 $totBalance += ($price_detail*$qty_detail);
                 $totalFull = ($price_detail*$qty_detail);
@@ -326,13 +326,13 @@ class InvoiceController extends Controller
                     $pajak += (5/100)*$totalFull;
                 }
                 $totalFull -= $pajak;
-                $dp = 0;
-                if($dp_type_detail == "persen") {
-                    $dp += ($dp_detail/100)*$totalFull;
-                } else {
-                    $dp += $dp_detail;
-                }
-                $grand_dp += $dp;
+                // $dp = 0;
+                // if($dp_type_detail == "persen") {
+                //     $dp += ($dp_detail/100)*$totalFull;
+                // } else {
+                //     $dp += $dp_detail;
+                // }
+                // $grand_dp += $dp;
 
                 InvoiceDetail::create([
                     'head_id' => $head_id,
@@ -344,8 +344,8 @@ class InvoiceController extends Controller
                     'remark' => $renark_detail,
                     'discount_type' => $disc_type_detail,
                     'discount_nominal' => $discount_detail,
-                    'dp_type' => $dp_type_detail,
-                    'dp_nominal' => $dp_detail
+                    // 'dp_type' => $dp_type_detail,
+                    // 'dp_nominal' => $dp_detail
                 ]);
             }
 
@@ -356,7 +356,7 @@ class InvoiceController extends Controller
                 [$discount_display, 0, $diskon_penjualan_id],
                 [$display_pajak, 0, $ppn_keluaran_id],
                 // [$display_dp, 0, $kas_id],
-                [0, $display_dp, $dp_id],
+                // [0, $display_dp, $dp_id],
                 // [0, $additional_cost, $pendapatan_lain_id],
                 [0, $totBalance, $coa_sales]
             ];
@@ -394,8 +394,8 @@ class InvoiceController extends Controller
             //code...
         } catch (\Exception $e) {
             DB::rollBack();
-            // dd($e->getMessage());
-            toast('Exchange rate not found for this date!','error');
+            dd($e->getMessage());
+            toast('App Error','error');
                 return redirect()->back()
                     ->withErrors(['error' => 'Error On App Please Contact IT Support']);
             //throw $th;
@@ -423,6 +423,7 @@ class InvoiceController extends Controller
             return redirect()->route('finance.piutang.invoice.index')->withErrors(["error" => "There is receive payment link to this invoice"]);
         }
         $invoice = InvoiceHead::find($id);
+        // dd($invoice->jurnal);
         $contact = MasterContact::whereJsonContains('type','1')->get();
         $terms = MasterTermOfPayment::all();
         $taxs = MasterTax::all();
@@ -431,7 +432,19 @@ class InvoiceController extends Controller
                             ->whereNotIn('id', $invoiceWhere)
                             ->get();
 
-        return view('financepiutang::invoice.update', compact('contact', 'terms', 'taxs', 'invoice', 'salesOrder'));
+        $accounts = MasterAccount::whereIn('account_type_id', [4, 11])
+        ->where('master_currency_id', $invoice->sales->currency_id)
+        ->get()
+        ->groupBy('account_type_id');
+
+        $coa_ar = $accounts->get(4, collect());
+        $coa_sales = $accounts->get(11, collect());
+        $grouped = $invoice->jurnal->groupBy(fn($item) => $item->master_account->account_type_id);
+        $coa_ar_selected = $grouped->get('4', collect())[0]; // misalnya code 1001
+        $coa_sales_selected = $grouped->get('11', collect())[0]; // misalnya code 2001
+        // return response()->json([$coa_ar_selected , $coa_sales_selected]);
+
+        return view('financepiutang::invoice.update', compact('contact', 'terms', 'taxs', 'invoice', 'salesOrder','coa_ar' , 'coa_sales' ,'coa_ar_selected' ,'coa_sales_selected'));
     }
 
     /**
@@ -439,235 +452,260 @@ class InvoiceController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $validator = Validator::make($request->all(), [
-            'customer_id'   => 'required',
-            'sales_no' => 'required',
-            'no_transactions'    => 'required',
-            'date_invoice' => 'required',
-            'term_payment' => 'required'
-        ], [
-            "customer_id.required" => "The customer field is required.",
-            "sales_no.required" => "The sales no field is required.",
-            "no_transaction.required" => "The transaction number is required.",
-            "date_invoice.required" => "The date is required.",
-            "term_payment.required" => "The term of payment field is required."
-        ]);
+        DB::beginTransaction();
+        try {
+            //code...
+            $validator = Validator::make($request->all(), [
+                'customer_id'   => 'required',
+                'sales_no' => 'required',
+                'no_transactions'    => 'required',
+                'date_invoice' => 'required',
+                'term_payment' => 'required',
+                'coa_ar' => 'required',
+                'coa_sales' => 'required',
+            ], [
+                "customer_id.required" => "The customer field is required.",
+                "sales_no.required" => "The sales no field is required.",
+                "no_transaction.required" => "The transaction number is required.",
+                "date_invoice.required" => "The date is required.",
+                "term_payment.required" => "The term of payment field is required.",
+                "coa_ar.required" => "Account receive field is required.",
+                "coa_sales.required" => "Account Sales field is required."
+            ]);
 
-        if ($validator->fails()) {
-            toast('Failed to Update Data!','error');
-            return redirect()->back()
-                        ->withErrors($validator);
-        }
-
-        $contact_id = $request->input('customer_id');
-        $sales_id = $request->input('sales_no');
-        $currency_id = SalesOrderHead::find($sales_id)->currency_id;
-        $term_payment = $request->input('term_payment');
-        $no_transactions = $request->input('no_transactions');
-        $date_invoice = $request->input('date_invoice');
-        $sell_des = $request->input('sell_des');
-        $discount_type = $request->input('discount_type');
-        $discount_nominal = $this->numberToDatabase($request->input('discount'));
-        $additional_cost = $this->numberToDatabase($request->input('additional_cost'));
-
-        $total_display = $this->numberToDatabase($request->input('total_display'));
-        $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
-        $display_dp = $this->numberToDatabase($request->input('display_dp'));
-        $discount_display = $this->numberToDatabase($request->input('discount_display'));
-
-        $exp_term = explode(":", $term_payment);
-        $exp_transaction = explode("-", $no_transactions);
-        $number = $exp_transaction[3];
-
-        $data = [
-            'contact_id' => $contact_id,
-            'sales_id' => $sales_id,
-            'term_payment' => $exp_term[0],
-            'number' => $number,
-            'currency_id' => $currency_id,
-            'date_invoice' => $date_invoice,
-            'description' => $sell_des,
-            'additional_cost' => $additional_cost,
-            'discount_type' => $discount_type,
-            'discount_nominal' => $discount_nominal,
-            'status' => "open",
-        ];
-
-        $invoice = InvoiceHead::find($id);
-        $invoice->update($data);
-        $head_id = $invoice->id;
-
-        $totBalance = 0;
-        $formData = json_decode($request->input('form_data'), true);
-        $grand_dp = 0;
-        foreach ($formData as $data) {
-            $des_detail = $data['des_detail'];
-            $renark_detail = $data['remark_detail'];
-            $qty_detail = $this->numberToDatabase($data['qty_detail']);
-            $uom_detail = $data['uom_detail'];
-            $pajak_detail = $data['pajak_detail'];
-            $price_detail = $this->numberToDatabase($data['price_detail']);
-            $discount_detail = $this->numberToDatabase($data['disc_detail']);
-            $disc_type_detail = $data['disc_type_detail'];
-
-            $exp_tax = explode(":", $pajak_detail);
-            $tax_id = $exp_tax[0];
-            if(!$tax_id) {
-                $tax_id = null;
+            if ($validator->fails()) {
+                toast('Failed to Update Data!','error');
+                return redirect()->back()
+                            ->withErrors($validator);
             }
 
-            $is_dp = $data['dp_desc'];
-            $dp_type_detail = null;
-            $dp_detail = null;
-            if($is_dp == 1) {
-                $dp_type_detail = $data['dp_type_detail'];
-                $dp_detail = $this->numberToDatabase($data['dp_detail']);
-            }
+            $contact_id = $request->input('customer_id');
+            $sales_id = $request->input('sales_no');
+            $currency_id = SalesOrderHead::find($sales_id)->currency_id;
+            $term_payment = $request->input('term_payment');
+            $no_transactions = $request->input('no_transactions');
+            $date_invoice = $request->input('date_invoice');
+            $sell_des = $request->input('sell_des');
+            $discount_type = $request->input('discount_type');
+            $discount_nominal = $this->numberToDatabase($request->input('discount'));
+            // $additional_cost = $this->numberToDatabase($request->input('additional_cost'));
+            $coa_ar = $request->input('coa_ar');
+            $coa_sales = $request->input('coa_sales');
+            $total_display = $this->numberToDatabase($request->input('total_display'));
+            $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
+            $display_dp = $this->numberToDatabase($request->input('display_dp'));
+            $discount_display = $this->numberToDatabase($request->input('discount_display'));
 
-            $operator = $data['operator'];
-            $exp_operator = explode(":", $operator);
+            $exp_term = explode(":", $term_payment);
+            $exp_transaction = explode("-", $no_transactions);
+            $number = $exp_transaction[3];
 
-            $totBalance += ($price_detail*$qty_detail);
-            $totalFull = ($price_detail*$qty_detail);
-            $discTotal = 0;
-            if($disc_type_detail === "persen") {
-                $discTotal = ($discount_detail/100)*$totalFull;
-            }else{
-                $discTotal = $discount_detail;
-            }
-            $totalFull -= $discTotal;
-            $pajak = 0;
-            if($tax_id == 2 ) {
-                $pajak += (10/100)*$totalFull;
-            } else if($tax_id == 3 ) {
-                $pajak += (5/100)*$totalFull;
-            }
-            $totalFull -= $pajak;
-            $dp = 0;
-            if($dp_type_detail == "persen") {
-                $dp += ($dp_detail/100)*$totalFull;
-            } else {
-                $dp += $dp_detail;
-            }
-            $grand_dp += $dp;
+            $data = [
+                'contact_id' => $contact_id,
+                'sales_id' => $sales_id,
+                'term_payment' => $exp_term[0],
+                'number' => $number,
+                'currency_id' => $currency_id,
+                'date_invoice' => $date_invoice,
+                'description' => $sell_des,
+                // 'additional_cost' => $additional_cost,
+                'discount_type' => $discount_type,
+                'discount_nominal' => $discount_nominal,
+                'status' => "open",
+            ];
 
-            if($exp_operator[1] === "create") {
-                InvoiceDetail::create([
-                    'head_id' => $head_id,
-                    'description' => $des_detail,
-                    'quantity' => $qty_detail,
-                    'uom' => $uom_detail,
-                    'price' => $price_detail,
-                    'tax_id' => $tax_id,
-                    'remark' => $renark_detail,
-                    'discount_type' => $disc_type_detail,
-                    'discount_nominal' => $discount_detail,
-                    'dp_type' => $dp_type_detail,
-                    'dp_nominal' => $dp_detail
-                ]);
-            } else if($exp_operator[1] === "update") {
-                $invoiceDetail = InvoiceDetail::find($exp_operator[0]);
-                $invoiceDetail->update([
-                    'description' => $des_detail,
-                    'quantity' => $qty_detail,
-                    'uom' => $uom_detail,
-                    'price' => $price_detail,
-                    'tax_id' => $tax_id,
-                    'remark' => $renark_detail,
-                    'discount_type' => $disc_type_detail,
-                    'discount_nominal' => $discount_detail,
-                    'dp_type' => $dp_type_detail,
-                    'dp_nominal' => $dp_detail
-                ]);
-            } else if($exp_operator[1] === "delete") {
-                $invoiceDetail = InvoiceDetail::find($exp_operator[0]);
-                if($invoiceDetail) {
-                    $invoiceDetail->delete();
+            $invoice = InvoiceHead::find($id);
+            $invoice->update($data);
+            $head_id = $invoice->id;
+
+            $totBalance = 0;
+            $formData = json_decode($request->input('form_data'), true);
+            $grand_dp = 0;
+            foreach ($formData as $data) {
+                $des_detail = $data['des_detail'];
+                $renark_detail = $data['remark_detail'];
+                $qty_detail = $this->numberToDatabase($data['qty_detail']);
+                $uom_detail = $data['uom_detail'];
+                $pajak_detail = $data['pajak_detail'];
+                $price_detail = $this->numberToDatabase($data['price_detail']);
+                $discount_detail = $this->numberToDatabase($data['disc_detail']);
+                $disc_type_detail = $data['disc_type_detail'];
+
+                $exp_tax = explode(":", $pajak_detail);
+                $tax_id = $exp_tax[0];
+                if(!$tax_id) {
+                    $tax_id = null;
+                }
+
+                // $is_dp = $data['dp_desc'];
+                // $dp_type_detail = null;
+                // $dp_detail = null;
+                // if($is_dp == 1) {
+                //     $dp_type_detail = $data['dp_type_detail'];
+                //     $dp_detail = $this->numberToDatabase($data['dp_detail']);
+                // }
+
+                $operator = $data['operator'];
+                $exp_operator = explode(":", $operator);
+
+                $totBalance += ($price_detail*$qty_detail);
+                $totalFull = ($price_detail*$qty_detail);
+                $discTotal = 0;
+                if($disc_type_detail === "persen") {
+                    $discTotal = ($discount_detail/100)*$totalFull;
+                }else{
+                    $discTotal = $discount_detail;
+                }
+                $totalFull -= $discTotal;
+                $pajak = 0;
+                if($tax_id == 2 ) {
+                    $pajak += (10/100)*$totalFull;
+                } else if($tax_id == 3 ) {
+                    $pajak += (5/100)*$totalFull;
+                }
+                $totalFull -= $pajak;
+                $dp = 0;
+                if($dp_type_detail == "persen") {
+                    $dp += ($dp_detail/100)*$totalFull;
+                } else {
+                    $dp += $dp_detail;
+                }
+                $grand_dp += $dp;
+
+                if($exp_operator[1] === "create") {
+                    InvoiceDetail::create([
+                        'head_id' => $head_id,
+                        'description' => $des_detail,
+                        'quantity' => $qty_detail,
+                        'uom' => $uom_detail,
+                        'price' => $price_detail,
+                        'tax_id' => $tax_id,
+                        'remark' => $renark_detail,
+                        'discount_type' => $disc_type_detail,
+                        'discount_nominal' => $discount_detail,
+                        'dp_type' => $dp_type_detail,
+                        'dp_nominal' => $dp_detail
+                    ]);
+                } else if($exp_operator[1] === "update") {
+                    $invoiceDetail = InvoiceDetail::find($exp_operator[0]);
+                    $invoiceDetail->update([
+                        'description' => $des_detail,
+                        'quantity' => $qty_detail,
+                        'uom' => $uom_detail,
+                        'price' => $price_detail,
+                        'tax_id' => $tax_id,
+                        'remark' => $renark_detail,
+                        'discount_type' => $disc_type_detail,
+                        'discount_nominal' => $discount_detail,
+                        'dp_type' => $dp_type_detail,
+                        'dp_nominal' => $dp_detail
+                    ]);
+                } else if($exp_operator[1] === "delete") {
+                    $invoiceDetail = InvoiceDetail::find($exp_operator[0]);
+                    if($invoiceDetail) {
+                        $invoiceDetail->delete();
+                    }
                 }
             }
-        }
 
-        $flow = [
-            //debit, kredit
-            [$total_display, 0],
-            [$discount_display, 0],
-            [$display_pajak, 0],
-            [$display_dp, 0],
-            [0, $display_dp],
-            [0, $additional_cost],
-            [0, $totBalance]
-        ];
+            $flow = [
+                //debit, kredit
+                [$total_display, 0,$coa_ar],
+                [$discount_display, 0],
+                [$display_pajak, 0],
+                [$display_dp, 0],
+                [0, $display_dp],
+                // [0, $additional_cost],
+                [0, $totBalance, $coa_sales]
+            ];
 
-        foreach ($invoice->jurnal as $item) {
-            if($item->master_account->code === "110100" && $item->master_account->account_name === "Piutang Usaha") {
-                $cashflowData = [
-                    "date" => $date_invoice,
-                    'debit' => $flow[0][0],
-                    'credit' => $flow[0][1]
-                ];
-                BalanceAccount::find($item->id)->update($cashflowData);
-            } else if($item->master_account->code === "440100" && $item->master_account->account_name === "Diskon Penjualan") {
-                $cashflowData = [
-                    "date" => $date_invoice,
-                    'debit' => $flow[1][0],
-                    'credit' => $flow[1][1]
-                ];
-                BalanceAccount::find($item->id)->update($cashflowData);
-            } else if($item->master_account->code === "220500" && $item->master_account->account_name === "PPN Keluaran") {
-                $cashflowData = [
-                    "date" => $date_invoice,
-                    'debit' => $flow[2][0],
-                    'credit' => $flow[2][1]
-                ];
-                BalanceAccount::find($item->id)->update($cashflowData);
-            } else if($item->master_account->code === "110001" && $item->master_account->account_name === "Kas") {
-                $cashflowData = [
-                    "date" => $date_invoice,
-                    'debit' => $flow[3][0],
-                    'credit' => $flow[3][1]
-                ];
-                BalanceAccount::find($item->id)->update($cashflowData);
-            } else if($item->master_account->code === "220203" && $item->master_account->account_name === "Pendapatan Diterima Di Muka") {
-                $cashflowData = [
-                    "date" => $date_invoice,
-                    'debit' => $flow[4][0],
-                    'credit' => $flow[4][1]
-                ];
-                BalanceAccount::find($item->id)->update($cashflowData);
-            } else if($item->master_account->code === "440010" && $item->master_account->account_name === "Pendapatan Lain") {
-                $cashflowData = [
-                    "date" => $date_invoice,
-                    'debit' => $flow[5][0],
-                    'credit' => $flow[5][1]
-                ];
-                BalanceAccount::find($item->id)->update($cashflowData);
-            } else if($item->master_account->code === "440000" && $item->master_account->account_name === "Pendapatan Jasa") {
-                $cashflowData = [
-                    "date" => $date_invoice,
-                    'debit' => $flow[6][0],
-                    'credit' => $flow[6][1]
-                ];
-                BalanceAccount::find($item->id)->update($cashflowData);
+            foreach ($invoice->jurnal as $item) {
+                if($item->master_account->account_type_id == "4") {
+                    $cashflowData = [
+                        "date" => $date_invoice,
+                        'debit' => $flow[0][0],
+                        'credit' => $flow[0][1],
+                        'master_account_id' => $flow[0][2],
+                    ];
+                    BalanceAccount::find($item->id)->update($cashflowData);
+                } else if($item->master_account->code === "440100" && $item->master_account->account_name === "Diskon Penjualan") {
+                    $cashflowData = [
+                        "date" => $date_invoice,
+                        'debit' => $flow[1][0],
+                        'credit' => $flow[1][1]
+                    ];
+                    BalanceAccount::find($item->id)->update($cashflowData);
+                } else if($item->master_account->code === "220500" && $item->master_account->account_name === "PPN Keluaran") {
+                    $cashflowData = [
+                        "date" => $date_invoice,
+                        'debit' => $flow[2][0],
+                        'credit' => $flow[2][1]
+                    ];
+                    BalanceAccount::find($item->id)->update($cashflowData);
+                }
+                // else if($item->master_account->code === "110001" && $item->master_account->account_name === "Kas") {
+                //     $cashflowData = [
+                //         "date" => $date_invoice,
+                //         'debit' => $flow[3][0],
+                //         'credit' => $flow[3][1]
+                //     ];
+                //     BalanceAccount::find($item->id)->update($cashflowData);
+                // }
+                else if($item->master_account->code === "220203" && $item->master_account->account_name === "Pendapatan Diterima Di Muka") {
+                    $cashflowData = [
+                        "date" => $date_invoice,
+                        'debit' => $flow[4][0],
+                        'credit' => $flow[4][1]
+                    ];
+                    BalanceAccount::find($item->id)->update($cashflowData);
+                }
+                // else if($item->master_account->code === "440010" && $item->master_account->account_name === "Pendapatan Lain") {
+                //     $cashflowData = [
+                //         "date" => $date_invoice,
+                //         'debit' => $flow[5][0],
+                //         'credit' => $flow[5][1]
+                //     ];
+                //     BalanceAccount::find($item->id)->update($cashflowData);
+                // }
+                 else if($item->master_account->account_type_id == "11") {
+                    $cashflowData = [
+                        "date" => $date_invoice,
+                        'debit' => $flow[5][0],
+                        'credit' => $flow[5][1],
+                        'master_account_id' => $flow[5][2],
+                    ];
+                    BalanceAccount::find($item->id)->update($cashflowData);
+            // DB::rollBack();
+            //         dd('no problem');
+                }
             }
+
+            $remain = $total_display - $grand_dp;
+            $dataSao = [
+                "invoice_id" => $head_id,
+                "contact_id" => $contact_id,
+                "currency_id" => $currency_id,
+                "date" => $date_invoice,
+                "account" => "piutang",
+                "total" => $total_display,
+                "already_paid" => $grand_dp,
+                "remaining" => $remain,
+                "isPaid" => false,
+                "type" => "customer",
+            ];
+            $tagertSao = Sao::where('invoice_id', $id)->first();
+            $tagertSao->update($dataSao);
+            DB::commit();
+
+            return redirect()->route('finance.piutang.invoice.index')->with('success', 'create successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // dd($e->getMessage());
+            toast('App Error','error');
+                return redirect()->back()
+                    ->withErrors(['error' => 'Error On App Please Contact IT Support']);
+            //throw $th;
         }
-
-        $remain = $total_display - $grand_dp;
-        $dataSao = [
-            "invoice_id" => $head_id,
-            "contact_id" => $contact_id,
-            "currency_id" => $currency_id,
-            "date" => $date_invoice,
-            "account" => "piutang",
-            "total" => $total_display,
-            "already_paid" => $grand_dp,
-            "remaining" => $remain,
-            "isPaid" => false,
-            "type" => "customer",
-        ];
-        $tagertSao = Sao::where('invoice_id', $id)->first();
-        $tagertSao->update($dataSao);
-
-        return redirect()->route('finance.piutang.invoice.index')->with('success', 'create successfully!');
     }
 
     /**

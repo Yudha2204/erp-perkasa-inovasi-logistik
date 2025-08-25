@@ -1071,17 +1071,8 @@
                             </td>
                             <td>
                                 <input type="text" class="form-control total-input" name="total_detail" readonly value="0"/>
-                                <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
-                                    <input type="checkbox" class="custom-control-input" name="dp_desc" value="0" onchange="changeDp(this); calculate()">
-                                    <span class="custom-control-label form-label">Bayar DP</span>
-                                </label>
-                                <div class="d-flex gap-2 flex-column" style="display: none !important;">
-                                    <input type="text" class="form-control" name="dp_detail" onchange="calculate()" />
-                                    <select class="form-control select2 form-select" data-placeholder="Choose One" name="dp_type_detail" onchange="calculate()" >
-                                        <option value="persen" selected>%</option>
-                                        <option value="nominal">0</option>
-                                    </select>
-                                </div>
+
+
                             </td>
                             <td>
                                 <div class="d-flex justify-content-between">
@@ -1243,27 +1234,27 @@ accountRow.innerHTML = `
                 }
                 input[8].value = total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-                if(input[9].value == 1 && total > 0) {
-                    var dp_type = input[11].value
-                    var dp = input[10].value
-                    if(!dp) dp = "0"
-                    dp = parseFloat(dp.replace(/,/g, ''))
-                    if(dp_type === "persen") {
-                        dp = (dp/100)*total
-                    }
+                // if(input[9].value == 1 && total > 0) {
+                //     var dp_type = input[11].value
+                //     var dp = input[10].value
+                //     if(!dp) dp = "0"
+                //     dp = parseFloat(dp.replace(/,/g, ''))
+                //     if(dp_type === "persen") {
+                //         dp = (dp/100)*total
+                //     }
 
-                    grand_dp += dp
-                }
+                //     grand_dp += dp
+                // }
             });
             $('#display_pajak').val(grand_pajak.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             if(grand_dp > 0) {
-                $('#dp').show()
+                // $('#dp').show()
                 $('#sisa').show()
-                $('#display_dp').val(grand_dp.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+                // $('#display_dp').val(grand_dp.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             } else {
-                $('#dp').hide()
+                // $('#dp').hide()
                 $('#sisa').hide()
-                $('#display_dp').val(0)
+                // $('#display_dp').val(0)
             }
 
             return {
@@ -1308,17 +1299,7 @@ accountRow.innerHTML = `
             </td>
             <td>
                 <input type="text" class="form-control total-input" name="total_detail" readonly value="0"/>
-                <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
-                    <input type="checkbox" class="custom-control-input" name="dp_desc" value="0" onchange="changeDp(this); calculate()">
-                    <span class="custom-control-label form-label">Bayar DP</span>
-                </label>
-                <div class="d-flex gap-2 flex-column" style="display: none !important;">
-                    <input type="text" class="form-control" name="dp_detail" onchange="calculate()" />
-                    <select class="form-control select2 form-select" data-placeholder="Choose One" name="dp_type_detail" onchange="calculate()" >
-                        <option value="persen" selected>%</option>
-                        <option value="nominal">0</option>
-                    </select>
-                </div>
+
             </td>
             <td>
                 <div class="d-flex justify-content-between">
@@ -1369,9 +1350,9 @@ accountRow.innerHTML = `
             var { grand_disc } = calculate()
             disc +=  grand_disc
 
-            var dp = document.querySelector('input[name="display_dp"]').value;
-            if(!dp) dp = "0";
-            dp = parseFloat(dp.replace(/,/g, ''))
+            // var dp = document.querySelector('input[name="display_dp"]').value;
+            // if(!dp) dp = "0";
+            // dp = parseFloat(dp.replace(/,/g, ''))
 
             $('#discount_display').val(disc.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             $('#total_display').val(total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
