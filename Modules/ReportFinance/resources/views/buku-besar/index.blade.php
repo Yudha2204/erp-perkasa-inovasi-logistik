@@ -116,8 +116,8 @@
                                                     elseif($typeName === 'Sales Order') $link = route('finance.piutang.sales-order.show', $data['transaksi']->id ?? null);
                                                     elseif($typeName === 'Invoice') $link = route('finance.piutang.invoice.show', $data['transaksi']->id ?? null);
                                                     elseif($typeName === 'Receive Payment') $link = route('finance.piutang.receive-payment.show', $data['transaksi']->id ?? null);
-                                                    elseif($typeName === 'Kas Keluar') $link = route('finance.kas.pembayaran.show', $data['transaksi']->id ?? null);
-                                                    elseif($typeName === 'Kas Masuk') $link = route('finance.kas.penerimaan.show', $data['transaksi']->id ?? null);
+                                                    elseif($typeName === 'Cash & Bank Out') $link = route('finance.kas.pembayaran.show', $data['transaksi']->id ?? null);
+                                                    elseif($typeName === 'Cash & Bank In') $link = route('finance.kas.penerimaan.show', $data['transaksi']->id ?? null);
                                                     elseif($typeName === 'Account Payable') $link = route('finance.payments.account-payable.show', $data['transaksi']->id ?? null);
                                                     elseif($typeName === 'Payment') $link = route('finance.payments.purchase-payment.show', $data['transaksi']->id ?? null);
                                                 @endphp

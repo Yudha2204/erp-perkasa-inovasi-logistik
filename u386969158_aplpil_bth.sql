@@ -1893,8 +1893,8 @@ INSERT INTO `transaction_type` (`id`, `transaction_type`, `deleted_at`, `created
 (2, 'Sales Order', NULL, '2024-08-20 09:33:36', NULL),
 (3, 'Invoice', NULL, '2024-08-20 09:33:36', NULL),
 (4, 'Receive Payment', NULL, '2024-08-20 09:33:36', NULL),
-(5, 'Kas Keluar', NULL, '2024-08-20 09:33:36', NULL),
-(6, 'Kas Masuk', NULL, '2024-08-20 09:33:36', NULL),
+(5, 'Cash & Bank Out', NULL, '2024-08-20 09:33:36', NULL),
+(6, 'Cash & Bank In', NULL, '2024-08-20 09:33:36', NULL),
 (7, 'Account Payable', NULL, '2024-08-20 09:33:36', NULL),
 (8, 'Payment', NULL, '2024-08-20 09:33:36', NULL);
 
@@ -1923,8 +1923,8 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `name`, `username`, `department`, `email`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`) VALUES
 (1, 'SuperAdmin', 'superadmin', 'SuperAdmin', 'superadmin@pil.com', NULL, '$2y$12$6kpuxABjkSrqqfDuT39gzO6WNdVgIlvp6UcL6MPBFCUnBATv.g6D.', NULL, '2024-08-20 09:33:36', '2024-08-20 09:33:36'),
-(2, 'Athifah1', 'athifah1', 'finance', NULL, NULL, '$2y$10$a490DFxhX4UyWHRUSNnR3eenrwRmjnPju39e29Bgx5NgNJRRmsOvy', NULL, '2024-08-30 10:53:24', '2024-08-30 10:53:24'),
-(3, 'Putri1', 'putri1', 'marketing', NULL, NULL, '$2y$10$vAfnclWcAbzajRSeiyS0cOPAaXrvMbxu9CqjZONYu1udquyQVPINO', NULL, '2024-08-30 10:53:58', '2024-08-30 10:53:58');
+(2, 'Athifah1', 'athifah1', 'finance', NULL, NULL, '$2y$10$Nd4WPXaihS8RHUUUBoF2EO/p6Nsy3OWrqyRLHUiV9aCOfD0TPl98e', NULL, '2024-08-30 10:53:24', '2024-08-30 10:53:24'),
+(3, 'Putri1', 'putri1', 'marketing', NULL, NULL, '$2y$10$Nd4WPXaihS8RHUUUBoF2EO/p6Nsy3OWrqyRLHUiV9aCOfD0TPl98e', NULL, '2024-08-30 10:53:58', '2024-08-30 10:53:58');
 
 -- --------------------------------------------------------
 

@@ -19,8 +19,8 @@ class TransactionTypeSeeder extends Seeder
             ["Sales Order"],
             ["Invoice"],
             ["Receive Payment"],
-            ["Kas Keluar"],
-            ["Kas Masuk"],
+            ["Cash & Bank Out"],
+            ["Cash & Bank In"],
             ["Account Payable"],
             ["Payment"],
         ];

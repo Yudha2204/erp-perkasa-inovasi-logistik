@@ -62,9 +62,9 @@
                                         } else if($module_id === 4) {
                                             $module_name = "Receive Payment";
                                         } else if($module_id === 5) {
-                                            $module_name = "Kas Keluar";
+                                            $module_name = "Cash & Bank Out";
                                         } else if($module_id === 6) {
-                                            $module_name = "Kas Masuk";
+                                            $module_name = "Cash & Bank In";
                                         } else if($module_id === 7) {
                                             $module_name = "Account Payable";
                                         } else if($module_id === 8) {
@@ -120,9 +120,9 @@
                                                         $link = route('finance.piutang.invoice.show', $account->id);
                                                     } else if($module_name === "Receive Payment") {
                                                         $link = route('finance.piutang.receive-payment.show', $account->id);
-                                                    } else if($module_name === "Kas Keluar") {
+                                                    } else if($module_name === "Cash & Bank Out") {
                                                         $link = route('finance.kas.pembayaran.show', $account->id);
-                                                    } else if($module_name === "Kas Masuk") {
+                                                    } else if($module_name === "Cash & Bank In") {
                                                         $link = route('finance.kas.penerimaan.show', $account->id);
                                                     } else if($module_name === "Penerimaan Quotation") {
                                                         $link = route('finance.payments.quotation-vendor.show', $account->id);

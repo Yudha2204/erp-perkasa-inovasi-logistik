@@ -98,9 +98,9 @@
                                                            $link = route('finance.piutang.invoice.show', $data["transaksi"]->id);
                                                        } else if($data["transaksi_id"]->transaction_type === "Receive Payment") {
                                                            $link = route('finance.piutang.receive-payment.show', $data["transaksi"]->id);
-                                                       } else if($data["transaksi_id"]->transaction_type === "Kas Keluar") {
+                                                       } else if($data["transaksi_id"]->transaction_type === "Cash & Bank Out") {
                                                            $link = route('finance.kas.pembayaran.show', $data["transaksi"]->id);
-                                                       } else if($data["transaksi_id"]->transaction_type === "Kas Masuk") {
+                                                       } else if($data["transaksi_id"]->transaction_type === "Cash & Bank In") {
                                                            $link = route('finance.kas.penerimaan.show', $data["transaksi"]->id);
                                                        } else if($data["transaksi_id"]->transaction_type === "Account Payable") {
                                                            $link = route('finance.payments.account-payable.show', $data["transaksi"]->id);
