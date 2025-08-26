@@ -45,7 +45,10 @@ class TaxDataController extends Controller
             $taxes = MasterTax::orderBy('id', 'DESC')->paginate(10);
         }
         
-        return view('financedatamaster::tax.index', compact('taxes'));
+        // Get accounts for dropdown
+        $accounts = \Modules\FinanceDataMaster\App\Models\MasterAccount::orderBy('code', 'ASC')->get();
+        
+        return view('financedatamaster::tax.index', compact('taxes', 'accounts'));
     }
 
     /**
@@ -66,7 +69,9 @@ class TaxDataController extends Controller
             $validator = Validator::make($request->all(), [
                 'code'     => 'required|unique:master_tax',
                 'name'   => 'required',
+                'type'   => 'required|in:PPN,PPH',
                 'tax_rate'   => 'required',
+                'account_id' => 'nullable|exists:master_account,id',
             ]);
     
             if ($validator->fails()) {
@@ -80,7 +85,9 @@ class TaxDataController extends Controller
             $validator = Validator::make($request->all(),[
                 'code'     => 'required|unique:master_tax,code,'.$request->id,
                 'name'   => 'required',
+                'type'   => 'required|in:PPN,PPH',
                 'tax_rate'   => 'required',
+                'account_id' => 'nullable|exists:master_account,id',
                ],
                [
                  'code.unique'=> 'The code '.$request->code.' has already been taken', // custom message 
@@ -100,7 +107,9 @@ class TaxDataController extends Controller
         [
             'code' => $request->code, 
             'name' => $request->name,
+            'type' => $request->type,
             'tax_rate' => $request->tax_rate,
+            'account_id' => $request->account_id,
             'status' => $request->status,
         ]); 
 
@@ -113,7 +122,7 @@ class TaxDataController extends Controller
      */
     public function show($id)
     {
-        $data = MasterTax::find($id);
+        $data = MasterTax::with('account')->find($id);
         return response()->json([
             'success' => true,
             'data'    => $data
@@ -125,7 +134,7 @@ class TaxDataController extends Controller
      */
     public function edit($id)
     {
-        $data = MasterTax::find($id);
+        $data = MasterTax::with('account')->find($id);
         return response()->json([
             'success' => true,
             'data'    => $data

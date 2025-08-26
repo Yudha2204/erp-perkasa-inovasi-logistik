@@ -15,9 +15,9 @@ class MasterTaxSeeder extends Seeder
     public function run(): void
     {
         $array_simple = [
-            ["Non-Pajak", "Non-Pajak", "0", "1"],
-            ["PPh 23-4", "PPh Pasal 23 Non NPWP", "10", "1"],
-            ["PPh 24-5", "PPh Pasal 23 NPWP", "5", "1"]
+            ["Non-Pajak", "Non-Pajak", "0", "1", "PPH", null],
+            ["PPh 23-4", "PPh Pasal 23 Non NPWP", "10", "1", "PPH", null],
+            ["PPh 24-5", "PPh Pasal 23 NPWP", "5", "1", "PPH", null]
         ];
 
         for ($i=0; $i < 3; $i++) { 
@@ -26,6 +26,8 @@ class MasterTaxSeeder extends Seeder
                 'name' => $array_simple[$i][1],
                 'tax_rate' => $array_simple[$i][2],
                 'status' => $array_simple[$i][3],
+                'type' => $array_simple[$i][4],
+                'account_id' => $array_simple[$i][5],
                 'created_at' => Carbon::now()->format('Y-m-d H:i:s')
             ]);
         }

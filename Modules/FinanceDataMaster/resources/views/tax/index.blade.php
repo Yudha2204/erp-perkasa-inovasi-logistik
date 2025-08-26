@@ -50,6 +50,8 @@
                                             <th>No</th>
                                             <th>Code</th>
                                             <th>Name</th>
+                                            <th>Type</th>
+                                            <th>Account</th>
                                             <th>Tax Rate</th>
                                             <th>Status</th>
                                             <th>Action</th>
@@ -61,6 +63,14 @@
                                                 <td>{{ $taxes->firstItem() + $key }}</td>
                                                 <td>{{ $t->code }}</td>
                                                 <td>{{ $t->name }}</td>
+                                                <td>
+                                                    @if ($t->type == 'PPN')
+                                                        <span class="badge bg-info badge-sm me-1 mb-1 mt-1">PPN</span>
+                                                    @else
+                                                        <span class="badge bg-warning badge-sm me-1 mb-1 mt-1">PPH</span>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $t->account ? $t->account->name : '-' }}</td>
                                                 <td>{{ $t->tax_rate }}</td>
                                                 <td>
                                                     @if ($t->status == 1)
@@ -97,7 +107,7 @@
                                                 </td>
                                             </tr>
                                         @empty
-                                        <td colspan="7">
+                                        <td colspan="8">
                                             <span class="text-danger">
                                                 <strong>Data is Empty</strong>
                                             </span>
@@ -141,15 +151,31 @@
                                 <input type="text" name="code" value="{{ old('code') }}" id="code" class="form-control">
                             </div>
                             <div class="form-group">
+                                <label>Type</label>
+                                <select class="form-control select2 form-select" name="type" data-placeholder="Choose Type">
+                                    <option value="PPH" {{ old('type') == 'PPH' ? "selected" : "" }}>PPH</option>
+                                    <option value="PPN" {{ old('type') == 'PPN' ? "selected" : "" }}>PPN</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label>Tax Rate</label>
                                 <input type="text" name="tax_rate" value="{{ old('tax_rate') }}" id="tax_rate" class="form-control">
                             </div>
                             <div class="form-group">
-                                <label>Tax Rate</label>
+                                <label>Status</label>
                                 <select class="form-control select2 form-select"
                                     data-placeholder="Choose one" name="status">
                                     <option {{ old('status') == 1 ? "selected" : "" }} value="1">Active</option>
                                     <option {{ old('status') == 2 ? "selected" : "" }} value="2">Non Active</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Account</label>
+                                <select class="form-control select2 form-select" name="account_id" data-placeholder="Choose Account">
+                                    <option value="">None</option>
+                                    @foreach ($accounts as $account)
+                                        <option value="{{ $account->id }}" {{ old('account_id') == $account->id ? "selected" : "" }}>{{ $account->account_name }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div class="mt-3" style="text-align: right">
@@ -189,15 +215,31 @@
                                 <input type="text" name="code" id="code_edit" class="form-control">
                             </div>
                             <div class="form-group">
+                                <label>Type</label>
+                                <select class="form-control select2 form-select" name="type" id="type_edit" data-placeholder="Choose Type">
+                                    <option value="PPH">PPH</option>
+                                    <option value="PPN">PPN</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label>Tax Rate</label>
                                 <input type="text" name="tax_rate" id="tax_rate_edit" class="form-control">
                             </div>
                             <div class="form-group">
-                                <label>Tax Rate</label>
+                                <label>Status</label>
                                 <select class="form-control select2 form-select"
                                     data-placeholder="Choose one" name="status" id="status_edit">
                                     <option value="1">Active</option>
                                     <option value="2">Non Active</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Account</label>
+                                <select class="form-control select2 form-select" name="account_id" id="account_id_edit" data-placeholder="Choose Account">
+                                    <option value="">None</option>
+                                    @foreach ($accounts as $account)
+                                        <option value="{{ $account->id }}" {{ old('account_id') == $account->id ? "selected" : "" }}>{{ $account->account_name }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div class="mt-3" style="text-align: right">
@@ -217,7 +259,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"> Detail Currency</h5>
+                <h5 class="modal-title"> Detail Tax</h5>
                 <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">×</span>
                 </button>
@@ -234,16 +276,24 @@
                             <input type="text" name="code" id="code_show" class="form-control" disabled>
                         </div>
                         <div class="form-group">
+                            <label>Type</label>
+                            <input type="text" name="type" id="type_show" class="form-control" disabled>
+                        </div>
+                        <div class="form-group">
                             <label>Tax Rate</label>
                             <input type="text" name="tax_rate" id="tax_rate_show" class="form-control" disabled>
                         </div>
                         <div class="form-group">
-                            <label>Tax Rate</label>
+                            <label>Status</label>
                             <select class="form-control select2 form-select"
                                 data-placeholder="Choose one" name="status" id="status_show" disabled>
                                 <option value="1">Active</option>
                                 <option value="2">Non Active</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Account</label>
+                            <input type="text" name="account" id="account_show" class="form-control" disabled>
                         </div>
                         <div class="mt-3" style="text-align: right">
                             <a class="btn btn-white color-grey" data-bs-dismiss="modal">Close</a>
@@ -275,8 +325,10 @@
                     $('#id_edit').val(response.data.id);
                     $('#code_edit').val(response.data.code);
                     $('#name_edit').val(response.data.name);
+                    $('#type_edit').val(response.data.type).change();
                     $('#tax_rate_edit').val(response.data.tax_rate);
                     $("#status_edit").val(response.data.status).change();
+                    $('#account_id_edit').val(response.data.account_id || '').change();
 
                     $('#modal-edit').modal('show');
                 }
@@ -299,8 +351,10 @@
                     // //fill data to form
                     $('#code_show').val(response.data.code);
                     $('#name_show').val(response.data.name);
+                    $('#type_show').val(response.data.type);
                     $('#tax_rate_show').val(response.data.tax_rate);
                     $("#status_show").val(response.data.status).change();
+                    $('#account_show').val(response.data.account ? response.data.account.name : 'None');
 
                     $('#modal-show').modal('show');
                 }

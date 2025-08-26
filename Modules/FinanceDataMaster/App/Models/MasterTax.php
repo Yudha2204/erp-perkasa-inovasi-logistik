@@ -14,4 +14,9 @@ class MasterTax extends Model
     
     protected $table = 'master_tax';
     protected $guarded = [];
+
+    public function account()
+    {
+        return $this->belongsTo(MasterAccount::class, 'account_id', 'id');
+    }
 }

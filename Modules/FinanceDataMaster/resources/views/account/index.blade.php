@@ -165,7 +165,7 @@
                                 <select class="form-control select2 form-select"
                                     data-placeholder="Choose one" name="account_type_id">
                                     @foreach ($accountTypes as $accountType)
-                                        <option {{ old('account_type_id') == $accountType->id ? "selected" : "" }} value="{{ $accountType->id }}">{{ $accountType->name }}</option>
+                                        <option {{ old('account_type_id') == $accountType->id ? "selected" : "" }} value="{{ $accountType->id }}" data-report-type="{{ $accountType->report_type ?? 'NONE' }}">{{ $accountType->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -282,7 +282,7 @@
                                 <select class="form-control select2 form-select"
                                     data-placeholder="Choose one" name="account_type_id" id="account_type_id_edit">
                                     @foreach ($accountTypes as $accountType)
-                                        <option value="{{ $accountType->id }}">{{ $accountType->name }}</option>
+                                        <option value="{{ $accountType->id }}" data-report-type="{{ $accountType->report_type ?? 'NONE' }}">{{ $accountType->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -351,7 +351,7 @@
                             <select class="form-control select2 form-select"
                                 data-placeholder="Choose one" name="account_type_id" id="account_type_id_show" disabled>
                                 @foreach ($accountTypes as $accountType)
-                                    <option value="{{ $accountType->id }}">{{ $accountType->name }}</option>
+                                    <option value="{{ $accountType->id }}" data-report-type="{{ $accountType->report_type ?? 'NONE' }}">{{ $accountType->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -428,9 +428,40 @@
         }
     });
 
+    // Function to check account type report type and hide/show currency field
+    function toggleCurrencyField(accountTypeSelect, currencyField) {
+        const selectedAccountTypeId = $(accountTypeSelect).val();
+        if (selectedAccountTypeId) {
+            // Get the account type data to check report_type
+            const accountTypeOption = $(accountTypeSelect).find('option:selected');
+            const reportType = accountTypeOption.data('report-type');
+            
+            if (reportType === 'PL' || reportType === 'NONE') {
+                $(currencyField).closest('.form-group').hide();
+            } else {
+                $(currencyField).closest('.form-group').show();
+            }
+        }
+    }
+
+    // Show/hide currency field based on Account Type selection (create modal)
+    $('select[name="account_type_id"]').on('change', function() {
+        toggleCurrencyField(this, 'select[name="master_currency_id"]');
+    });
+
+    // Show/hide currency field based on Account Type selection (edit modal)
+    $('#account_type_id_edit').on('change', function() {
+        toggleCurrencyField(this, '#master_currency_id_edit');
+    });
+
     // On page load, trigger change to set initial state
     $(document).ready(function() {
         $('select[name="type"]').val("header").change();
+        
+        // Check currency field visibility on page load if account type is already selected
+        if ($('select[name="account_type_id"]').val()) {
+            toggleCurrencyField('select[name="account_type_id"]', 'select[name="master_currency_id"]');
+        }
     });
     
     //create beginning balance
@@ -469,7 +500,7 @@
         var url = "{{ route('finance.master-data.account.edit', ":id") }}";
         url = url.replace(':id', id);
 
-        debugger
+
         $.ajax({
             headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
             type: 'GET',
@@ -484,6 +515,12 @@
                     $("#type_edit").val(response.data.type).change();
                     $("#parent_edit").val(response.data.parent).change();
                     $("#master_currency_id_edit").val(response.data.master_currency_id).change();
+                    
+                    // Check currency field visibility after setting account type
+                    setTimeout(function() {
+                        toggleCurrencyField('#account_type_id_edit', '#master_currency_id_edit');
+                    }, 100);
+                    
                     $('#modal-edit').modal('show');
                 }
         });
@@ -511,6 +548,11 @@
                     $("#parent_show").val(response.data.parent).change();
                     $('#credit_show').val(response.data.credit);
                     $('#debit_show').val(response.data.debit);
+                    
+                    // Check currency field visibility after setting account type
+                    setTimeout(function() {
+                        toggleCurrencyField('#account_type_id_show', '#master_currency_id_show');
+                    }, 100);
 
                     $('#modal-show').modal('show');
                 }
