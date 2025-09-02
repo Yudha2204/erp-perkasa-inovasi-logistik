@@ -178,9 +178,232 @@ class ExchangeRateController extends Controller
         ]);
     }
 
+    /**
+     * Check if exchange rate exists for specific currency pair and date range
+     */
+    public function checkExistingExchangeRates(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $currencyPairs = $request->input('currency_pairs', []);
+
+        
+        $existingRates = [];
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+
+        foreach ($currencyPairs as $pair) {
+            if (is_string($pair) && strpos($pair, '-') !== false) {
+                [$fromCurrency, $toCurrency] = explode('-', $pair, 2);
+            } else {
+                $fromCurrency = $pair['from_currency'] ?? null;
+                $toCurrency = $pair['to_currency'] ?? null;
+            }
+            
+            $currentDate = $start->copy();
+
+            while ($currentDate->lte($end)) {
+                $existingExchange = ExchangeRate::whereDate('date', $currentDate->format('Y-m-d'))
+                    ->where(function($query) use ($fromCurrency, $toCurrency) {
+                        $query->where(function($q) use ($fromCurrency, $toCurrency) {
+                            $q->where('from_currency_id', $fromCurrency)
+                              ->where('to_currency_id', $toCurrency);
+                        })->orWhere(function($q) use ($fromCurrency, $toCurrency) {
+                            $q->where('from_currency_id', $toCurrency)
+                              ->where('to_currency_id', $fromCurrency);
+                        });
+                    })
+                    ->first();
+
+                if ($existingExchange) {
+                    $existingRates[] = [
+                        'date' => $currentDate->format('Y-m-d'),
+                        'from_currency' => $fromCurrency,
+                        'to_currency' => $toCurrency,
+                        'existing_rate' => $existingExchange
+                    ];
+                }
+
+                $currentDate->addDay();
+            }
+        }
+
+        return response()->json([
+            'message' => 'Success',
+            'existing_rates' => $existingRates,
+            'has_conflicts' => count($existingRates) > 0
+        ]);
+    }
+
     private function numberToDatabase($string)
     {
         $replace = str_replace(',', '', $string);
         return floatval($replace);
+    }
+
+    /**
+     * Store bulk exchange rates for multiple currency pairs in a date range
+     */
+    public function bulkStore(Request $request)
+    {
+        $request->validate([
+            'bulk_start_date' => 'required|date',
+            'bulk_end_date' => 'required|date|after_or_equal:bulk_start_date',
+            'currency_pairs' => 'required|array|min:1',
+            'currency_pairs.*.from_currency' => 'required|exists:master_currency,id',
+            'currency_pairs.*.to_currency' => 'required|exists:master_currency,id',
+            'currency_pairs.*.from_nominal' => 'required|numeric|min:0.01',
+            'currency_pairs.*.to_nominal' => 'required|numeric|min:0.01',
+        ]);
+
+        $startDate = Carbon::parse($request->input('bulk_start_date'));
+        $endDate = Carbon::parse($request->input('bulk_end_date'));
+        $currencyPairs = $request->input('currency_pairs');
+
+        // Validate currency pairs (no same currency, no duplicates)
+        $validatedPairs = [];
+        foreach ($currencyPairs as $index => $pair) {
+            if ($pair['from_currency'] === $pair['to_currency']) {
+                toast('From Currency and To Currency cannot be the same!', 'error');
+                return redirect()->back()->withErrors(["error" => "From Currency and To Currency cannot be the same in pair " . ($index + 1)]);
+            }
+
+            // Check for duplicate pairs (bidirectional)
+            $pairKey = $pair['from_currency'] . '-' . $pair['to_currency'];
+            $reversePairKey = $pair['to_currency'] . '-' . $pair['from_currency'];
+            
+            if (in_array($pairKey, $validatedPairs)) {
+                toast('Duplicate currency pair detected!', 'error');
+                return redirect()->back()->withErrors(["error" => "Duplicate currency pair detected in pair " . ($index + 1) . " - same direction already exists"]);
+            }
+            
+            if (in_array($reversePairKey, $validatedPairs)) {
+                toast('Duplicate currency pair detected!', 'error');
+                return redirect()->back()->withErrors(["error" => "Duplicate currency pair detected in pair " . ($index + 1) . " - reverse direction already exists"]);
+            }
+            
+            $validatedPairs[] = $pairKey;
+        }
+
+        // Pre-check for existing rates to provide detailed feedback
+        $existingRatesDetails = [];
+        $currentDate = $startDate->copy();
+        
+        while ($currentDate->lte($endDate)) {
+            foreach ($currencyPairs as $pairIndex => $pair) {
+                $fromCurrency = $pair['from_currency'];
+                $toCurrency = $pair['to_currency'];
+                
+                $existingExchange = ExchangeRate::whereDate('date', $currentDate->format('Y-m-d'))
+                    ->where(function($query) use ($fromCurrency, $toCurrency) {
+                        $query->where(function($q) use ($fromCurrency, $toCurrency) {
+                            $q->where('from_currency_id', $fromCurrency)
+                              ->where('to_currency_id', $toCurrency);
+                        })->orWhere(function($q) use ($fromCurrency, $toCurrency) {
+                            $q->where('from_currency_id', $toCurrency)
+                              ->where('to_currency_id', $fromCurrency);
+                        });
+                    })
+                    ->with(['from_currency', 'to_currency'])
+                    ->first();
+
+                if ($existingExchange) {
+                    // Check if it's the same direction or reverse direction
+                    $isSameDirection = ($existingExchange->from_currency_id == $fromCurrency && $existingExchange->to_currency_id == $toCurrency);
+                    $direction = $isSameDirection ? 'same' : 'reverse';
+                    
+                    $existingRatesDetails[] = [
+                        'date' => $currentDate->format('Y-m-d'),
+                        'pair_index' => $pairIndex + 1,
+                        'from_currency' => $existingExchange->from_currency->initial,
+                        'to_currency' => $existingExchange->to_currency->initial,
+                        'existing_from_nominal' => $existingExchange->from_nominal,
+                        'existing_to_nominal' => $existingExchange->to_nominal,
+                        'direction' => $direction,
+                        'requested_from' => $fromCurrency,
+                        'requested_to' => $toCurrency
+                    ];
+                }
+            }
+            $currentDate->addDay();
+        }
+
+        // If there are existing rates, show detailed information
+        if (!empty($existingRatesDetails)) {
+            $conflictMessage = "The following exchange rates already exist and will be skipped:\n\n";
+            foreach ($existingRatesDetails as $detail) {
+                $conflictMessage .= "• Pair {$detail['pair_index']}: {$detail['from_currency']} → {$detail['to_currency']} on {$detail['date']} (Current: {$detail['existing_from_nominal']} → {$detail['existing_to_nominal']})\n";
+            }
+            $conflictMessage .= "\nDo you want to continue and create only the new exchange rates?";
+            
+            // For now, we'll continue but show the conflicts in the success message
+        }
+
+        $totalCreatedCount = 0;
+        $totalSkippedCount = 0;
+        $currentDate = $startDate->copy();
+
+        // Process each date in the range
+        while ($currentDate->lte($endDate)) {
+            // Process each currency pair for this date
+            foreach ($currencyPairs as $pair) {
+                $fromCurrency = $pair['from_currency'];
+                $toCurrency = $pair['to_currency'];
+                $fromNominal = $this->numberToDatabase($pair['from_nominal']);
+                $toNominal = $this->numberToDatabase($pair['to_nominal']);
+
+                // Check if exchange rate already exists for this date and currency pair
+                $existingExchange = ExchangeRate::whereDate('date', $currentDate->format('Y-m-d'))
+                    ->where(function($query) use ($fromCurrency, $toCurrency) {
+                        $query->where(function($q) use ($fromCurrency, $toCurrency) {
+                            $q->where('from_currency_id', $fromCurrency)
+                              ->where('to_currency_id', $toCurrency);
+                        })->orWhere(function($q) use ($fromCurrency, $toCurrency) {
+                            $q->where('from_currency_id', $toCurrency)
+                              ->where('to_currency_id', $fromCurrency);
+                        });
+                    })
+                    ->first();
+
+                if (!$existingExchange) {
+                    ExchangeRate::create([
+                        'date' => $currentDate->format('Y-m-d'),
+                        'from_currency_id' => $fromCurrency,
+                        'from_nominal' => $fromNominal,
+                        'to_currency_id' => $toCurrency,
+                        'to_nominal' => $toNominal,
+                    ]);
+                    $totalCreatedCount++;
+                } else {
+                    $totalSkippedCount++;
+                }
+            }
+            
+            $currentDate->addDay();
+        }
+
+        $pairCount = count($currencyPairs);
+        $dayCount = $startDate->diffInDays($endDate) + 1;
+        
+        $message = "Bulk exchange rate created successfully! Created: {$totalCreatedCount} records ({$pairCount} currency pairs × {$dayCount} days)";
+        if ($totalSkippedCount > 0) {
+            $message .= ", Skipped: {$totalSkippedCount} records (already exist)";
+            
+            // Add detailed information about existing rates
+            if (!empty($existingRatesDetails)) {
+                $message .= "\n\nExisting rates found:";
+                foreach (array_slice($existingRatesDetails, 0, 5) as $detail) { // Show first 5 conflicts
+                    $directionText = $detail['direction'] == 'same' ? 'same direction' : 'reverse direction';
+                    $message .= "\n• {$detail['from_currency']} → {$detail['to_currency']} on {$detail['date']} ({$directionText})";
+                }
+                if (count($existingRatesDetails) > 5) {
+                    $message .= "\n• ... and " . (count($existingRatesDetails) - 5) . " more";
+                }
+            }
+        }
+
+        toast($message, 'success');
+        return redirect()->route('finance.exchange-rate.index', ['date' => $startDate->format('Y-m-d')])
+            ->with('success', $message);
     }
 }

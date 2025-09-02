@@ -18,5 +18,7 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
     Route::prefix('finance')->name('finance.')->group(function () {
         Route::resource('exchange-rate', ExchangeRateController::class);
         Route::get('exhchange-rate-by-date', [ExchangeRateController::class, 'getExchangeByDate'])->name('exchange-by-date');
+        Route::post('exchange-rate/bulk-store', [ExchangeRateController::class, 'bulkStore'])->name('exchange-rate.bulk-store');
+        Route::post('exchange-rate/check-existing', [ExchangeRateController::class, 'checkExistingExchangeRates'])->name('exchange-rate.check-existing');
     });
 });
