@@ -84,7 +84,12 @@ class MasterAccount extends Model
         }
 
         if (!empty($filters['account_type_id'])) {
-            $query->where('account_type_id', $filters['account_type_id']);
+            // Handle both single value and array of values
+            if (is_array($filters['account_type_id'])) {
+                $query->whereIn('account_type_id', $filters['account_type_id']);
+            } else {
+                $query->where('account_type_id', $filters['account_type_id']);
+            }
         }
 
         // tambahkan filter lain sesuai kebutuhan

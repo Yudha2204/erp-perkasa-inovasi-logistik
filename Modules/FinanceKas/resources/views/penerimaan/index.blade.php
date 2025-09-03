@@ -8,7 +8,7 @@
 
             <!-- PAGE-HEADER -->
             <div class="page-header">
-                <h1>Penerimaan</h1>
+                <h1>Cash & Bank In</h1>
             </div>
             <!-- PAGE-HEADER END -->
 
@@ -46,7 +46,7 @@
                                             <th>No</th>
                                             <th>Date</th>
                                             <th>No Referensi</th>
-                                            <th>Nama</th>
+                                            {{-- <th>Nama</th> --}}
                                             <th>Description</th>
                                             <th>Value</th>
                                             <th>Action</th>
@@ -58,11 +58,11 @@
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ \Carbon\Carbon::createFromFormat('Y-m-d', $data->date_kas_in)->format('d/m/Y') }}</td>
                                             <td>{{ $data->transaction }}</td>
-                                            <td>
+                                            {{-- <td>
                                                 @if(isset($data->contact))
                                                 {{ $data->contact->customer_name }}
                                                 @endif
-                                            </td>
+                                            </td> --}}
                                             <td>{{ $data->description }}</td>
                                             <td>
                                                 {{ isset($data->currency) ? $data->currency->initial : "" }} {{ number_format($data->total, 2, '.', ','); }}

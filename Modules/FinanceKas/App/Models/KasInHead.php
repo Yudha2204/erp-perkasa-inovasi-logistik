@@ -72,6 +72,7 @@ class KasInHead extends Model
     {
         $jurnal = BalanceAccount::where('transaction_type_id', 6)
                     ->where('transaction_id', $this->id)
+                    ->orderByDesc('debit')
                     ->get();
         return $jurnal;
     }

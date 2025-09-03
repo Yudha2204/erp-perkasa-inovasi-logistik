@@ -13,7 +13,7 @@
             @csrf
             <!-- PAGE-HEADER -->
             <div class="page-header mb-0">
-                <h1>Penerimaan</h1>
+                <h1>Cash & Bank In</h1>
             </div>
             <!-- PAGE-HEADER END -->
 
@@ -33,7 +33,7 @@
                                 </div>
                             @endif
                             <div class="row">
-                                <div class="col-md-4">
+                                {{-- <div class="col-md-4">
                                     <div class="form-group">
                                         <label class="form-label">Customer</label>
                                         <div class="d-flex d-inline">
@@ -43,6 +43,15 @@
                                             </select>
                                         </div>
                                     </div>
+                                </div> --}}
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="currency_id" class="form-label">Currency</label>
+                                        <select class="form-control select2 form-select"
+                                            data-placeholder="Choose Currency" name="currency_id" id="currency_id" disabled>
+                                            <option value="{{ $head->currency_id }}">{{ $head->currency->initial }}</option>
+                                        </select>
+                                  </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
@@ -61,15 +70,6 @@
                                 </div>
                           </div>
                           <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="currency_id" class="form-label">Currency</label>
-                                    <select class="form-control select2 form-select"
-                                        data-placeholder="Choose Currency" name="currency_id" id="currency_id" disabled>
-                                        <option value="{{ $head->currency_id }}">{{ $head->currency->initial }}</option>
-                                    </select>
-                              </div>
-                            </div>
                               <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="no_transactions" class="form-label">Nomor Transaksi <a data-bs-effect="effect-scale" data-bs-toggle="modal" style="display: none;" href="#modal-transaction-format"><i class="fa fa-cog"></i></a></label>

@@ -8,7 +8,7 @@
 
             <!-- PAGE-HEADER -->
             <div class="page-header">
-                <h1>Pembayaran</h1>
+                <h1>Cash & Bank Out</h1>
             </div>
             <!-- PAGE-HEADER END -->
 

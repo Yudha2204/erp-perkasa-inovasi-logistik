@@ -13,7 +13,7 @@
             @csrf
             <!-- PAGE-HEADER -->
             <div class="page-header mb-0">
-                <h1>Penerimaan</h1>
+                <h1>Cash & Bank In</h1>
             </div>
             <h4 style="color: #015377">Add New</h4>
             <!-- PAGE-HEADER END -->
@@ -34,7 +34,7 @@
                                 </div>
                             @endif
                             <div class="row">
-                                <div class="col-md-4">
+                                {{-- <div class="col-md-4">
                                     <div class="form-group">
                                         <label class="form-label">Customer</label>
                                         <div class="d-flex d-inline">
@@ -48,6 +48,18 @@
                                             <div id="btn_edit_contact"></div>
                                         </div>
                                         <a data-bs-effect="effect-scale" data-bs-toggle="modal" href="#modal-create"><i class="fe fe-plus me-1"></i>Add new Customer</a>
+                                    </div>
+                                </div> --}}
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="currency_id" class="form-label">Currency</label>
+                                        <select class="form-control select2 form-select"
+                                            data-placeholder="Choose Currency" name="currency_id" id="currency_id">
+                                            <option label="Choose Currency"></option>
+                                            @foreach($currencies as $c)
+                                                <option value="{{ $c->id }}">{{ $c->initial }}</option>
+                                            @endforeach
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -68,18 +80,6 @@
                                 </div>
                           </div>
                           <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="currency_id" class="form-label">Currency</label>
-                                        <select class="form-control select2 form-select"
-                                            data-placeholder="Choose Currency" name="currency_id" id="currency_id">
-                                            <option label="Choose Currency"></option>
-                                            @foreach($currencies as $c)
-                                                <option value="{{ $c->id }}">{{ $c->initial }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
                               <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="no_transactions" class="form-label">Nomor Transaksi <a data-bs-effect="effect-scale" data-bs-toggle="modal" href="#modal-transaction-format"><i class="fa fa-cog"></i></a></label>
@@ -1055,21 +1055,46 @@
             });
         })
 
-        function getAccountDetail() {
+        function getHeaderAccount() {
             var currency_id = $('#currency_id').val()
             const selectElementHead = document.querySelector('select[name="account_head_id"]')
-            const details = document.querySelectorAll('.form-wrapper')
 
             let defaultOption = document.createElement("option");
             defaultOption.label = "Choose One";
             selectElementHead.innerHTML = ""
             selectElementHead.add(defaultOption);
 
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route('finance.master-data.account') }}',
+                data: { 
+                    'currency_id': currency_id,
+                    'account_type_id': [1, 2] // Filter for header accounts only
+                },
+                success: function(response) {
+                    if(response.data) {
+                        response.data.forEach(d => {
+                            let newOption = new Option(d.account_name, d.id);
+                            selectElementHead.add(newOption)
+                        })
+                    }
+                }
+            })
+        }
+
+        function getDetailAccount() {
+            var currency_id = $('#currency_id').val()
+            const details = document.querySelectorAll('.form-wrapper')
+
             opsi = []
 
             details.forEach(el => {
                 const selectElement = el.querySelector('select[name="account_detail_id"]')
-                defaultOption = document.createElement("option");
+                let defaultOption = document.createElement("option");
                 defaultOption.label = "Choose One";
                 selectElement.innerHTML = ""
                 selectElement.add(defaultOption)
@@ -1082,13 +1107,15 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 'currency_id': currency_id },
+                data: { 
+                    'currency_id': currency_id,
+                    'account_type': [1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] // Filter for detail accounts only
+                },
                 success: function(response) {
                     if(response.data) {
                         response.data.forEach(d => {
                             let newOption = new Option(d.account_name, d.id);
                             opsi.push(newOption.outerHTML)
-                            selectElementHead.add(newOption)
                             details.forEach(el => {
                                 const selectElement = el.querySelector('select[name="account_detail_id"]')
                                 newOption = new Option(d.account_name, d.id)
@@ -1098,6 +1125,12 @@
                     }
                 }
             })
+        }
+
+        function getAccountDetail() {
+            // Call both functions to populate header and detail accounts
+            getHeaderAccount();
+            getDetailAccount();
         }
 
         $('#customer_id').on('change', function () {
@@ -1218,6 +1251,9 @@
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
 
+            // Populate the new detail account select with current detail accounts
+            populateNewDetailAccount(newFormWrapper);
+
             $('.select2').select2({
                 minimumResultsForSearch: Infinity
             });
@@ -1226,6 +1262,39 @@
                 element.style.width = '100%';
             });
         });
+
+        function populateNewDetailAccount(formWrapper) {
+            var currency_id = $('#currency_id').val()
+            const selectElement = formWrapper.querySelector('select[name="account_detail_id"]')
+            
+            if (!selectElement) return;
+
+            let defaultOption = document.createElement("option");
+            defaultOption.label = "Choose One";
+            selectElement.innerHTML = ""
+            selectElement.add(defaultOption)
+
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route('finance.master-data.account') }}',
+                data: { 
+                    'currency_id': currency_id,
+                    'account_type': [1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] 
+                },
+                success: function(response) {
+                    if(response.data) {
+                        response.data.forEach(d => {
+                            let newOption = new Option(d.account_name, d.id);
+                            selectElement.add(newOption)
+                        })
+                    }
+                }
+            })
+        }
 
         function toggleList(arrow) {
             var toggleElement = arrow.parentNode;

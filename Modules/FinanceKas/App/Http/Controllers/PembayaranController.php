@@ -165,8 +165,8 @@ class PembayaranController extends Controller
                 "transaction_type_id" => 5,
                 "transaction_id" => $head_id,
                 "date" => $date_kas_out,
-                "debit" => 0,
-                "credit" => $total_detail
+                "debit" => $total_detail,
+                "credit" => 0
             ]);
         }
 
@@ -191,8 +191,8 @@ class PembayaranController extends Controller
             "transaction_type_id" => 5,
             "transaction_id" => $head_id,
             "date" => $date_kas_out,
-            "debit" => $total,
-            "credit" => 0
+            "debit" => 0,
+            "credit" => $total
         ]);
 
         return redirect()->route('finance.kas.pembayaran.index')->with('success', 'create successfully!');

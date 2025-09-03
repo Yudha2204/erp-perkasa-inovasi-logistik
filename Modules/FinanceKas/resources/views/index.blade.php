@@ -23,7 +23,7 @@
                                         <div class="card text-white card-transparent" style="background-color: #59B1C3;">
                                             <div class="card-body" style="text-align: center">
                                                 <img src="{{ url('assets/images/icon/penerimaan-kas.png') }}" alt="">
-                                                <h4 class="card-title mt-2">Penerimaan Kas</h4>
+                                                <h4 class="card-title mt-2">Cash & Bank In</h4>
                                             </div>
                                         </div>
                                     </a>
@@ -33,7 +33,7 @@
                                         <div class="card text-white card-transparent" style="background-color: #EAAD52;">
                                             <div class="card-body" style="text-align: center">
                                                 <img src="{{ url('assets/images/icon/pengeluaran-kas.png') }}" alt="">
-                                                <h4 class="card-title mt-2">Pengeluaran Kas</h4>
+                                                <h4 class="card-title mt-2">Cash & Bank Out</h4>
                                             </div>
                                         </div>
                                     </a>

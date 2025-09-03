@@ -6,7 +6,7 @@
             <div class="main-container container-fluid">
                 <!-- PAGE-HEADER -->
                 <div class="page-header">
-                    <h1 style="color: #59758B; font-size: medium; font-size: 35px;">Journal Penerimaan</h1>
+                    <h1 style="color: #59758B; font-size: medium; font-size: 35px;">Journal Cash & Bank In</h1>
                 </div>
                 <!-- PAGE-HEADER END -->
                 <div class="" style="margin-bottom: 50px;">
