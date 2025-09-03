@@ -21,7 +21,7 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="card">
-                        <div class="card-body">                
+                        <div class="card-body">
                             @if ($errors->any())
                                 <div class="alert alert-danger" role="alert">
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button>
@@ -42,7 +42,7 @@
                                                 data-placeholder="Choose One" name="customer_id" id="customer_id">
                                                 <option label="Choose One" selected disabled></option>
                                                 @foreach ($contact as $c)
-                                                    <option value="{{ $c->id }}">{{ $c->customer_name }}</option>   
+                                                    <option value="{{ $c->id }}">{{ $c->customer_name }}</option>
                                                 @endforeach
                                             </select>
                                             <div id="btn_edit_contact"></div>
@@ -155,14 +155,14 @@
                                 </div>
                                 <div class="col-lg-6">
                                     <table class="table mt-5">
-                                        <tr>
+                                        {{-- <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     Biaya Lain
                                                     <input type="text" style="width: 50%" class="form-control" name="additional_cost" id="additional_cost" placeholder="0" value="0" onchange="changeFormat(this)" />
                                                 </div>
                                             </td>
-                                        </tr>
+                                        </tr> --}}
                                         <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between align-items-center">
@@ -308,7 +308,7 @@
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type2" name="contact_type[]" value="2" @if(is_array(old('contact_type')) && in_array(2,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Vendor</span>
                                                             </label>
-                                                            &nbsp;&nbsp;&nbsp;&nbsp;    
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;
                                                         <label class="custom-control custom-checkbox">
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type3" name="contact_type[]" value="3" @if(is_array(old('contact_type')) && in_array(3,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Karyawan</span>
@@ -591,7 +591,7 @@
                                                 </div>
                                             </div>
                                             <div class="row input_fields_wrap_new edit mt-2">
-                        
+
                                             </div>
                                             <div class="row mt-2">
                                                 <div class="col-3">
@@ -750,7 +750,7 @@
                     $('#email_edit').val(response.data.email);
                     $('#npwp_ktp_edit').val(response.data.npwp_ktp);
                     $('#company_name_edit').val(response.data.company_name);
-                    
+
                     $('#address_edit').val(response.data.address);
                     $('#city_edit').val(response.data.city);
                     $('#postal_code_edit').val(response.data.postal_code);
@@ -895,7 +895,7 @@
             $('#customer_id').select2('destroy').select2({
                 placeholder: "Choose One"
             });
-            
+
             // show beneficiary - siwft code if select checkbox vendor value
             $("input:checkbox[name^='contact_type']").on('change', function () {
                 if ($('#contact_type2').prop('checked')) {
@@ -953,7 +953,7 @@
             });
 
             $(wrapper_new).on("click",".remove_field_new", function(e){ //user click on remove text
-                e.preventDefault(); 
+                e.preventDefault();
                 $(this).parent().parent().remove(); x--;
             })
         });
@@ -1073,7 +1073,7 @@
                 dataType: 'json',
                 data: {'customer': customer, 'currency': currency, 'job_order': job_order },
                 url: '{{ route('finance.piutang.receive.get-invoice') }}',
-                success:function(response) 
+                success:function(response)
                 {
                     if (response.data && response.data.length > 0) {
                         $('#add-form').show()
@@ -1097,7 +1097,7 @@
                             <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
                         </td>
                         <td>
-                            <input type="date" class="form-control" readonly name="detail_date" />                                
+                            <input type="date" class="form-control" readonly name="detail_date" />
                         </td>
                         <td>
                             <input type="text" class="form-control" readonly name="detail_jumlah"/>
@@ -1188,7 +1188,7 @@
         document.getElementById('submit-all-form').addEventListener('click', function() {
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
-        
+
             forms.forEach(function(form) {
                 var formDataObj = {};
                 form.querySelectorAll('input, select').forEach(function(input) {
@@ -1196,18 +1196,18 @@
                 });
                 formData.push(formDataObj);
             });
-        
+
             // Menyimpan data dalam input tersembunyi untuk dikirimkan ke backend
             var hiddenInput = document.createElement('input');
             hiddenInput.setAttribute('type', 'hidden');
             hiddenInput.setAttribute('name', 'form_data');
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
-        
+
             // Mengirimkan formulir ke backend
             document.forms['dynamic-form'].submit();
         });
-        
+
         document.getElementById('add-form').addEventListener('click', function() {
             var formContainer = document.getElementById('form-container');
             var newFormWrapper = document.createElement('tr');
@@ -1224,7 +1224,7 @@
                 <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
             </td>
             <td>
-                <input type="date" class="form-control" readonly name="detail_date" />                                
+                <input type="date" class="form-control" readonly name="detail_date" />
             </td>
             <td>
                 <input type="text" class="form-control" readonly name="detail_jumlah"/>
@@ -1343,7 +1343,7 @@
                 dataType: 'json',
                 data: {'invoice': invoice },
                 url: '{{ route('finance.piutang.get-invoice-details') }}',
-                success:function(response) 
+                success:function(response)
                 {
                     if(response.data) {
                         row.querySelector('input[name="detail_date"]').value = response.data.date_invoice
@@ -1374,7 +1374,7 @@
                 let jumlah = el.querySelector('input[name="detail_jumlah"]').value
                 let diskon = el.querySelector('input[name="detail_discount_nominal"]').value
                 jumlah = parseFloat(jumlah.replace(/,/g, '')) || 0
-                
+
                 const other_currency = el.querySelector('input[name="other_currency"]').value
                 const other_currency_type = el.querySelector('select[name="other_currency_type"]').value
                 let other_currency_nominal = 0
@@ -1384,7 +1384,7 @@
                     const exchange_rate = $('select[name="other_currency_type"] option:selected').data('exchange');
                     jumlah = other_currency_nominal*exchange_rate
                 }
-                
+
                 diskon = parseFloat(diskon.replace(/,/g, '')) || 0
                 const diskon_type = el.querySelector('select[name="detail_discount_type"]').value
                 if(diskon_type === "persen") {
@@ -1392,7 +1392,7 @@
                 } else {
                     diskon_tr = diskon
                 }
-                
+
                 const isDp = el.querySelector('input[name="dp_desc"]').value
                 if(isDp === "1") {
                     let dp = el.querySelector('input[name="detail_dp_nominal"]').value
@@ -1415,10 +1415,10 @@
                 grand_diskon += diskon_tr
             })
 
-            let additional = $('#additional_cost').val()
-            additional = parseFloat(additional.replace(/,/g, '')) || 0
+            // let additional = $('#additional_cost').val()
+            // additional = parseFloat(additional.replace(/,/g, '')) || 0
 
-            grand_total += additional
+            // grand_total += additional
             $('#discount_display').val(grand_diskon.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             $('#total_display').val(grand_total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             $('#display_sisa').val((grand_total-grand_dp).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))

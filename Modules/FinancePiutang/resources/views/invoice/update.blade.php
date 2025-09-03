@@ -322,7 +322,24 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between">
-                                                    Total Pajak
+                                                    <div>
+                                                        <label for="" class="form-label">PPn</label>
+                                                    </div>
+                                                    <div style="width: 150px">
+                                                        <select class="form-control select2 form-select" data-placeholder="Tax" name="ppn_tax" id="ppn_tax" >
+                                                            <option label="ppn tax"></option>
+                                                            @foreach ($ppn_tax as $tax)
+                                                                <option value="{{ $tax->id }}">{{ $tax->tax_rate }}%</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex justify-content-between">
+                                                    Total PPh
                                                     <input type="text" style="width: 50%" class="form-control" id="display_pajak" name="display_pajak" readonly value="{{ number_format($tax_total, 2, '.',',')}}" />
                                                 </div>
                                             </td>
@@ -1265,7 +1282,7 @@
             </td>
             <td>
                 <input type="text" class="form-control price-input" name="price_detail" onchange="calculate()" />
-                <label for="" class="form-label">Pajak</label>
+                <label for="" class="form-label">PPh</label>
                 <select class="form-control select2 form-select" data-placeholder="Tax" name="pajak_detail" id="pajak_detail" onchange="calculate()">
                     <option label="Tax"></option>
                     @foreach ($taxs as $tax)

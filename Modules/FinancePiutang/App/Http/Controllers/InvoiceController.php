@@ -116,8 +116,9 @@ class InvoiceController extends Controller
         // $terms = MasterTermOfPayment::all();
         $terms = TermPaymentContact::with(['term_payment'])->select('term_payment_id')->distinct()->get();
         $taxs = MasterTax::all();
-
-        return view('financepiutang::invoice.create', compact('contact', 'terms', 'taxs'));
+        // filter hanya yang tax_type = 'ppn'
+        $ppn_tax = $taxs->where('tax_type', 'ppn');
+        return view('financepiutang::invoice.create', compact('contact', 'terms', 'taxs' , 'ppn_tax'));
     }
 
     public function getSalesOrder(Request $request)
@@ -271,13 +272,12 @@ class InvoiceController extends Controller
             // }
             // $kas_id = $kas_id->id;
 
-            // $dp_id = MasterAccount::where('code', "220203")
-            //                         ->where('account_name', 'Pendapatan Diterima Di Muka')
-            //                         ->where('master_currency_id', $currency_id)->first();
-            // if(!$dp_id) {
-            //     return redirect()->back()->withErrors(['dp' => 'Please add the account of Pendapatan Diterima Di Muka with code number is 220203']);
-            // }
-            // $dp_id = $dp_id->id;
+            $prepaid_sales = MasterAccount::where('account_name', 'Prepaid Sales')
+                                    ->where('master_currency_id', $currency_id)->first();
+            if(!$prepaid_sales) {
+                return redirect()->back()->withErrors(['coa_ps' => 'Please add the account of Prepaid Sales']);
+            }
+            $prepaid_sales = $prepaid_sales->id;
 
             InvoiceHead::create($data);
             $newestInvoice = InvoiceHead::latest()->first();
@@ -357,6 +357,7 @@ class InvoiceController extends Controller
                 [$display_pajak, 0, $ppn_keluaran_id],
                 // [$display_dp, 0, $kas_id],
                 // [0, $display_dp, $dp_id],
+                [0, 0, $prepaid_sales],
                 // [0, $additional_cost, $pendapatan_lain_id],
                 [0, $totBalance, $coa_sales]
             ];
@@ -394,7 +395,7 @@ class InvoiceController extends Controller
             //code...
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e->getMessage());
+            // dd($e->getMessage());
             toast('App Error','error');
                 return redirect()->back()
                     ->withErrors(['error' => 'Error On App Please Contact IT Support']);
@@ -427,6 +428,8 @@ class InvoiceController extends Controller
         $contact = MasterContact::whereJsonContains('type','1')->get();
         $terms = MasterTermOfPayment::all();
         $taxs = MasterTax::all();
+        $ppn_tax = $taxs->where('tax_type', 'ppn');
+
         $invoiceWhere = InvoiceHead::all()->pluck('id');
         $salesOrder = SalesOrderHead::where('contact_id', $id)
                             ->whereNotIn('id', $invoiceWhere)
@@ -444,7 +447,7 @@ class InvoiceController extends Controller
         $coa_sales_selected = $grouped->get('11', collect())[0]; // misalnya code 2001
         // return response()->json([$coa_ar_selected , $coa_sales_selected]);
 
-        return view('financepiutang::invoice.update', compact('contact', 'terms', 'taxs', 'invoice', 'salesOrder','coa_ar' , 'coa_sales' ,'coa_ar_selected' ,'coa_sales_selected'));
+        return view('financepiutang::invoice.update', compact('contact', 'terms', 'taxs','ppn_tax', 'invoice', 'salesOrder','coa_ar' , 'coa_sales' ,'coa_ar_selected' ,'coa_sales_selected'));
     }
 
     /**
@@ -564,13 +567,13 @@ class InvoiceController extends Controller
                     $pajak += (5/100)*$totalFull;
                 }
                 $totalFull -= $pajak;
-                $dp = 0;
-                if($dp_type_detail == "persen") {
-                    $dp += ($dp_detail/100)*$totalFull;
-                } else {
-                    $dp += $dp_detail;
-                }
-                $grand_dp += $dp;
+                // $dp = 0;
+                // if($dp_type_detail == "persen") {
+                //     $dp += ($dp_detail/100)*$totalFull;
+                // } else {
+                //     $dp += $dp_detail;
+                // }
+                // $grand_dp += $dp;
 
                 if($exp_operator[1] === "create") {
                     InvoiceDetail::create([
@@ -583,7 +586,7 @@ class InvoiceController extends Controller
                         'remark' => $renark_detail,
                         'discount_type' => $disc_type_detail,
                         'discount_nominal' => $discount_detail,
-                        'dp_type' => $dp_type_detail,
+                        // 'dp_type' => $dp_type_detail,
                         'dp_nominal' => $dp_detail
                     ]);
                 } else if($exp_operator[1] === "update") {
@@ -597,7 +600,7 @@ class InvoiceController extends Controller
                         'remark' => $renark_detail,
                         'discount_type' => $disc_type_detail,
                         'discount_nominal' => $discount_detail,
-                        'dp_type' => $dp_type_detail,
+                        // 'dp_type' => $dp_type_detail,
                         'dp_nominal' => $dp_detail
                     ]);
                 } else if($exp_operator[1] === "delete") {
@@ -628,14 +631,16 @@ class InvoiceController extends Controller
                         'master_account_id' => $flow[0][2],
                     ];
                     BalanceAccount::find($item->id)->update($cashflowData);
-                } else if($item->master_account->code === "440100" && $item->master_account->account_name === "Diskon Penjualan") {
-                    $cashflowData = [
-                        "date" => $date_invoice,
-                        'debit' => $flow[1][0],
-                        'credit' => $flow[1][1]
-                    ];
-                    BalanceAccount::find($item->id)->update($cashflowData);
-                } else if($item->master_account->code === "220500" && $item->master_account->account_name === "PPN Keluaran") {
+                }
+                // else if($item->master_account->code === "440100" && $item->master_account->account_name === "Diskon Penjualan") {
+                //     $cashflowData = [
+                //         "date" => $date_invoice,
+                //         'debit' => $flow[1][0],
+                //         'credit' => $flow[1][1]
+                //     ];
+                //     BalanceAccount::find($item->id)->update($cashflowData);
+                // }
+                else if($item->master_account->code === "220500" && $item->master_account->account_name === "PPN Keluaran") {
                     $cashflowData = [
                         "date" => $date_invoice,
                         'debit' => $flow[2][0],
@@ -651,7 +656,7 @@ class InvoiceController extends Controller
                 //     ];
                 //     BalanceAccount::find($item->id)->update($cashflowData);
                 // }
-                else if($item->master_account->code === "220203" && $item->master_account->account_name === "Pendapatan Diterima Di Muka") {
+                else if($item->master_account->account_name === "Prepaid Sales") {
                     $cashflowData = [
                         "date" => $date_invoice,
                         'debit' => $flow[4][0],
@@ -700,7 +705,7 @@ class InvoiceController extends Controller
             return redirect()->route('finance.piutang.invoice.index')->with('success', 'create successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
-            // dd($e->getMessage());
+            dd($e->getMessage());
             toast('App Error','error');
                 return redirect()->back()
                     ->withErrors(['error' => 'Error On App Please Contact IT Support']);
