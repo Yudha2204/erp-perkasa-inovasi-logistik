@@ -107,7 +107,7 @@
                                         <select class="form-control select2 form-select"
                                             data-placeholder="Choose One" name="coa_ar" id="coa_ar">
                                             @foreach ($coa_ar as $ca)
-                                                    <option value="{{ $ca->id }}" {{ $coa_ar_selected->master_account_id == $ca->id ? 'selected' : ""}}>{{ $ca->account_name }}</option>
+                                                    <option value="{{ $ca->id }}" {{ $invoice->account_id == $ca->id ? 'selected' : ""}}>{{ $ca->account_name }}</option>
                                                 @endforeach
                                         </select>
                                     </div>
@@ -240,17 +240,13 @@
                                             </td>
                                             <td>
                                                 <input type="text" class="form-control total-input" name="total_detail" readonly value="{{ number_format($data->total,2,'.',',') }}"/>
-                                                <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
-                                                    <input type="checkbox" class="custom-control-input" name="dp_desc" value="{{ isset($data->dp_nominal) ? "1" : "0" }}" {{ isset($data->dp_nominal) ? "checked" : "" }} onchange="changeDp(this); calculate(); toUpdate(this)">
-                                                    <span class="custom-control-label form-label">Bayar DP</span>
-                                                </label>
-                                                <div class="d-flex gap-2 flex-column" style="display: {{ isset($data->dp_nominal) ? "flex" : "none" }} !important">
-                                                    <input type="text" class="form-control" name="dp_detail" value="{{ isset($data->dp_nominal) ? $data->dp_nominal : "" }}" onchange="calculate(); toUpdate(this)"/>
-                                                    <select class="form-control select2 form-select" data-placeholder="Choose One" name="dp_type_detail" onchange="calculate(); toUpdate(this)" >
-                                                        <option value="persen" {{ isset($data->dp_type) && $data->dp_type === "persen" ? "selected" : "" }}>%</option>
-                                                        <option value="nominal" {{ isset($data->dp_type) && $data->dp_type === "nominal" ? "selected" : "" }}>0</option>
+                                                <label for="coa_sales" class="form-label">Account Name </label>
+                                                    <select class="form-control select2 form-select coa-sales-select"
+                                                        data-placeholder="Choose One" name="coa_sales" id="coa_sales" >
+                                                        @foreach ($coa_sales as $cs)
+                                                    <option value="{{ $cs->id }}"  {{ $data->account_id == $cs->id ? 'selected' : ""}}>{{ $cs->account_name }}</option>
+                                                @endforeach
                                                     </select>
-                                                </div>
                                                 @php
                                                   if(isset($data->dp_nominal)) {
                                                     $dp += $data->dp;
@@ -268,13 +264,7 @@
                                             <td></td>
                                             <td>
                                                 <div class="form-group">
-                                                    <label for="coa_sales" class="form-label">Account Name</label>
-                                                    <select class="form-control select2 form-select coa-sales-select"
-                                                        data-placeholder="Choose One" name="coa_sales" id="coa_sales" >
-                                                        @foreach ($coa_sales as $cs)
-                                                    <option value="{{ $cs->id }}"  {{ $coa_sales_selected->master_account_id == $cs->id ? 'selected' : ""}}>{{ $cs->account_name }}</option>
-                                                @endforeach
-                                                    </select>
+
                                                 </div>
                                             </td>
                                             <td></td>
@@ -326,10 +316,10 @@
                                                         <label for="" class="form-label">PPn</label>
                                                     </div>
                                                     <div style="width: 150px">
-                                                        <select class="form-control select2 form-select" data-placeholder="Tax" name="ppn_tax" id="ppn_tax" >
+                                                        <select class="form-control select2 form-select" data-placeholder="Tax" name="ppn_tax" id="ppn_tax" onchange="hideButton()">
                                                             <option label="ppn tax"></option>
                                                             @foreach ($ppn_tax as $tax)
-                                                                <option value="{{ $tax->id }}">{{ $tax->tax_rate }}%</option>
+                                                                <option value="{{ $tax->id }}:{{ $tax->tax_rate }}" {{ $invoice->tax_id == $tax->id ? 'selected' : '' }}>{{ $tax->tax_rate }}%</option>
                                                             @endforeach
                                                         </select>
                                                     </div>
@@ -816,6 +806,7 @@
 
 @endsection
 @push('scripts')
+
     <!-- SELECT2 JS -->
     <script src="{{ url('assets/plugins/select2/select2.full.min.js') }}"></script>
     <script src="{{ url('assets/js/select2.js') }}"></script>
@@ -825,6 +816,7 @@
     <script src="{{ url('assets/plugins/multipleselect/multi-select.js') }}"></script>
 
     <script>
+        let currentCurrencyId = '{{ $invoice->sales->currency_id }}';
         $('select[name="customer_id"]').change(function () {
             var id_contact = this.value;
 
@@ -1292,17 +1284,10 @@
             </td>
             <td>
                 <input type="text" class="form-control total-input" name="total_detail" readonly value="0"/>
-                <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
-                    <input type="checkbox" class="custom-control-input" name="dp_desc" value="0" onchange="changeDp(this); calculate()">
-                    <span class="custom-control-label form-label">Bayar DP</span>
-                </label>
-                <div class="d-flex gap-2 flex-column" style="display: none !important;">
-                    <input type="text" class="form-control" name="dp_detail" onchange="calculate()" />
-                    <select class="form-control select2 form-select" data-placeholder="Choose One" name="dp_type_detail" onchange="calculate()" >
-                        <option value="persen" selected>%</option>
-                        <option value="nominal">0</option>
-                    </select>
-                </div>
+                <label class="form-label">Account Name</label>
+                <select class="form-control select2 form-select coa-sales-select" data-placeholder="Choose One" name="coa_sales_new[]">
+                    <option label="Choose One" selected disabled></option>
+                </select>
             </td>
             <td>
                 <div class="d-flex justify-content-between">
@@ -1314,6 +1299,29 @@
 
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
+            $(newFormWrapper).find('.select2').select2({ placeholder: "Choose One" });
+    const newCoaSelect = $(newFormWrapper).find('.coa-sales-select').select2({ placeholder: "Choose One" });
+
+    // AJAX Call untuk mengisi dropdown COA Sales di baris yang baru dibuat
+    $.ajax({
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+        type: 'GET',
+        dataType: 'json',
+        url: '{{ route('finance.master-data.account') }}',
+        data: {
+            'currency_id': currentCurrencyId, // Gunakan variabel currency yang sudah disimpan
+            'account_type_id': 15
+        },
+        success: function(response) {
+            if(response.data) {
+                response.data.forEach(element => {
+                    const newOption = new Option(element.account_name, element.id);
+                    newCoaSelect.append(newOption);
+                });
+                newCoaSelect.trigger('change');
+            }
+        }
+    });
         });
 
         function hideButton() {
@@ -1353,6 +1361,12 @@
 
             var { grand_disc } = calculate()
             disc +=  grand_disc
+
+            var ppn_tax = $('#ppn_tax').val();
+            if (ppn_tax) {
+                ppn_tax = ppn_tax.split(':')[1];
+                total = total + (total * (ppn_tax/100));
+            }
 
             var dp = document.querySelector('input[name="display_dp"]').value;
             if(!dp) dp = "0";

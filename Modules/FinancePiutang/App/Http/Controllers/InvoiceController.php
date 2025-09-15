@@ -117,7 +117,8 @@ class InvoiceController extends Controller
         $terms = TermPaymentContact::with(['term_payment'])->select('term_payment_id')->distinct()->get();
         $taxs = MasterTax::all();
         // filter hanya yang tax_type = 'ppn'
-        $ppn_tax = $taxs->where('tax_type', 'ppn');
+        $ppn_tax = $taxs->where('type', 'PPN');
+        $taxs = $taxs->where('type', 'PPH');
         return view('financepiutang::invoice.create', compact('contact', 'terms', 'taxs' , 'ppn_tax'));
     }
 
@@ -174,7 +175,7 @@ class InvoiceController extends Controller
                 "date_invoice.required" => "The date is required.",
                 "term_payment.required" => "The term of payment field is required."
             ]);
-
+            // dd($request->all());
             if ($validator->fails()) {
                 toast('Failed to Add Data!','error');
                 return redirect()->back()
@@ -205,7 +206,7 @@ class InvoiceController extends Controller
             $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
             $display_dp = $this->numberToDatabase($request->input('display_dp'));
             $discount_display = $this->numberToDatabase($request->input('discount_display'));
-
+            $ppn_tax = explode(":",$request->input('ppn_tax'))[0];
             $exp_term = explode(":", $term_payment);
             $exp_transaction = explode("-", $no_transactions);
             $number = $exp_transaction[3];
@@ -218,6 +219,8 @@ class InvoiceController extends Controller
                 'currency_id' => $currency_id,
                 'date_invoice' => $date_invoice,
                 'description' => $sell_des,
+                'account_id' => $coa_ar,
+                'tax_id' => $ppn_tax,
                 // 'additional_cost' => $additional_cost,
                 'discount_type' => $discount_type,
                 'discount_nominal' => $discount_nominal,
@@ -232,21 +235,22 @@ class InvoiceController extends Controller
             // }
             // $piutang_usaha_id = $piutang_usaha_id->id;
 
-            $diskon_penjualan_id = MasterAccount::where('code', '440100')
-                                    ->where('account_name', 'Diskon Penjualan')
-                                    ->where('master_currency_id', $currency_id)->first();
-            if(!$diskon_penjualan_id) {
-                return redirect()->back()->withErrors(['diskon_penjualan' => 'Please add the account of Diskon Penjualan with code number is 440100']);
-            }
-            $diskon_penjualan_id = $diskon_penjualan_id->id;
+            // 13092025 ganti ke sales discount
+            // $diskon_penjualan_id = MasterAccount::where('code', '440100')
+            //                         ->where('account_name', 'Diskon Penjualan')
+            //                         ->where('master_currency_id', $currency_id)->first();
+            // if(!$diskon_penjualan_id) {
+            //     return redirect()->back()->withErrors(['diskon_penjualan' => 'Please add the account of Diskon Penjualan with code number is 440100']);
+            // }
+            // $diskon_penjualan_id = $diskon_penjualan_id->id;
 
-            $ppn_keluaran_id = MasterAccount::where('code', "220500")
-                                    ->where('account_name', 'PPN Keluaran')
-                                    ->where('master_currency_id', $currency_id)->first();
-            if(!$ppn_keluaran_id) {
-                return redirect()->back()->withErrors(['ppn_keluaran' => 'Please add the account of PPN Keluaran with code number is 220500']);
-            }
-            $ppn_keluaran_id = $ppn_keluaran_id->id;
+            // $ppn_keluaran_id = MasterAccount::where('code', "220500")
+            //                         ->where('account_name', 'PPN Keluaran')
+            //                         ->where('master_currency_id', $currency_id)->first();
+            // if(!$ppn_keluaran_id) {
+            //     return redirect()->back()->withErrors(['ppn_keluaran' => 'Please add the account of PPN Keluaran with code number is 220500']);
+            // }
+            // $ppn_keluaran_id = $ppn_keluaran_id->id;
 
             // $pendapatan_lain_id = MasterAccount::where('code', "440010")
             //                         ->where('account_name', 'Pendapatan Lain')
@@ -286,6 +290,8 @@ class InvoiceController extends Controller
             $totBalance = 0;
             $formData = json_decode($request->input('form_data'), true);
             $grand_dp = 0;
+            $tax_journal = [];
+            $sales_jourjal = [];
             foreach ($formData as $data) {
                 $des_detail = $data['des_detail'];
                 $renark_detail = $data['remark_detail'];
@@ -295,12 +301,9 @@ class InvoiceController extends Controller
                 $price_detail = $this->numberToDatabase($data['price_detail']);
                 $discount_detail = $this->numberToDatabase($data['disc_detail']);
                 $disc_type_detail = $data['disc_type_detail'];
-
+                $sales_acc_id = $data['coa_sales'];
                 $exp_tax = explode(":", $pajak_detail);
                 $tax_id = $exp_tax[0];
-                if(!$tax_id) {
-                    $tax_id = null;
-                }
 
                 // $is_dp = $data['dp_desc'];
                 // $dp_type_detail = null;
@@ -320,12 +323,28 @@ class InvoiceController extends Controller
                 }
                 $totalFull -= $discTotal;
                 $pajak = 0;
-                if($tax_id == 2 ) {
-                    $pajak += (10/100)*$totalFull;
-                } else if($tax_id == 3 ) {
-                    $pajak += (5/100)*$totalFull;
+
+                if(!$tax_id) {
+                    $tax_id = null;
+                }else{
+                    $tax = MasterTax::find($tax_id);
+
+                    // if($tax_id == 2 ) {
+                        $pajak += (($tax->tax_rate/100) * $totalFull);
+                    // } else if($tax_id == 3 ) {
+                    // }
+                    $totalFull -= $pajak;
+                    if($tax->tax_rate > 0 && !$tax->account_id){
+                        DB::rollBack();
+                        // dd($e->getMessage());
+                            return redirect()->back()
+                                ->withErrors(['error' => 'Add the account to tax if rate more than 0']);
+                    }else if($tax->account_id){
+                        $tax_journal[] = [0, $pajak , $tax->account_id ,$tax->id];
+                    }else if($tax->tax_rate == 0 && !$tax->account_id ){
+                        // Skip
+                    }
                 }
-                $totalFull -= $pajak;
                 // $dp = 0;
                 // if($dp_type_detail == "persen") {
                 //     $dp += ($dp_detail/100)*$totalFull;
@@ -333,7 +352,7 @@ class InvoiceController extends Controller
                 //     $dp += $dp_detail;
                 // }
                 // $grand_dp += $dp;
-
+                $sales_journal[] = [0,($totalFull - $pajak),$sales_acc_id];
                 InvoiceDetail::create([
                     'head_id' => $head_id,
                     'description' => $des_detail,
@@ -344,24 +363,41 @@ class InvoiceController extends Controller
                     'remark' => $renark_detail,
                     'discount_type' => $disc_type_detail,
                     'discount_nominal' => $discount_detail,
+                    'account_id' => $sales_acc_id
                     // 'dp_type' => $dp_type_detail,
                     // 'dp_nominal' => $dp_detail
                 ]);
+            }
+
+            $ppn_tax_id = explode(":",$request->input('ppn_tax'))[0];
+            $ppn_tax = MasterTax::find($ppn_tax_id);
+            if ($ppn_tax && $ppn_tax->account_id) {
+                $total_after_discount = $total_display;
+                $ppn_amount = $total_after_discount - ($total_after_discount /(1 + ($ppn_tax->tax_rate / 100)));
+                $tax_journal[] = [0, $ppn_amount, $ppn_tax->account_id, $ppn_tax->id];
             }
 
             $flow = [
                 //debit, kredit
                 // [$total_display, 0, $piutang_usaha_id],
                 [$total_display, 0, $coa_ar],
-                [$discount_display, 0, $diskon_penjualan_id],
-                [$display_pajak, 0, $ppn_keluaran_id],
+                // [$discount_display, 0, $diskon_penjualan_id],
+                // [$display_pajak, 0, $ppn_keluaran_id],
                 // [$display_dp, 0, $kas_id],
                 // [0, $display_dp, $dp_id],
                 [0, 0, $prepaid_sales],
                 // [0, $additional_cost, $pendapatan_lain_id],
-                [0, $totBalance, $coa_sales]
+                // [0, $totBalance, $coa_sales]
             ];
+            // $ppn_tax = MasterTax::find($ppn_tax);
 
+            $flow = [
+                ...$flow,
+                ...$sales_journal,
+                ...$tax_journal,
+            ];
+            // DB::rollBack();
+            // dd($flow , $sales_journal, $tax_journal);
             foreach ($flow as $item) {
                 $cashflowData = [
                     'transaction_id' => $head_id,
@@ -395,7 +431,7 @@ class InvoiceController extends Controller
             //code...
         } catch (\Exception $e) {
             DB::rollBack();
-            // dd($e->getMessage());
+            dd($e->getMessage());
             toast('App Error','error');
                 return redirect()->back()
                     ->withErrors(['error' => 'Error On App Please Contact IT Support']);
@@ -428,23 +464,25 @@ class InvoiceController extends Controller
         $contact = MasterContact::whereJsonContains('type','1')->get();
         $terms = MasterTermOfPayment::all();
         $taxs = MasterTax::all();
-        $ppn_tax = $taxs->where('tax_type', 'ppn');
-
+        $ppn_tax = $taxs->where('type', 'PPN');
+        $taxs = $taxs->where('type', 'PPH');
+        // return response()->json($ppn_tax);
         $invoiceWhere = InvoiceHead::all()->pluck('id');
         $salesOrder = SalesOrderHead::where('contact_id', $id)
                             ->whereNotIn('id', $invoiceWhere)
                             ->get();
 
-        $accounts = MasterAccount::whereIn('account_type_id', [4, 11])
+        $accounts = MasterAccount::whereIn('account_type_id', [4, 15])
         ->where('master_currency_id', $invoice->sales->currency_id)
         ->get()
         ->groupBy('account_type_id');
 
         $coa_ar = $accounts->get(4, collect());
-        $coa_sales = $accounts->get(11, collect());
+        $coa_sales = $accounts->get(15, collect());
+        // return response()->json($invoice->jurnal);
         $grouped = $invoice->jurnal->groupBy(fn($item) => $item->master_account->account_type_id);
         $coa_ar_selected = $grouped->get('4', collect())[0]; // misalnya code 1001
-        $coa_sales_selected = $grouped->get('11', collect())[0]; // misalnya code 2001
+        $coa_sales_selected = $grouped->get('15', collect())[0]; // misalnya code 2001
         // return response()->json([$coa_ar_selected , $coa_sales_selected]);
 
         return view('financepiutang::invoice.update', compact('contact', 'terms', 'taxs','ppn_tax', 'invoice', 'salesOrder','coa_ar' , 'coa_sales' ,'coa_ar_selected' ,'coa_sales_selected'));
@@ -498,7 +536,7 @@ class InvoiceController extends Controller
             $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
             $display_dp = $this->numberToDatabase($request->input('display_dp'));
             $discount_display = $this->numberToDatabase($request->input('discount_display'));
-
+            $ppn_tax = explode(":",$request->input('ppn_tax'))[0];
             $exp_term = explode(":", $term_payment);
             $exp_transaction = explode("-", $no_transactions);
             $number = $exp_transaction[3];
@@ -511,6 +549,8 @@ class InvoiceController extends Controller
                 'currency_id' => $currency_id,
                 'date_invoice' => $date_invoice,
                 'description' => $sell_des,
+                'tax_id' => $ppn_tax,
+                'account_id' => $coa_ar,
                 // 'additional_cost' => $additional_cost,
                 'discount_type' => $discount_type,
                 'discount_nominal' => $discount_nominal,
@@ -611,78 +651,85 @@ class InvoiceController extends Controller
                 }
             }
 
+            // $invoice->jurnal()->delete();
+            BalanceAccount::where('transaction_type_id', 3)
+              ->where('transaction_id', $invoice->id)
+              ->forceDelete();
+
+
+            $tax_journal = [];
+            $sales_journal = [];
+            // DB::rollBack();
+            // return response()->json($invoice->details);
+            foreach($invoice->details as $d) {
+                $totalFull = ($d->price*$d->quantity);
+                $discTotal = 0;
+                if($d->discount_type === "persen") {
+                    $discTotal = ($d->discount_nominal/100)*$totalFull;
+                }else{
+                    $discTotal = $d->discount_nominal;
+                }
+                $totalFull -= $discTotal;
+                $pajak = 0;
+
+                if(!$d->tax_id) {
+                    $tax_id = null;
+                }else{
+                    $tax = MasterTax::find($d->tax_id);
+                    $pajak += ($tax->tax_rate/100) * $totalFull;
+                    $totalFull -= $pajak;
+                    if($tax->tax_rate > 0 && !$tax->account_id){
+                        DB::rollBack();
+                        // dd($e->getMessage());
+                            return redirect()->back()
+                                ->withErrors(['error' => 'Add the account to tax if rate more than 0']);
+                    }else if($tax->account_id){
+                        $tax_journal[] = [0, $pajak , $tax->account_id ];
+                    }else if($tax->tax_rate == 0 && !$tax->account_id ){
+                        // Skip
+                    }
+                }
+                $sales_journal[] = [0,($totalFull - $pajak),$d->account_id];
+            }
+
+            $prepaid_sales = MasterAccount::where('account_name', 'Prepaid Sales')
+                                    ->where('master_currency_id', $currency_id)->first();
+            if(!$prepaid_sales) {
+                return redirect()->back()->withErrors(['coa_ps' => 'Please add the account of Prepaid Sales']);
+            }
+            $prepaid_sales = $prepaid_sales->id;
+
+            $ppn_tax_id = explode(":",$request->input('ppn_tax'))[0];
+            $ppn_tax = MasterTax::find($ppn_tax_id);
+
+            if ($ppn_tax && $ppn_tax->account_id) {
+                $total_after_discount = $total_display;
+                $ppn_amount = $total_after_discount - ($total_after_discount /(1 + ($ppn_tax->tax_rate / 100)));
+                $tax_journal[] = [0, $ppn_amount, $ppn_tax->account_id, $ppn_tax->id];
+            }
+
             $flow = [
                 //debit, kredit
-                [$total_display, 0,$coa_ar],
-                [$discount_display, 0],
-                [$display_pajak, 0],
-                [$display_dp, 0],
-                [0, $display_dp],
-                // [0, $additional_cost],
-                [0, $totBalance, $coa_sales]
+                [$total_display, 0, $coa_ar],
+                [0, 0, $prepaid_sales],
             ];
 
-            foreach ($invoice->jurnal as $item) {
-                if($item->master_account->account_type_id == "4") {
-                    $cashflowData = [
-                        "date" => $date_invoice,
-                        'debit' => $flow[0][0],
-                        'credit' => $flow[0][1],
-                        'master_account_id' => $flow[0][2],
-                    ];
-                    BalanceAccount::find($item->id)->update($cashflowData);
-                }
-                // else if($item->master_account->code === "440100" && $item->master_account->account_name === "Diskon Penjualan") {
-                //     $cashflowData = [
-                //         "date" => $date_invoice,
-                //         'debit' => $flow[1][0],
-                //         'credit' => $flow[1][1]
-                //     ];
-                //     BalanceAccount::find($item->id)->update($cashflowData);
-                // }
-                else if($item->master_account->code === "220500" && $item->master_account->account_name === "PPN Keluaran") {
-                    $cashflowData = [
-                        "date" => $date_invoice,
-                        'debit' => $flow[2][0],
-                        'credit' => $flow[2][1]
-                    ];
-                    BalanceAccount::find($item->id)->update($cashflowData);
-                }
-                // else if($item->master_account->code === "110001" && $item->master_account->account_name === "Kas") {
-                //     $cashflowData = [
-                //         "date" => $date_invoice,
-                //         'debit' => $flow[3][0],
-                //         'credit' => $flow[3][1]
-                //     ];
-                //     BalanceAccount::find($item->id)->update($cashflowData);
-                // }
-                else if($item->master_account->account_name === "Prepaid Sales") {
-                    $cashflowData = [
-                        "date" => $date_invoice,
-                        'debit' => $flow[4][0],
-                        'credit' => $flow[4][1]
-                    ];
-                    BalanceAccount::find($item->id)->update($cashflowData);
-                }
-                // else if($item->master_account->code === "440010" && $item->master_account->account_name === "Pendapatan Lain") {
-                //     $cashflowData = [
-                //         "date" => $date_invoice,
-                //         'debit' => $flow[5][0],
-                //         'credit' => $flow[5][1]
-                //     ];
-                //     BalanceAccount::find($item->id)->update($cashflowData);
-                // }
-                 else if($item->master_account->account_type_id == "11") {
-                    $cashflowData = [
-                        "date" => $date_invoice,
-                        'debit' => $flow[5][0],
-                        'credit' => $flow[5][1],
-                        'master_account_id' => $flow[5][2],
-                    ];
-                    BalanceAccount::find($item->id)->update($cashflowData);
-            // DB::rollBack();
-            //         dd('no problem');
-                }
+            $flow = [
+                ...$flow,
+                ...$sales_journal,
+                ...$tax_journal
+            ];
+
+            foreach ($flow as $item) {
+                $cashflowData = [
+                    'transaction_id' => $head_id,
+                    'master_account_id' => $item[2],
+                    'transaction_type_id' => 3,
+                    "date" => $date_invoice,
+                    'debit' => $item[0],
+                    'credit' => $item[1]
+                ];
+                BalanceAccount::create($cashflowData);
             }
 
             $remain = $total_display - $grand_dp;

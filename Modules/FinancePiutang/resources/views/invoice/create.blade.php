@@ -208,10 +208,10 @@
                                                         <label for="" class="form-label">PPn</label>
                                                     </div>
                                                     <div style="width: 150px">
-                                                        <select class="form-control select2 form-select" data-placeholder="Tax" name="ppn_tax" id="ppn_tax" >
+                                                        <select class="form-control select2 form-select" data-placeholder="Tax" name="ppn_tax" id="ppn_tax" onchange="hideButton()">
                                                             <option label="ppn tax"></option>
                                                             @foreach ($ppn_tax as $tax)
-                                                                <option value="{{ $tax->id }}">{{ $tax->tax_rate }}%</option>
+                                                                <option value="{{ $tax->id }}:{{ $tax->tax_rate }}">{{ $tax->tax_rate }}%</option>
                                                             @endforeach
                                                         </select>
                                                     </div>
@@ -707,6 +707,7 @@
     <script src="{{ url('assets/plugins/multipleselect/multi-select.js') }}"></script>
 
     <script>
+        let currentCurrencyId = null; // Variabel untuk menyimpan currency
         $('select[name="customer_id"]').change(function () {
             var id_contact = this.value;
 
@@ -993,6 +994,7 @@
         $('#sales_no').on('change', function() {
             var id = $(this).val();
             var currency_id = $(this).find(':selected').data('currency-id');
+            currentCurrencyId = currency_id;
             resetOption();
             // Get Account Receivable
             $.ajax({
@@ -1088,8 +1090,11 @@
                             </td>
                             <td>
                                 <input type="text" class="form-control total-input" name="total_detail" readonly value="0"/>
-
-
+                                <label for="coa_sales" class="form-label">Account Name</label>
+            <select class="form-control select2 form-select coa-sales-select"
+                data-placeholder="Choose One" name="coa_sales" id="coa_sales" >
+                <option label="Choose One" selected disabled></option>
+            </select>
                             </td>
                             <td>
                                 <div class="d-flex justify-content-between">
@@ -1098,21 +1103,7 @@
                             </td>
                             `;
 // === row baru khusus Account Name ===
-var accountRow = document.createElement('tr');
-accountRow.classList.add('account-row');
 
-accountRow.innerHTML = `
-    <td></td>
-    <td>
-        <div class="form-group">
-            <label for="coa_sales" class="form-label">Account Name</label>
-            <select class="form-control select2 form-select coa-sales-select"
-                data-placeholder="Choose One" name="coa_sales" id="coa_sales" >
-                <option label="Choose One" selected disabled></option>
-            </select>
-        </div>
-    </td>
-`;
                             newFormWrapper.innerHTML = formTemplate;
                             var desc = newFormWrapper.querySelector('.description-input');
                             desc.value = data.description;
@@ -1134,7 +1125,7 @@ accountRow.innerHTML = `
                             total.value = Number(data.total).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                             formContainer.appendChild(newFormWrapper);
-                            formContainer.appendChild(accountRow);
+                            $(newFormWrapper).find('.select2').select2({ placeholder: "Choose One" });
                             $.ajax({
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -1142,7 +1133,7 @@ accountRow.innerHTML = `
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 'currency_id': currency_id , 'account_type_id' :11 },
+                data: { 'currency_id': currency_id , 'account_type_id' :15 },
                 success: function(response) {
                     if(response.data) {
                         response.data.forEach(element => {
@@ -1279,56 +1270,141 @@ accountRow.innerHTML = `
             }
         }
 
+        // document.getElementById('add-form').addEventListener('click', function() {
+        //     var formContainer = document.getElementById('form-container');
+        //     var newFormWrapper = document.createElement('tr');
+        //     newFormWrapper.classList.add('form-wrapper');
+
+        //     var formTemplate = `
+        //     <td></td>
+        //     <td>
+        //         <input type="text" class="form-control description-input" name="des_detail" placeholder="Desc" />
+        //         <label class="form-label">Remark</label>
+        //         <input type="text" class="form-control remark-input" name="remark_detail" placeholder="Remark" />
+        //     </td>
+        //     <td>
+        //         <input type="text" class="form-control" name="qty_detail" onchange="calculate()" />
+        //         <label class="form-label">Disc</label>
+        //         <input type="text" class="form-control" name="disc_detail" onchange="calculate()" />
+        //     </td>
+        //     <td>
+        //         <input type="text" class="form-control" name="uom_detail" />
+        //         <label class="form-label" style="visibility: hidden;">Disc</label>
+        //         <select class="form-control select2 form-select" data-placeholder="Choose One" name="disc_type_detail" onchange="calculate()" >
+        //             <option value="persen" selected>%</option>
+        //             <option value="nominal">0</option>
+        //         </select>
+        //     </td>
+        //     <td>
+        //         <input type="text" class="form-control price-input" name="price_detail" onchange="calculate()" />
+        //         <label for="" class="form-label">PPh</label>
+        //         <select class="form-control select2 form-select" data-placeholder="Tax" name="pajak_detail" id="pajak_detail" onchange="calculate()">
+        //             <option label="Tax"></option>
+        //             @foreach ($taxs as $tax)
+        //                 <option value="{{ $tax->id }}:{{ $tax->tax_rate }}">{{ $tax->tax_rate }}%</option>
+        //             @endforeach
+        //         </select>
+        //     </td>
+        //     <td>
+        //         <input type="text" class="form-control total-input" name="total_detail" readonly value="0"/>
+        //         <label for="coa_sales" class="form-label">Account Name</label>
+        //     <select class="form-control select2 form-select coa-sales-select"
+        //         data-placeholder="Choose One" name="coa_sales" id="coa_sales" >
+        //         <option label="Choose One" selected disabled></option>
+        //     </select>
+        //     </td>
+        //     <td>
+        //         <div class="d-flex justify-content-between">
+        //             <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
+        //         </div>
+        //     </td>
+        //     `;
+
+        //     newFormWrapper.innerHTML = formTemplate;
+        //     formContainer.appendChild(newFormWrapper);
+        // });
         document.getElementById('add-form').addEventListener('click', function() {
-            var formContainer = document.getElementById('form-container');
-            var newFormWrapper = document.createElement('tr');
-            newFormWrapper.classList.add('form-wrapper');
+    var formContainer = document.getElementById('form-container');
+    var newFormWrapper = document.createElement('tr');
+    newFormWrapper.classList.add('form-wrapper');
 
-            var formTemplate = `
-            <td></td>
-            <td>
-                <input type="text" class="form-control description-input" name="des_detail" placeholder="Desc" />
-                <label class="form-label">Remark</label>
-                <input type="text" class="form-control remark-input" name="remark_detail" placeholder="Remark" />
-            </td>
-            <td>
-                <input type="text" class="form-control" name="qty_detail" onchange="calculate()" />
-                <label class="form-label">Disc</label>
-                <input type="text" class="form-control" name="disc_detail" onchange="calculate()" />
-            </td>
-            <td>
-                <input type="text" class="form-control" name="uom_detail" />
-                <label class="form-label" style="visibility: hidden;">Disc</label>
-                <select class="form-control select2 form-select" data-placeholder="Choose One" name="disc_type_detail" onchange="calculate()" >
-                    <option value="persen" selected>%</option>
-                    <option value="nominal">0</option>
-                </select>
-            </td>
-            <td>
-                <input type="text" class="form-control price-input" name="price_detail" onchange="calculate()" />
-                <label for="" class="form-label">PPh</label>
-                <select class="form-control select2 form-select" data-placeholder="Tax" name="pajak_detail" id="pajak_detail" onchange="calculate()">
-                    <option label="Tax"></option>
-                    @foreach ($taxs as $tax)
-                        <option value="{{ $tax->id }}:{{ $tax->tax_rate }}">{{ $tax->tax_rate }}%</option>
-                    @endforeach
-                </select>
-            </td>
-            <td>
-                <input type="text" class="form-control total-input" name="total_detail" readonly value="0"/>
+    var formTemplate = `
+    <td></td>
+    <td>
+        <input type="text" class="form-control description-input" name="des_detail" placeholder="Desc" />
+        <label class="form-label">Remark</label>
+        <input type="text" class="form-control remark-input" name="remark_detail" placeholder="Remark" />
+    </td>
+    <td>
+        <input type="text" class="form-control" name="qty_detail" onchange="calculate()" />
+        <label class="form-label">Disc</label>
+        <input type="text" class="form-control" name="disc_detail" onchange="calculate()" />
+    </td>
+    <td>
+        <input type="text" class="form-control" name="uom_detail" />
+        <label class="form-label" style="visibility: hidden;">Disc</label>
+        <select class="form-control select2 form-select" data-placeholder="Choose One" name="disc_type_detail" onchange="calculate()" >
+            <option value="persen" selected>%</option>
+            <option value="nominal">0</option>
+        </select>
+    </td>
+    <td>
+        <input type="text" class="form-control price-input" name="price_detail" onchange="calculate()" />
+        <label for="" class="form-label">PPh</label>
+        <select class="form-control select2 form-select" data-placeholder="Tax" name="pajak_detail" onchange="calculate()">
+            <option label="Tax"></option>
+            @foreach ($taxs as $tax)
+                <option value="{{ $tax->id }}:{{ $tax->tax_rate }}">{{ $tax->tax_rate }}%</option>
+            @endforeach
+        </select>
+    </td>
+    <td>
+        <input type="text" class="form-control total-input" name="total_detail" readonly value="0"/>
+        <label for="coa_sales" class="form-label">Account Name</label>
 
-            </td>
-            <td>
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
-                </div>
-            </td>
-            `;
+        <select class="form-control select2 form-select coa-sales-select" data-placeholder="Choose One" name="coa_sales">
+            <option label="Choose One" selected disabled></option>
+        </select>
+    </td>
+    <td>
+        <div class="d-flex justify-content-between">
+            <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
+        </div>
+    </td>
+    `;
 
-            newFormWrapper.innerHTML = formTemplate;
-            formContainer.appendChild(newFormWrapper);
-        });
+    newFormWrapper.innerHTML = formTemplate;
+    formContainer.appendChild(newFormWrapper);
 
+    // Inisialisasi plugin Select2 pada elemen select yang baru dibuat
+    $(newFormWrapper).find('.select2').select2({ placeholder: "Choose One" });
+
+    // PERUBAHAN 2: Tambahkan blok AJAX ini untuk mengambil dan mengisi data COA Sales
+    // Ini adalah salinan dari logika yang ada di 'sales_no' onchange
+
+    // Ambil elemen select yang BARU kita buat
+    const newCoaSelect = newFormWrapper.querySelector('.coa-sales-select');
+
+    $.ajax({
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+        type: 'GET',
+        dataType: 'json',
+        url: '{{ route('finance.master-data.account') }}',
+        data: {
+            'currency_id': currentCurrencyId, // Gunakan variabel currency yang sudah kita simpan
+            'account_type_id': 15
+        },
+        success: function(response) {
+            if(response.data) {
+                // Loop dan tambahkan opsi ke dropdown yang BENAR
+                response.data.forEach(element => {
+                    const newOption = new Option(element.account_name, element.id);
+                    $(newCoaSelect).append(newOption);
+                });
+            }
+        }
+    });
+});
         function hideButton() {
             $('#submit-all-form').hide()
         }
@@ -1366,6 +1442,12 @@ accountRow.innerHTML = `
 
             var { grand_disc } = calculate()
             disc +=  grand_disc
+
+            var ppn_tax = $('#ppn_tax').val();
+            if (ppn_tax) {
+                ppn_tax = ppn_tax.split(':')[1];
+                total = total + (total * (ppn_tax/100));
+            }
 
             // var dp = document.querySelector('input[name="display_dp"]').value;
             // if(!dp) dp = "0";
@@ -1416,5 +1498,6 @@ accountRow.innerHTML = `
             // Mengirimkan formulir ke backend
             document.forms['dynamic-form'].submit();
         });
+
     </script>
 @endpush
