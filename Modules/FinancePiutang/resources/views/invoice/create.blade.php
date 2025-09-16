@@ -1091,10 +1091,10 @@
                             <td>
                                 <input type="text" class="form-control total-input" name="total_detail" readonly value="0"/>
                                 <label for="coa_sales" class="form-label">Account Name</label>
-            <select class="form-control select2 form-select coa-sales-select"
-                data-placeholder="Choose One" name="coa_sales" id="coa_sales" >
-                <option label="Choose One" selected disabled></option>
-            </select>
+                                <select class="form-control select2 form-select coa-sales-select"
+                                    data-placeholder="Choose One" name="coa_sales">
+                                    <option label="Choose One" selected disabled></option>
+                                </select>
                             </td>
                             <td>
                                 <div class="d-flex justify-content-between">
@@ -1126,23 +1126,24 @@
 
                             formContainer.appendChild(newFormWrapper);
                             $(newFormWrapper).find('.select2').select2({ placeholder: "Choose One" });
+                            const coaSalesSelect = newFormWrapper.querySelector('.coa-sales-select');
                             $.ajax({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                type: 'GET',
-                dataType: 'json',
-                url: '{{ route('finance.master-data.account') }}',
-                data: { 'currency_id': currency_id , 'account_type_id' :15 },
-                success: function(response) {
-                    if(response.data) {
-                        response.data.forEach(element => {
-                            const newOption = new Option(element.account_name, element.id)
-                            $('#coa_sales').append(newOption)
-                        });
-                    }
-                }
-            })
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                },
+                                type: 'GET',
+                                dataType: 'json',
+                                url: '{{ route('finance.master-data.account') }}',
+                                data: { 'currency_id': currency_id , 'account_type_id' :15 },
+                                success: function(response) {
+                                    if(response.data) {
+                                        response.data.forEach(element => {
+                                            const newOption = new Option(element.account_name, element.id)
+                                            $(coaSalesSelect).append(newOption)
+                                        });
+                                    }
+                                }
+                            })
                         });
 
                         grand_diskon += Number(response.data.sales.discount)

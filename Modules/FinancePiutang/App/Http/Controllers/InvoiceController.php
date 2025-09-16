@@ -115,7 +115,7 @@ class InvoiceController extends Controller
         $contact = MasterContact::whereJsonContains('type','1')->get();
         // $terms = MasterTermOfPayment::all();
         $terms = TermPaymentContact::with(['term_payment'])->select('term_payment_id')->distinct()->get();
-        $taxs = MasterTax::all();
+        $taxs = MasterTax::where('status',1)->get();
         // filter hanya yang tax_type = 'ppn'
         $ppn_tax = $taxs->where('type', 'PPN');
         $taxs = $taxs->where('type', 'PPH');
@@ -206,7 +206,7 @@ class InvoiceController extends Controller
             $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
             $display_dp = $this->numberToDatabase($request->input('display_dp'));
             $discount_display = $this->numberToDatabase($request->input('discount_display'));
-            $ppn_tax = explode(":",$request->input('ppn_tax'))[0];
+            $ppn_tax = $request->input('ppn_tax') ? explode(":",$request->input('ppn_tax'))[0] : null;
             $exp_term = explode(":", $term_payment);
             $exp_transaction = explode("-", $no_transactions);
             $number = $exp_transaction[3];
@@ -276,12 +276,12 @@ class InvoiceController extends Controller
             // }
             // $kas_id = $kas_id->id;
 
-            $prepaid_sales = MasterAccount::where('account_name', 'Prepaid Sales')
-                                    ->where('master_currency_id', $currency_id)->first();
-            if(!$prepaid_sales) {
-                return redirect()->back()->withErrors(['coa_ps' => 'Please add the account of Prepaid Sales']);
-            }
-            $prepaid_sales = $prepaid_sales->id;
+            // $prepaid_sales = MasterAccount::where('account_name', 'Prepaid Sales')
+            //                         ->where('master_currency_id', $currency_id)->first();
+            // if(!$prepaid_sales) {
+            //     return redirect()->back()->withErrors(['coa_ps' => 'Please add the account of Prepaid Sales']);
+            // }
+            // $prepaid_sales = $prepaid_sales->id;
 
             InvoiceHead::create($data);
             $newestInvoice = InvoiceHead::latest()->first();
@@ -369,7 +369,7 @@ class InvoiceController extends Controller
                 ]);
             }
 
-            $ppn_tax_id = explode(":",$request->input('ppn_tax'))[0];
+            $ppn_tax_id = $request->input('ppn_tax') ? explode(":",$request->input('ppn_tax'))[0] : null;
             $ppn_tax = MasterTax::find($ppn_tax_id);
             if ($ppn_tax && $ppn_tax->account_id) {
                 $total_after_discount = $total_display;
@@ -385,7 +385,7 @@ class InvoiceController extends Controller
                 // [$display_pajak, 0, $ppn_keluaran_id],
                 // [$display_dp, 0, $kas_id],
                 // [0, $display_dp, $dp_id],
-                [0, 0, $prepaid_sales],
+                // [0, 0, $prepaid_sales],
                 // [0, $additional_cost, $pendapatan_lain_id],
                 // [0, $totBalance, $coa_sales]
             ];
@@ -536,7 +536,7 @@ class InvoiceController extends Controller
             $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
             $display_dp = $this->numberToDatabase($request->input('display_dp'));
             $discount_display = $this->numberToDatabase($request->input('discount_display'));
-            $ppn_tax = explode(":",$request->input('ppn_tax'))[0];
+            $ppn_tax = $request->input('ppn_tax') ? explode(":",$request->input('ppn_tax'))[0] : null;
             $exp_term = explode(":", $term_payment);
             $exp_transaction = explode("-", $no_transactions);
             $number = $exp_transaction[3];
@@ -692,14 +692,14 @@ class InvoiceController extends Controller
                 $sales_journal[] = [0,($totalFull - $pajak),$d->account_id];
             }
 
-            $prepaid_sales = MasterAccount::where('account_name', 'Prepaid Sales')
-                                    ->where('master_currency_id', $currency_id)->first();
-            if(!$prepaid_sales) {
-                return redirect()->back()->withErrors(['coa_ps' => 'Please add the account of Prepaid Sales']);
-            }
-            $prepaid_sales = $prepaid_sales->id;
+            // $prepaid_sales = MasterAccount::where('account_name', 'Prepaid Sales')
+            //                         ->where('master_currency_id', $currency_id)->first();
+            // if(!$prepaid_sales) {
+            //     return redirect()->back()->withErrors(['coa_ps' => 'Please add the account of Prepaid Sales']);
+            // }
+            // $prepaid_sales = $prepaid_sales->id;
 
-            $ppn_tax_id = explode(":",$request->input('ppn_tax'))[0];
+            $ppn_tax_id = $request->input('ppn_tax') ? explode(":",$request->input('ppn_tax'))[0] : null;
             $ppn_tax = MasterTax::find($ppn_tax_id);
 
             if ($ppn_tax && $ppn_tax->account_id) {
@@ -711,7 +711,7 @@ class InvoiceController extends Controller
             $flow = [
                 //debit, kredit
                 [$total_display, 0, $coa_ar],
-                [0, 0, $prepaid_sales],
+                // [0, 0, $prepaid_sales],
             ];
 
             $flow = [
