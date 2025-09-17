@@ -167,13 +167,15 @@ class InvoiceController extends Controller
                 'sales_no' => 'required',
                 'no_transactions'    => 'required',
                 'date_invoice' => 'required',
-                'term_payment' => 'required'
+                'term_payment' => 'required',
+                'coa_ar' => 'required'
             ], [
                 "customer_id.required" => "The customer field is required.",
                 "sales_no.required" => "The sales no field is required.",
                 "no_transaction.required" => "The transaction number is required.",
                 "date_invoice.required" => "The date is required.",
-                "term_payment.required" => "The term of payment field is required."
+                "term_payment.required" => "The term of payment field is required.",
+                "coa_ar.required" => "Account receive field is required."
             ]);
             // dd($request->all());
             if ($validator->fails()) {
@@ -198,7 +200,6 @@ class InvoiceController extends Controller
             $sell_des = $request->input('sell_des');
             $discount_type = $request->input('discount_type');
             $coa_ar = $request->input('coa_ar');
-            $coa_sales = $request->input('coa_sales');
             $discount_nominal = $this->numberToDatabase($request->input('discount'));
             // $additional_cost = $this->numberToDatabase($request->input('additional_cost'));
 
@@ -403,6 +404,7 @@ class InvoiceController extends Controller
                     'transaction_id' => $head_id,
                     'master_account_id' => $item[2],
                     'transaction_type_id' => 3,
+                    'currency_id' => $currency_id,
                     "date" => $date_invoice,
                     'debit' => $item[0],
                     'credit' => $item[1]
@@ -503,15 +505,13 @@ class InvoiceController extends Controller
                 'date_invoice' => 'required',
                 'term_payment' => 'required',
                 'coa_ar' => 'required',
-                'coa_sales' => 'required',
             ], [
                 "customer_id.required" => "The customer field is required.",
                 "sales_no.required" => "The sales no field is required.",
                 "no_transaction.required" => "The transaction number is required.",
                 "date_invoice.required" => "The date is required.",
                 "term_payment.required" => "The term of payment field is required.",
-                "coa_ar.required" => "Account receive field is required.",
-                "coa_sales.required" => "Account Sales field is required."
+                "coa_ar.required" => "Account receive field is required."
             ]);
 
             if ($validator->fails()) {
@@ -531,7 +531,6 @@ class InvoiceController extends Controller
             $discount_nominal = $this->numberToDatabase($request->input('discount'));
             // $additional_cost = $this->numberToDatabase($request->input('additional_cost'));
             $coa_ar = $request->input('coa_ar');
-            $coa_sales = $request->input('coa_sales');
             $total_display = $this->numberToDatabase($request->input('total_display'));
             $display_pajak = $this->numberToDatabase($request->input('display_pajak'));
             $display_dp = $this->numberToDatabase($request->input('display_dp'));
@@ -571,6 +570,7 @@ class InvoiceController extends Controller
                 $uom_detail = $data['uom_detail'];
                 $pajak_detail = $data['pajak_detail'];
                 $price_detail = $this->numberToDatabase($data['price_detail']);
+                $sales_acc_id = $data['coa_sales'];
                 $discount_detail = $this->numberToDatabase($data['disc_detail']);
                 $disc_type_detail = $data['disc_type_detail'];
 
@@ -624,6 +624,7 @@ class InvoiceController extends Controller
                         'price' => $price_detail,
                         'tax_id' => $tax_id,
                         'remark' => $renark_detail,
+                        'account_id' => $sales_acc_id,
                         'discount_type' => $disc_type_detail,
                         'discount_nominal' => $discount_detail,
                         // 'dp_type' => $dp_type_detail,
@@ -638,6 +639,7 @@ class InvoiceController extends Controller
                         'price' => $price_detail,
                         'tax_id' => $tax_id,
                         'remark' => $renark_detail,
+                        'account_id' => $sales_acc_id,
                         'discount_type' => $disc_type_detail,
                         'discount_nominal' => $discount_detail,
                         // 'dp_type' => $dp_type_detail,
@@ -725,6 +727,7 @@ class InvoiceController extends Controller
                     'transaction_id' => $head_id,
                     'master_account_id' => $item[2],
                     'transaction_type_id' => 3,
+                    'currency_id' => $currency_id,
                     "date" => $date_invoice,
                     'debit' => $item[0],
                     'credit' => $item[1]

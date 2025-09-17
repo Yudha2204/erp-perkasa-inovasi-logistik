@@ -1309,7 +1309,7 @@
         dataType: 'json',
         url: '{{ route('finance.master-data.account') }}',
         data: {
-            'currency_id': currentCurrencyId, // Gunakan variabel currency yang sudah disimpan
+            //'currency_id': currentCurrencyId, // Gunakan variabel currency yang sudah disimpan
             'account_type_id': 15
         },
         success: function(response) {

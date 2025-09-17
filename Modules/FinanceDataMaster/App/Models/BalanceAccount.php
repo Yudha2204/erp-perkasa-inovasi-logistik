@@ -13,6 +13,7 @@ use Modules\FinancePayments\App\Models\PaymentHead;
 use Modules\FinancePiutang\App\Models\InvoiceHead;
 use Modules\FinancePiutang\App\Models\RecieveHead;
 use Modules\FinancePiutang\App\Models\SalesOrderHead;
+use Modules\ExchangeRate\App\Models\ExchangeRate;
 use Spatie\Permission\Traits\HasRoles;
 
 class BalanceAccount extends Model
@@ -31,6 +32,12 @@ class BalanceAccount extends Model
     {
         return $this->belongsTo(TransactionType::class, 'transaction_type_id', 'id');
     }
+
+    public function currency()
+    {
+        return $this->belongsTo(MasterCurrency::class, 'currency_id', 'id');
+    }
+
 
     public function getTransaction()
     {
@@ -52,5 +59,81 @@ class BalanceAccount extends Model
         }
 
         return $transaksi;
+    }
+
+    private function getBaseCurrAmount(float $amount, $date, int $fromCurrencyId, int $toCurrencyId): float
+    {
+        // 1) Same-currency shortcut
+        if ($fromCurrencyId === $toCurrencyId) {
+            return $amount;
+        }
+
+        // 2) Find a rate for that date in either direction
+        $rate = ExchangeRate::query()
+            ->whereDate('date', $date)
+            ->where(function ($q) use ($fromCurrencyId, $toCurrencyId) {
+                $q->where(function ($q) use ($fromCurrencyId, $toCurrencyId) {
+                    $q->where('from_currency_id', $fromCurrencyId)
+                    ->where('to_currency_id', $toCurrencyId);
+                })->orWhere(function ($q) use ($fromCurrencyId, $toCurrencyId) {
+                    $q->where('from_currency_id', $toCurrencyId)
+                    ->where('to_currency_id', $fromCurrencyId);
+                });
+            })
+            // If duplicates can exist for a date, prefer the latest updated/inserted:
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$rate) {
+            throw new \Exception('Failed to convert amount: exchange rate not found for the given date/currencies.');
+        }
+
+        // 3) Validate denominators
+        if (empty($rate->from_nominal) || empty($rate->to_nominal)) {
+            throw new \Exception('Invalid exchange rate record: nominal values cannot be zero or null.');
+        }
+
+        // 4) Compute factor based on orientation of the stored pair
+        // Meaning: from_nominal units of "from" == to_nominal units of "to"
+        $isDirect = ((int)$rate->from_currency_id === $fromCurrencyId)
+                && ((int)$rate->to_currency_id === $toCurrencyId);
+
+        $factor = $isDirect
+            ? ($rate->to_nominal / $rate->from_nominal)   // from -> to
+            : ($rate->from_nominal / $rate->to_nominal);  // to -> from (invert)
+
+        // 5) Multiply (no abs!)
+        return $amount * $factor;
+    }
+
+    protected static function booted()
+    {
+        static::creating(function ($balanceAccount) {
+            //check if currency is not idr create another balance account for idr
+            $baseCurrency = MasterCurrency::where('initial', 'IDR')->first();
+
+            if (!$balanceAccount->currency_id)
+                throw new \Exception('Currency Cant Null');
+
+            
+            if ($balanceAccount->currency_id != $baseCurrency->id) {
+                // clone balance account
+                // Create a clone for IDR (currency_id = 2)
+                $debitAmt = $balanceAccount->getBaseCurrAmount($balanceAccount->debit, $balanceAccount->date, $balanceAccount->currency_id, $baseCurrency->id);
+                $creditAmt = $balanceAccount->getBaseCurrAmount($balanceAccount->credit, $balanceAccount->date, $balanceAccount->currency_id, $baseCurrency->id);
+
+                // Only create if not already for IDR
+                static::create([
+                    'transaction_id' => $balanceAccount->transaction_id,
+                    'master_account_id' => $balanceAccount->master_account_id,
+                    'transaction_type_id' => $balanceAccount->transaction_type_id,
+                    'date' => $balanceAccount->date,
+                    'debit' => $debitAmt > 0 ? $debitAmt : 0,
+                    'credit' => $creditAmt > 0 ? $creditAmt : 0,
+                    'currency_id' => $baseCurrency->id, // IDR
+                ]);
+            }
+        });
     }
 }

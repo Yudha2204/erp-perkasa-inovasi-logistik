@@ -1134,13 +1134,16 @@
                                 type: 'GET',
                                 dataType: 'json',
                                 url: '{{ route('finance.master-data.account') }}',
-                                data: { 'currency_id': currency_id , 'account_type_id' :15 },
+                                data: { 'account_type_id' :15 },
                                 success: function(response) {
                                     if(response.data) {
                                         response.data.forEach(element => {
                                             const newOption = new Option(element.account_name, element.id)
-                                            $(coaSalesSelect).append(newOption)
+                                            $(coaSalesSelect).append(newOption);
                                         });
+                                        if (response.data.length > 0) {
+                                            $(coaSalesSelect).val(response.data[0].id);
+                                        }
                                     }
                                 }
                             })
@@ -1392,7 +1395,7 @@
         dataType: 'json',
         url: '{{ route('finance.master-data.account') }}',
         data: {
-            'currency_id': currentCurrencyId, // Gunakan variabel currency yang sudah kita simpan
+            //'currency_id': currentCurrencyId, // Gunakan variabel currency yang sudah kita simpan
             'account_type_id': 15
         },
         success: function(response) {
@@ -1402,6 +1405,10 @@
                     const newOption = new Option(element.account_name, element.id);
                     $(newCoaSelect).append(newOption);
                 });
+
+                if (response.data.length > 0) {
+                    $(newCoaSelect).val(response.data[0].id);
+                }
             }
         }
     });
