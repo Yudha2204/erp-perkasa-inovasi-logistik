@@ -237,14 +237,12 @@ class InvoiceController extends Controller
             // $piutang_usaha_id = $piutang_usaha_id->id;
 
             // 13092025 ganti ke sales discount
-            // $diskon_penjualan_id = MasterAccount::where('code', '440100')
-            //                         ->where('account_name', 'Diskon Penjualan')
-            //                         ->where('master_currency_id', $currency_id)->first();
-            // if(!$diskon_penjualan_id) {
-            //     return redirect()->back()->withErrors(['diskon_penjualan' => 'Please add the account of Diskon Penjualan with code number is 440100']);
-            // }
-            // $diskon_penjualan_id = $diskon_penjualan_id->id;
+            $diskon_penjualan_id = MasterAccount::where('account_type_id', 16)->first();
 
+            $diskon_penjualan_id = $diskon_penjualan_id->id;
+if(!$diskon_penjualan_id) {
+                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Sales Discount']);
+            }
             // $ppn_keluaran_id = MasterAccount::where('code', "220500")
             //                         ->where('account_name', 'PPN Keluaran')
             //                         ->where('master_currency_id', $currency_id)->first();
@@ -293,6 +291,7 @@ class InvoiceController extends Controller
             $grand_dp = 0;
             $tax_journal = [];
             $sales_jourjal = [];
+            $totalDetailWithoutDiscount = 0;
             foreach ($formData as $data) {
                 $des_detail = $data['des_detail'];
                 $renark_detail = $data['remark_detail'];
@@ -353,7 +352,8 @@ class InvoiceController extends Controller
                 //     $dp += $dp_detail;
                 // }
                 // $grand_dp += $dp;
-                $sales_journal[] = [0,($totalFull - $pajak),$sales_acc_id];
+                $totalDetailWithoutDiscount += $totalFull;
+                $sales_journal[] = [0,(($totalFull - $pajak) - ($totalDetailWithoutDiscount * ($discount_nominal/100))),$sales_acc_id];
                 InvoiceDetail::create([
                     'head_id' => $head_id,
                     'description' => $des_detail,
@@ -381,8 +381,8 @@ class InvoiceController extends Controller
             $flow = [
                 //debit, kredit
                 // [$total_display, 0, $piutang_usaha_id],
-                [$total_display, 0, $coa_ar],
-                // [$discount_display, 0, $diskon_penjualan_id],
+                [($total_display), 0, $coa_ar],
+                [($totalDetailWithoutDiscount * ($discount_nominal/100)), 0, $diskon_penjualan_id],
                 // [$display_pajak, 0, $ppn_keluaran_id],
                 // [$display_dp, 0, $kas_id],
                 // [0, $display_dp, $dp_id],
@@ -628,7 +628,7 @@ class InvoiceController extends Controller
                         'discount_type' => $disc_type_detail,
                         'discount_nominal' => $discount_detail,
                         // 'dp_type' => $dp_type_detail,
-                        'dp_nominal' => $dp_detail
+                        // 'dp_nominal' => $dp_detail
                     ]);
                 } else if($exp_operator[1] === "update") {
                     $invoiceDetail = InvoiceDetail::find($exp_operator[0]);
@@ -643,7 +643,7 @@ class InvoiceController extends Controller
                         'discount_type' => $disc_type_detail,
                         'discount_nominal' => $discount_detail,
                         // 'dp_type' => $dp_type_detail,
-                        'dp_nominal' => $dp_detail
+                        // 'dp_nominal' => $dp_detail
                     ]);
                 } else if($exp_operator[1] === "delete") {
                     $invoiceDetail = InvoiceDetail::find($exp_operator[0]);
@@ -661,6 +661,7 @@ class InvoiceController extends Controller
 
             $tax_journal = [];
             $sales_journal = [];
+            $totalDetailWithoutDiscount = 0;
             // DB::rollBack();
             // return response()->json($invoice->details);
             foreach($invoice->details as $d) {
@@ -691,9 +692,16 @@ class InvoiceController extends Controller
                         // Skip
                     }
                 }
-                $sales_journal[] = [0,($totalFull - $pajak),$d->account_id];
+                $totalDetailWithoutDiscount +=($totalFull);
+                $sales_journal[] = [0,(($totalFull - $pajak) - ($totalDetailWithoutDiscount * ($discount_nominal/100))),$d->account_id];
             }
 
+            $diskon_penjualan_id = MasterAccount::where('account_type_id', 16)->first();
+
+            $diskon_penjualan_id = $diskon_penjualan_id->id;
+            if(!$diskon_penjualan_id) {
+                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Sales Discount']);
+            }
             // $prepaid_sales = MasterAccount::where('account_name', 'Prepaid Sales')
             //                         ->where('master_currency_id', $currency_id)->first();
             // if(!$prepaid_sales) {
@@ -712,7 +720,8 @@ class InvoiceController extends Controller
 
             $flow = [
                 //debit, kredit
-                [$total_display, 0, $coa_ar],
+                [($total_display - ($totalDetailWithoutDiscount * ($discount_nominal/100))), 0, $coa_ar],
+                [($totalDetailWithoutDiscount * ($discount_nominal/100)), 0, $diskon_penjualan_id],
                 // [0, 0, $prepaid_sales],
             ];
 

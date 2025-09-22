@@ -137,8 +137,9 @@
                                             <th style="min-width:15rem;">No Invoice</th>
                                             <th style="min-width:15rem;">Tanggal</th>
                                             <th style="min-width:10rem;">Jumlah</th>
-                                            <th style="min-width:10rem;">Diskon</th>
+                                            <th style="min-width:10rem;">Diskon/DP</th>
                                             <th style="min-width:10rem;">Total</th>
+                                            <th style="min-width:10rem;">Account Name</th>
                                             <th>#</th>
                                         </tr>
                                     </thead>
@@ -147,12 +148,9 @@
                                         <tr class="form-wrapper">
                                             <td></td>
                                             <td>
-                                                <select class="form-control select2 form-select" data-invoice-id="{{ $data->invoice_id }}" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
-                                                    <option value="{{ $data->invoice_id }}">{{ $data->invoice->transaction }}</option>
-                                                    @foreach($invoices as $i)
-                                                        @if($data->invoice_id !== $i->id)
-                                                        <option value="{{ $i->id }}" {{ $i->id === $data->invoice_id ? "selected" : "" }}>{{ $i->transaction }}</option>
-                                                        @endif
+                                                <select class="form-control select2 form-select" name="detail_invoice" onchange="getData(this)">
+                                                    @foreach($selectable_invoices as $invoice)
+                                                        <option value="{{ $invoice->id }}" {{ $invoice->id === $data->invoice_id ? "selected" : "" }}>{{ $invoice->transaction }}</option>
                                                     @endforeach
                                                 </select>
                                                 <label for="" class="form-label">Remark</label>
@@ -210,6 +208,11 @@
                                             </td>
                                             <td>
                                                 <input type="text" class="form-control total_input" readonly name="detail_total" value="{{ number_format($data->total,2,'.',',') }}"/>
+                                            </td>
+                                            <td>
+                                                <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id" data-selected="{{ $data->account_id }}">
+                                                    <option label="Choose One" selected disabled></option>
+                                                </select>
                                             </td>
                                             <td>
                                                 <div class="d-flex justify-content-between">
@@ -1065,6 +1068,32 @@
         $(document).ready(function () {
             getInvoice(true)
             resetCurrency(true)
+
+            // Fetch AR Accounts and populate dropdowns
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route('finance.master-data.account') }}',
+                data: { 'account_type_id' :4 },
+                success: function(response) {
+                    if(response.data) {
+                        $('.coa-ar-select').each(function() {
+                            var selectedValue = $(this).data('selected');
+                            $(this).empty().append('<option label="Choose One" selected disabled></option>');
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                $(this).append(newOption);
+                            });
+                            if (selectedValue) {
+                                $(this).val(selectedValue).trigger('change');
+                            }
+                        });
+                    }
+                }
+            });
         })
 
         $('#currency_head_id').on('change', function () {
@@ -1217,6 +1246,11 @@
                 <input type="text" class="form-control total_input" readonly name="detail_total"/>
             </td>
             <td>
+                <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id">
+                    <option label="Choose One" selected disabled></option>
+                </select>
+            </td>
+            <td>
                 <div class="d-flex justify-content-between">
                     <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
                 </div>
@@ -1226,6 +1260,25 @@
             getCurrencyVia()
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
+
+            const coaArSelect = newFormWrapper.querySelector('.coa-ar-select');
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route('finance.master-data.account') }}',
+                data: { 'account_type_id' :4 },
+                success: function(response) {
+                    if(response.data) {
+                        response.data.forEach(element => {
+                            const newOption = new Option(element.account_name, element.id)
+                            $(coaArSelect).append(newOption);
+                        });
+                    }
+                }
+            })
 
             $('.select2').select2({
                 minimumResultsForSearch: Infinity
@@ -1287,16 +1340,6 @@
                 }
             }
 
-            const customer_current = '{{ $data_recieve->contact_id }}'
-            const currency_current = '{{ $data_recieve->currency_id }}'
-            const job_order_current = '{{ $data_recieve->job_order_id }}:{{ $data_recieve->source }}'
-
-            if(!justOpsi) {
-                var formContainer = document.getElementById('form-container');
-                formContainer.innerHTML = '';
-            }
-            $('#add-form').hide()
-
             $.ajax({
                 headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
                 type: 'GET',
@@ -1305,98 +1348,17 @@
                 url: '{{ route('finance.piutang.receive.get-invoice') }}',
                 success:function(response)
                 {
-                    if (response.data && (response.data.length > 0 || (customer == customer_current && currency == currency_current && job_order == job_order_current))) {
-                        $('#add-form').show()
-                        if(!justOpsi) {
-                            var newFormWrapper = document.createElement('tr');
-                            newFormWrapper.classList.add('form-wrapper');
-                        }
-
-                        opsi = ''
-                        const details = @json($data_recieve->details);
-                        if(customer == customer_current && currency == currency_current && job_order == job_order_current) {
-                            for(let data of details) {
-                                opsi += `<option value="${$data.invoice_id}">${data.invoice.transaction}</option>`
-                            }
-                        }
-
+                    opsi = ''
+                    if (response.data) {
                         response.data.forEach(el => {
-                            const isDuplicate = details.some(detail => detail.invoice_id === el.invoice_id)
-                            if(!isDuplicate) {
-                                const newOption = `<option value=${el.id}>${el.transaction}</option>`
-                                opsi += newOption
-                            }
+                            const newOption = `<option value=${el.id}>${el.transaction}</option>`
+                            opsi += newOption
                         })
-
-                        if(!justOpsi) {
-                            var formTemplate = `
-                            <td></td>
-                            <td>
-                                <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
-                                    <option label="Choose One" selected disabled></option>
-                                    ${opsi}
-                                </select>
-                                <label for="" class="form-label">Remark</label>
-                                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
-                            </td>
-                            <td>
-                                <input type="date" class="form-control" readonly name="detail_date" />
-                            </td>
-                            <td>
-                                <input type="text" class="form-control" readonly name="detail_jumlah"/>
-                                <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
-                                    <input type="checkbox" class="custom-control-input" name="other_currency" value="0" onchange="changeOpsi(this); getTotal(this)">
-                                    <span class="custom-control-label form-label">Mata Uang Lain</span>
-                                </label>
-                                <div class="d-flex justify-content-between gap-2" style="display: none !important;">
-                                    <input type="text" class="form-control" name="other_currency_nominal" onchange="getTotal(this)"/>
-                                    <select class="form-control select2 form-select" data-placeholder="X" name="other_currency_type" onchange="getTotal(this)">
-                                    </select>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="d-flex justify-content-between gap-2">
-                                    <input type="text" class="form-control" name="detail_discount_nominal" onchange="getTotal(this)"/>
-                                    <select class="form-control select2 form-select" data-placeholder="Choose one" name="detail_discount_type" onchange="getTotal(this)">
-                                        <option value="persen">%</option>
-                                        <option value="nominal">0</option>
-                                    </select>
-                                </div>
-                                <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
-                                    <input type="checkbox" class="custom-control-input" name="dp_desc" value="0" onchange="changeDp(this); getTotal(this)">
-                                    <span class="custom-control-label form-label">Bayar DP</span>
-                                </label>
-                                <div class="d-flex justify-content-between gap-2" style="display: none !important;">
-                                    <input type="text" class="form-control" name="detail_dp_nominal" onchange="getTotal(this)"/>
-                                    <select class="form-control select2 form-select" data-placeholder="Choose one" name="detail_dp_type" onchange="getTotal(this)">
-                                        <option value="persen">%</option>
-                                        <option value="nominal">0</option>
-                                    </select>
-                                    <input type="text" hidden class="form-control" name="detail_dp_invoice_nominal"/>
-                                </div>
-                            </td>
-                            <td>
-                                <input type="text" class="form-control total_input" readonly name="detail_total"/>
-                            </td>
-                            <td>
-                                <div class="d-flex justify-content-between">
-                                    <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
-                                </div>
-                            </td>
-                            `;
-
-                            newFormWrapper.innerHTML = formTemplate;
-                            formContainer.appendChild(newFormWrapper);
-                            getCurrencyVia()
-                        }
-
-                        $('.select2').select2({
-                            minimumResultsForSearch: Infinity
-                        });
-                        var select2Elements = document.querySelectorAll('.select2');
-                        select2Elements.forEach(function(element) {
-                            element.style.width = '100%';
-                        });
+                    }
+                    
+                    if (!justOpsi) {
+                        var formContainer = document.getElementById('form-container');
+                        formContainer.innerHTML = '';
                     }
                 }
             })
