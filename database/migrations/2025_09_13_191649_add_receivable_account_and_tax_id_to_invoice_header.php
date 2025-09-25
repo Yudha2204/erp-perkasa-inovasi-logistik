@@ -31,7 +31,7 @@ return new class extends Migration
                 $table->dropColumn('account_id');
             }
             if (Schema::hasColumn('tax_id', 'tax_id')) {
-                $table->dropColumn('account_id');
+                $table->dropColumn('tax_id');
             }
         });
     }

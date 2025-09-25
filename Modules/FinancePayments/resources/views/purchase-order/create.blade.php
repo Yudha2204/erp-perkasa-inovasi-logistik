@@ -21,7 +21,7 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="card">
-                        <div class="card-body">                
+                        <div class="card-body">
                             @if ($errors->any())
                                 <div class="alert alert-danger" role="alert">
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button>
@@ -42,7 +42,7 @@
                                                 data-placeholder="Choose One" name="vendor_id" id="vendor_id">
                                                 <option label="Choose One" selected disabled></option>
                                                 @foreach ($vendor as $v)
-                                                    <option value="{{ $v->id }}">{{ $v->customer_name }}</option>   
+                                                    <option value="{{ $v->id }}">{{ $v->customer_name }}</option>
                                                 @endforeach
                                             </select>
                                             <div id="btn_edit_contact"></div>
@@ -57,7 +57,7 @@
                                             data-placeholder="Choose One" name="customer_id" id="customer_id">
                                             <option value="null">No Customer</option>
                                             @foreach ($customer as $c)
-                                                <option value="{{ $c->id }}">{{ $c->customer_name }}</option>   
+                                                <option value="{{ $c->id }}">{{ $c->customer_name }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -83,7 +83,7 @@
                                             data-placeholder="Choose One" name="currency_id" id="currency_id">
                                             <option label="Choose One" selected disabled></option>
                                             @foreach ($currencies as $c)
-                                                <option value="{{ $c->id }}">{{ $c->initial }}</option>   
+                                                <option value="{{ $c->id }}">{{ $c->initial }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -92,6 +92,17 @@
                                     <div class="form-group">
                                         <label for="des_head_order" class="form-label">Description</label>
                                         <input type="text" class="form-control" name="des_head_order" id="des_head_order" placeholder="Desc"  >
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="coa_ap" class="form-label">Account Name</label>
+                                        <select class="form-control select2 form-select"
+                                            data-placeholder="Choose One" name="coa_ap" id="coa_ap">
+                                            <option label="Choose One" selected disabled></option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -110,7 +121,7 @@
                                             <label for="job_order_id" class="form-label">Job Order</label>
                                             <select class="form-control select2 form-select"
                                                 data-placeholder="Choose One" name="job_order_id" id="job_order_id">
-                                                <option label="Choose One"></option>  
+                                                <option label="Choose One"></option>
                                             </select>
                                         </div>
                                     </div>
@@ -190,14 +201,14 @@
                             <div class="row justify-content-end">
                                 <div class="col-lg-6">
                                     <table class="table mt-5">
-                                        <tr>
+                                        {{-- <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between">
                                                     Biaya Lain
                                                     <input type="text" style="width: 50%" class="form-control" name="additional_cost" id="additional_cost" value="0" />
                                                 </div>
                                             </td>
-                                        </tr>
+                                        </tr> --}}
                                         <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between">
@@ -216,6 +227,23 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <label for="" class="form-label">PPn</label>
+                                                    </div>
+                                                    <div style="width: 150px">
+                                                        <select class="form-control select2 form-select" data-placeholder="Tax" name="ppn_tax" id="ppn_tax" onchange="hideButton()">
+                                                            <option label="ppn tax"></option>
+                                                            @foreach ($ppn_tax as $tax)
+                                                                <option value="{{ $tax->id }}:{{ $tax->tax_rate }}">{{ $tax->tax_rate }}%</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex justify-content-between">
                                                     Total Pajak
                                                     <input type="text" style="width: 50%" class="form-control" id="display_pajak" name="display_pajak" readonly value="0" />
                                                 </div>
@@ -226,22 +254,6 @@
                                                 <div class="d-flex justify-content-between">
                                                     Total
                                                     <input type="text" style="width: 50%" class="form-control" id="total_display" name="total_display" readonly placeholder="0" />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr style="display: none" id="dp">
-                                            <td>
-                                                <div class="d-flex justify-content-between">
-                                                    DP
-                                                    <input type="text" style="width: 50%" class="form-control" id="display_dp" name="display_dp" readonly placeholder="0" />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr style="display: none" id="sisa">
-                                            <td>
-                                                <div class="d-flex justify-content-between">
-                                                    Sisa
-                                                    <input type="text" style="width: 50%" class="form-control" id="display_sisa" name="display_sisa" readonly placeholder="0" />
                                                 </div>
                                             </td>
                                         </tr>
@@ -350,7 +362,7 @@
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type2" name="contact_type[]" value="2" @if(is_array(old('contact_type')) && in_array(2,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Vendor</span>
                                                             </label>
-                                                            &nbsp;&nbsp;&nbsp;&nbsp;    
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;
                                                         <label class="custom-control custom-checkbox">
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type3" name="contact_type[]" value="3" @if(is_array(old('contact_type')) && in_array(3,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Karyawan</span>
@@ -581,7 +593,7 @@
                                                 </div>
                                             </div>
                                             <div class="row input_fields_wrap_new edit mt-2">
-                        
+
                                             </div>
                                             <div class="row mt-2">
                                                 <div class="col-3">
@@ -738,7 +750,7 @@
                     $('#email_edit').val(response.data.email);
                     $('#npwp_ktp_edit').val(response.data.npwp_ktp);
                     $('#company_name_edit').val(response.data.company_name);
-                    
+
                     $('#address_edit').val(response.data.address);
                     $('#city_edit').val(response.data.city);
                     $('#postal_code_edit').val(response.data.postal_code);
@@ -937,7 +949,7 @@
             });
 
             $(wrapper_new).on("click",".remove_field_new", function(e){ //user click on remove text
-                e.preventDefault(); 
+                e.preventDefault();
                 $(this).parent().parent().remove(); x--;
             })
         });
@@ -971,7 +983,7 @@
             shipper.value = "";
             const commodity = document.getElementById("commodity")
             commodity.value = "";
-            
+
             const defaultOption = document.createElement("option");
             defaultOption.label = "Choose One";
             selectElement.add(defaultOption);
@@ -986,12 +998,12 @@
                 dataType: 'json',
                 data: { 'customer_id': contact },
                 url: '{{ route('finance.payments.job-order') }}',
-                success:function(response) 
+                success:function(response)
                 {
                     if (response?.data) {
                         response.data.forEach(function(item) {
                             const option = document.createElement("option");
-                            option.value = item.id + ":" + item.marketing.source; 
+                            option.value = item.id + ":" + item.marketing.source;
                             option.text = item.job_order_id + " - " + item.marketing.source;
                             selectElement.add(option);
                         });
@@ -1047,13 +1059,13 @@
                         text_transportation_desc.innerText = response.data.marketing.transportation_desc
                     }
 
-                    $('#shipper').val(response.data.marketing.shipper);       
+                    $('#shipper').val(response.data.marketing.shipper);
                     $('#commodity').val(response.data.marketing.description);
                     if(response.data.vendors) {
                         response.data.vendors.forEach(item => {
                             if(!item.vendor) {
                                 const option = document.createElement("option");
-                                option.value = item.id; 
+                                option.value = item.id;
                                 option.text = item.transit;
                                 transitVia.add(option);
                             }
@@ -1068,7 +1080,6 @@
             var forms = document.querySelectorAll('.form-wrapper');
             var grand_disc = 0;
             var grand_pajak = 0;
-            var grand_dp = 0;
             forms.forEach(function(form) {
                 var input = form.querySelectorAll("input, select");
                 var quantity = input[2].value
@@ -1086,7 +1097,7 @@
                     pajak = pajak.split(":")[1]
                 }
                 pajak = parseFloat(pajak)
-                
+
                 let total = quantity*price
                 if(discount_type === "persen") {
                     disc = (disc/100)*total
@@ -1102,43 +1113,11 @@
                     input[6].value = price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                 }
                 input[8].value = total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-                if(input[9].value == 1 && total > 0) {
-                    var dp_type = input[11].value
-                    var dp = input[10].value
-                    if(!dp) dp = "0"
-                    dp = parseFloat(dp.replace(/,/g, ''))
-                    if(dp_type === "persen") {
-                        dp = (dp/100)*total
-                    }
-
-                    grand_dp += dp
-                }
             });
             $('#display_pajak').val(grand_pajak.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-            if(grand_dp > 0) {
-                $('#dp').show()
-                $('#sisa').show()
-                $('#display_dp').val(grand_dp.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-            } else {
-                $('#dp').hide()
-                $('#sisa').hide()
-                $('#display_dp').val(0)
-            }
 
             return {
                 grand_disc
-            }
-        }
-
-        function changeDp(element) {
-            const elementCurrent = element.parentNode.nextElementSibling.style["display"]
-            if(elementCurrent === "none") {
-                element.value = 1
-                element.parentNode.nextElementSibling.style.setProperty("display", "flex", "important")
-            } else {
-                element.value = 0
-                element.parentNode.nextElementSibling.style.setProperty("display", "none", "important")
             }
         }
 
@@ -1146,7 +1125,7 @@
             var formContainer = document.getElementById('form-container');
             var newFormWrapper = document.createElement('tr');
             newFormWrapper.classList.add('form-wrapper');
-        
+
             var formTemplate = `
             <td></td>
             <td>
@@ -1169,7 +1148,7 @@
             </td>
             <td>
                 <input type="text" class="form-control price-input" name="price_detail" onchange="calculate()" />
-                <label for="" class="form-label">Pajak</label>
+                <label for="" class="form-label">PPh</label>
                 <select class="form-control select2 form-select" data-placeholder="Tax" name="pajak_detail" id="pajak_detail" onchange="calculate()">
                     <option label="Tax"></option>
                     @foreach ($taxs as $tax)
@@ -1179,17 +1158,11 @@
             </td>
             <td>
                 <input type="text" class="form-control total-input" name="total_detail" readonly value="0"/>
-                <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
-                    <input type="checkbox" class="custom-control-input" name="dp_desc" value="0" onchange="changeDp(this); calculate()">
-                    <span class="custom-control-label form-label">Bayar DP</span>
-                </label>
-                <div class="d-flex gap-2 flex-column" style="display: none !important;">
-                    <input type="text" class="form-control" name="dp_detail" onchange="calculate()" />
-                    <select class="form-control select2 form-select" data-placeholder="Choose One" name="dp_type_detail" onchange="calculate()" >
-                        <option value="persen" selected>%</option>
-                        <option value="nominal">0</option>
-                    </select>
-                </div>
+                <label for="coa_expense_detail" class="form-label">Account Name</label>
+                <select class="form-control select2 form-select coa-expense-select"
+                    data-placeholder="Choose One" name="coa_expense_detail">
+                    <option label="Choose One" selected disabled></option>
+                </select>
             </td>
             <td>
                 <div class="d-flex justify-content-between">
@@ -1197,9 +1170,36 @@
                 </div>
             </td>
             `;
-        
+
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
+
+            $(newFormWrapper).find('.select2').select2({ placeholder: "Choose One" });
+            const coaExpenseSelect = newFormWrapper.querySelector('.coa-expense-select');
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route("finance.master-data.account") }}',
+                data: { 'account_type_id': [17, 18] },
+                success: function(response) {
+                    if(response.data) {
+                        let firstCostOfSales = null;
+                        response.data.forEach(element => {
+                            const newOption = new Option(element.account_name, element.id);
+                            $(coaExpenseSelect).append(newOption);
+                            if (element.account_type_id == 17 && firstCostOfSales === null) {
+                                firstCostOfSales = element.id;
+                            }
+                        });
+                        if (firstCostOfSales) {
+                            $(coaExpenseSelect).val(firstCostOfSales).trigger('change');
+                        }
+                    }
+                }
+            })
         });
 
         function total() {
@@ -1208,10 +1208,6 @@
             if(!disc) disc = "0";
             disc = parseFloat(disc.replace(/,/g, ''))
 
-            var additional = document.querySelector('input[name="additional_cost"]').value;
-            if(!additional) additional = "0";
-            additional = parseFloat(additional.replace(/,/g, ''))
-            
             var totalDetailInputs = document.querySelectorAll('input[name="total_detail"]');
             totalDetailInputs.forEach(function(input) {
                 totalDetail = input.value;
@@ -1219,31 +1215,30 @@
                 total += parseFloat(totalDetail.replace(/,/g, '')) || 0;
             });
 
-            total += additional
-
             var discount_type = document.querySelector('select[name="discount_type"]').value;
             if(discount_type === "persen") {
                 disc = (disc/100)*(total)
             }
             total -= disc
-            
+
             var { grand_disc } = calculate()
             disc +=  grand_disc
 
-            var dp = document.querySelector('input[name="display_dp"]').value;
-            if(!dp) dp = "0";
-            dp = parseFloat(dp.replace(/,/g, ''))
+            var ppn_tax = $('#ppn_tax').val();
+            if (ppn_tax) {
+                ppn_tax = ppn_tax.split(':')[1];
+                total = total + (total * (ppn_tax/100));
+            }
 
             $('#discount_display').val(disc.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             $('#total_display').val(total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-            $('#display_sisa').val((total-dp).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             $('#submit-all-form').show()
         }
 
         document.getElementById('submit-all-form').addEventListener('click', function() {
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
-        
+
             forms.forEach(function(form) {
                 var formDataObj = {};
                 form.querySelectorAll('input, select').forEach(function(input) {
@@ -1251,14 +1246,14 @@
                 });
                 formData.push(formDataObj);
             });
-        
+
             // Menyimpan data dalam input tersembunyi untuk dikirimkan ke backend
             var hiddenInput = document.createElement('input');
             hiddenInput.setAttribute('type', 'hidden');
             hiddenInput.setAttribute('name', 'form_data');
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
-        
+
             // Mengirimkan formulir ke backend
             document.forms['dynamic-form'].submit();
         });
@@ -1267,5 +1262,26 @@
             hideButton()
             element.closest('tr').remove();
         }
+
+        $('#currency_id').on('change', function() {
+            var currency_id = $(this).val();
+            $('#coa_ap').empty();
+            $('#coa_ap').append('<option label="Choose One" selected disabled></option>');
+            $.ajax({
+                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route("finance.master-data.account") }}',
+                data: { 'currency_id': currency_id, 'account_type_id': 8 },
+                success: function(response) {
+                    if(response.data) {
+                        response.data.forEach(element => {
+                            const newOption = new Option(element.account_name, element.id)
+                            $('#coa_ap').append(newOption)
+                        });
+                    }
+                }
+            })
+        });
     </script>
 @endpush
