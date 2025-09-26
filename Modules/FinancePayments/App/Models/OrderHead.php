@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\FinanceDataMaster\App\Models\BalanceAccount;
 use Modules\FinanceDataMaster\App\Models\MasterContact;
 use Modules\FinanceDataMaster\App\Models\MasterCurrency;
+use Modules\FinanceDataMaster\App\Models\MasterAccount;
+use Modules\FinanceDataMaster\App\Models\MasterTax;
 use Modules\Operation\App\Models\OperationExport;
 use Modules\Operation\App\Models\OperationImport;
 use Modules\Operation\App\Models\VendorOperationExport;
@@ -46,7 +48,14 @@ class OrderHead extends Model
     {
         return $this->belongsTo(MasterCurrency::class, 'currency_id', 'id');
     }
-
+    public function account()
+    {
+        return $this->belongsTo(MasterAccount::class, 'account_id', 'id');
+    }
+    public function ppnTax()
+    {
+        return $this->belongsTo(MasterTax::class, 'tax_id');
+    }
     public function getJobOrderAttribute()
     {
         if ($this->operation_id) {
@@ -72,7 +81,7 @@ class OrderHead extends Model
     }
 
     public function getTotalAttribute()
-    {   
+    {
         $discount = $this->discount_nominal;
         $detail = OrderDetail::where('head_id', $this->id)->get();
         $total = 0;
@@ -82,9 +91,16 @@ class OrderHead extends Model
         $total += $this->additional_cost;
 
         if($this->discount_type === "persen") {
-            return $total-(($discount/100)*$total);
+            $total = $total-(($discount/100)*$total);
+        } else {
+            $total = $total-$discount;
         }
-        return $total-$discount;
+
+        if ($this->ppnTax) {
+            $total = $total + ($total * ($this->ppnTax->tax_rate / 100));
+        }
+
+        return $total;
     }
 
     public function getDiscountAttribute()
@@ -110,7 +126,7 @@ class OrderHead extends Model
                     ->get();
         return $jurnal;
     }
-    
+
     public function getDpAttribute()
     {
         $dp = 0;

@@ -8,8 +8,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Modules\FinancePiutang\Database\factories\SalesOrderHeadFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\FinanceDataMaster\App\Models\BalanceAccount;
+use Modules\FinanceDataMaster\App\Models\MasterAccount;
 use Modules\FinanceDataMaster\App\Models\MasterContact;
 use Modules\FinanceDataMaster\App\Models\MasterCurrency;
+use Modules\FinanceDataMaster\App\Models\MasterTax;
 use Modules\FinanceDataMaster\App\Models\MasterTermOfPayment;
 use Modules\Notification\App\Models\NotificationCustom;
 use Modules\ReportFinance\App\Models\Sao;
@@ -18,7 +20,7 @@ use Spatie\Permission\Traits\HasRoles;
 class InvoiceHead extends Model
 {
     use HasFactory, HasRoles, SoftDeletes;
-    
+
     protected $table = 'invoice_head';
     protected $guarded = [];
 
@@ -32,6 +34,10 @@ class InvoiceHead extends Model
         return $this->hasMany(InvoiceDetail::class, 'head_id', 'id');
     }
 
+    public function account()
+    {
+        return $this->belongsTo(MasterAccount::class, 'account_id', 'id');
+    }
     public function contact()
     {
         return $this->belongsTo(MasterContact::class, 'contact_id', 'id');
@@ -52,6 +58,11 @@ class InvoiceHead extends Model
         return $this->belongsTo(MasterCurrency::class, 'currency_id', 'id');
     }
 
+    public function ppnTax()
+    {
+        return $this->belongsTo(MasterTax::class, 'tax_id');
+    }
+
     public function getTransactionAttribute()
     {
         $date = $this->date_invoice;
@@ -63,7 +74,7 @@ class InvoiceHead extends Model
     }
 
     public function getTotalAttribute()
-    {   
+    {
         $discount = $this->discount_nominal;
         $detail = InvoiceDetail::where('head_id', $this->id)->get();
         $total = 0;
@@ -73,9 +84,16 @@ class InvoiceHead extends Model
         $total += $this->additional_cost;
 
         if($this->discount_type === "persen") {
-            return $total-(($discount/100)*$total);
+            $total = $total-(($discount/100)*$total);
+        } else {
+            $total = $total-$discount;
         }
-        return $total-$discount;
+
+        if ($this->ppnTax) {
+            $total = $total + ($total * ($this->ppnTax->tax_rate / 100));
+        }
+
+        return $total;
     }
 
     public function getDiscountAttribute()
@@ -98,6 +116,7 @@ class InvoiceHead extends Model
     {
         $jurnal = BalanceAccount::where('transaction_type_id', 3)
                     ->where('transaction_id', $this->id)
+                    ->where('currency_id', $this->currency_id)
                     ->get();
         return $jurnal;
     }
@@ -189,4 +208,4 @@ class InvoiceHead extends Model
     }
 
     protected $appends = ['transaction', 'total', 'discount', 'jurnal', 'due_date', 'dp', 'dp_receive'];
-} 
+}

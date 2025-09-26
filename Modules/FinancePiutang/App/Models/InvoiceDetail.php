@@ -6,18 +6,23 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\FinanceDataMaster\App\Models\MasterTax;
+use Modules\FinanceDataMaster\App\Models\MasterAccount;
 use Spatie\Permission\Traits\HasRoles;
 
 class InvoiceDetail extends Model
 {
     use HasFactory, HasRoles, SoftDeletes;
-    
+
     protected $table = 'invoice_detail';
     protected $guarded = [];
 
     public function head()
     {
         return $this->belongsTo(InvoiceHead::class, 'head_id', 'id');
+    }
+    public function account()
+    {
+        return $this->belongsTo(MasterAccount::class, 'account_id', 'id');
     }
 
     public function tax_detail()
@@ -87,4 +92,4 @@ class InvoiceDetail extends Model
     }
 
     protected $appends = ['discount','total','tax', 'dp'];
-} 
+}

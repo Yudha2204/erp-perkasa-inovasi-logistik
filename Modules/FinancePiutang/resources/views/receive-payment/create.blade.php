@@ -133,6 +133,7 @@
                                             <th style="min-width:10rem;">Jumlah</th>
                                             <th style="min-width:10rem;">Diskon/DP</th>
                                             <th style="min-width:10rem;">Total</th>
+                                            <th style="min-width:10rem;">Account Name</th>
                                             <th>#</th>
                                         </tr>
                                     </thead>
@@ -1000,7 +1001,7 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 'currency_id': currency_id },
+                data: { 'currency_id': currency_id,  'account_type_id' :[1 , 2]  },
                 success: function(response) {
                     if(response.data) {
                         response.data.forEach(element => {
@@ -1136,6 +1137,11 @@
                             <input type="text" class="form-control total_input" readonly name="detail_total"/>
                         </td>
                         <td>
+                            <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id" >
+                                <option label="Choose One" selected disabled></option>
+                            </select>
+                        </td>
+                        <td>
                             <div class="d-flex justify-content-between">
                                 <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
                             </div>
@@ -1144,6 +1150,25 @@
 
                         newFormWrapper.innerHTML = formTemplate;
                         formContainer.appendChild(newFormWrapper);
+
+                        const coaArSelect = newFormWrapper.querySelector('.coa-ar-select');
+                        $.ajax({
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            },
+                            type: 'GET',
+                            dataType: 'json',
+                            url: '{{ route('finance.master-data.account') }}',
+                            data: { 'account_type_id' :4 },
+                            success: function(response) {
+                                if(response.data) {
+                                    response.data.forEach(element => {
+                                        const newOption = new Option(element.account_name, element.id)
+                                        $(coaArSelect).append(newOption);
+                                    });
+                                }
+                            }
+                        })
 
                         getCurrencyVia()
                         $('.select2').select2({
@@ -1263,6 +1288,11 @@
                 <input type="text" class="form-control total_input" readonly name="detail_total"/>
             </td>
             <td>
+                <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id" >
+                    <option label="Choose One" selected disabled></option>
+                </select>
+            </td>
+            <td>
                 <div class="d-flex justify-content-between">
                     <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
                 </div>
@@ -1271,6 +1301,26 @@
 
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
+
+            const coaArSelect = newFormWrapper.querySelector('.coa-ar-select');
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route('finance.master-data.account') }}',
+                data: { 'account_type_id' :4 },
+                success: function(response) {
+                    if(response.data) {
+                        response.data.forEach(element => {
+                            const newOption = new Option(element.account_name, element.id)
+                            $(coaArSelect).append(newOption);
+                        });
+                    }
+                }
+            })
+
             getCurrencyVia()
 
             $('.select2').select2({

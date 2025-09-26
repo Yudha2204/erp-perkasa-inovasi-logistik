@@ -8,11 +8,12 @@ use Modules\FinancePiutang\Database\factories\SalesOrderDetailFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\ExchangeRate\App\Models\ExchangeRate;
 use Spatie\Permission\Traits\HasRoles;
+use Modules\FinanceDataMaster\App\Models\MasterAccount;
 
 class RecieveDetail extends Model
 {
     use HasFactory, HasRoles, SoftDeletes;
-    
+
     protected $table = 'receive_payment_detail';
     protected $guarded = [];
 
@@ -30,9 +31,12 @@ class RecieveDetail extends Model
     {
         return $this->belongsTo(ExchangeRate::class, 'currency_via_id', 'id');
     }
-
+    public function account()
+    {
+        return $this->belongsTo(MasterAccount::class, 'account_id', 'id');
+    }
     public function getTotalAttribute()
-    {   
+    {
         $discount = $this->discount_nominal;
         $discount_type = $this->discount_type;
         $amount = $this->invoice->total;
@@ -58,7 +62,7 @@ class RecieveDetail extends Model
     }
 
     public function getDiscountAttribute()
-    {   
+    {
         $discount = $this->discount_nominal;
         $discount_type = $this->discount_type;
         $amount = $this->invoice->total;
