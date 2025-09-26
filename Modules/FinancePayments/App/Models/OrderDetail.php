@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\FinanceDataMaster\App\Models\MasterTax;
+use Modules\FinanceDataMaster\App\Models\MasterAccount;
 use Spatie\Permission\Traits\HasRoles;
 
 class OrderDetail extends Model
@@ -22,6 +23,10 @@ class OrderDetail extends Model
     public function tax_detail()
     {
         return $this->belongsTo(MasterTax::class, 'tax_id', 'id');
+    }
+    public function account()
+    {
+        return $this->belongsTo(MasterAccount::class, 'account_id', 'id');
     }
 
     public function getDiscountAttribute()

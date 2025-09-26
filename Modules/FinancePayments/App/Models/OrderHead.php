@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\FinanceDataMaster\App\Models\BalanceAccount;
 use Modules\FinanceDataMaster\App\Models\MasterContact;
 use Modules\FinanceDataMaster\App\Models\MasterCurrency;
+use Modules\FinanceDataMaster\App\Models\MasterAccount;
 use Modules\FinanceDataMaster\App\Models\MasterTax;
 use Modules\Operation\App\Models\OperationExport;
 use Modules\Operation\App\Models\OperationImport;
@@ -46,6 +47,10 @@ class OrderHead extends Model
     public function currency()
     {
         return $this->belongsTo(MasterCurrency::class, 'currency_id', 'id');
+    }
+    public function account()
+    {
+        return $this->belongsTo(MasterAccount::class, 'account_id', 'id');
     }
     public function ppnTax()
     {
