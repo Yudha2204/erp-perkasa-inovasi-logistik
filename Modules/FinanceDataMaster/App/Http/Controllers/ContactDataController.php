@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Modules\FinanceDataMaster\App\Models\MasterContact;
 use Modules\FinanceDataMaster\App\Models\MasterTermOfPayment;
 use Modules\FinanceDataMaster\App\Models\TermPaymentContact;
+use Modules\FinanceDataMaster\App\Models\MasterTax;
 use Illuminate\Support\Facades\Validator;
 
 class ContactDataController extends Controller
@@ -64,7 +65,8 @@ class ContactDataController extends Controller
         }
 
         $terms = MasterTermOfPayment::all();
-        return view('financedatamaster::contact.index', compact('contact', 'terms'));
+        $taxes = MasterTax::where('status', 1)->where('type', 'PPN')->get();
+        return view('financedatamaster::contact.index', compact('contact', 'terms', 'taxes'));
     }
 
     /**
@@ -151,6 +153,7 @@ class ContactDataController extends Controller
                 $data->country = $request->country;
                 $data->pic_for_urgent_status = $request->pic_for_urgent_status;
                 $data->mobile_number = $request->mobile_number;
+                $data->ppn_id = $request->ppn_id;
     
                 //insert documents
                 if ($request->file('document')) {
@@ -220,6 +223,7 @@ class ContactDataController extends Controller
                 $data->country = $request->country;
                 $data->pic_for_urgent_status = $request->pic_for_urgent_status;
                 $data->mobile_number = $request->mobile_number;
+                $data->ppn_id = $request->ppn_id;
     
                 //insert documents
                 if ($request->file('document')) {
@@ -257,8 +261,9 @@ class ContactDataController extends Controller
 
     public function edit($id)
     {
-        $data = MasterContact::with('termPaymentContacts')->find($id);
+        $data = MasterContact::with('termPaymentContacts', 'ppn')->find($id);
         $data['master_term_of_payment'] = MasterTermOfPayment::all();
+        $data['master_tax'] = MasterTax::where('status', 1)->where('type', 'PPN')->get();
 
         return response()->json([
             'success' => true,
@@ -271,8 +276,9 @@ class ContactDataController extends Controller
      */
     public function show($id)
     {
-        $data = MasterContact::with('termPaymentContacts')->find($id);
+        $data = MasterContact::with('termPaymentContacts', 'ppn')->find($id);
         $data['master_term_of_payment'] = MasterTermOfPayment::all();
+        $data['master_tax'] = MasterTax::where('status', 1)->where('type', 'PPN')->get();
 
         return response()->json([
             'success' => true,

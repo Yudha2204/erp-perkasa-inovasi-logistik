@@ -12,7 +12,19 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Run exchange revaluation on the last day of each month at 23:59
+        $schedule->command('exchange:revaluate')
+            ->monthlyOn(null, '23:59')
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        // Run Profit & Loss closing right after revaluation
+        $schedule->command('process:profitloss-close')
+            ->monthlyOn(null, '23:59')
+            ->timezone('Asia/Jakarta')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

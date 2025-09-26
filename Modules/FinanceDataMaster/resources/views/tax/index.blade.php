@@ -70,7 +70,7 @@
                                                         <span class="badge bg-warning badge-sm me-1 mb-1 mt-1">PPH</span>
                                                     @endif
                                                 </td>
-                                                <td>{{ $t->account ? $t->account->name : '-' }}</td>
+                                                <td>{{ $t->account ? $t->account->account_name : '-' }}</td>
                                                 <td>{{ $t->tax_rate }}</td>
                                                 <td>
                                                     @if ($t->status == 1)
@@ -312,7 +312,7 @@
     $('body').on('click', '#btn-edit', function () {
 
         let id = $(this).data('id');
-        var url = "{{ route('finance.master-data.tax.edit', ":id") }}";
+        var url = "{{ route('finance.master-data.tax.edit', ':id') }}";
         url = url.replace(':id', id);
 
         $.ajax({
@@ -339,7 +339,7 @@
     $('body').on('click', '#btn-show', function () {
 
     let id = $(this).data('id');
-    var url = "{{ route('finance.master-data.tax.show', ":id") }}";
+    var url = "{{ route('finance.master-data.tax.show', ':id') }}";
     url = url.replace(':id', id);
 
         $.ajax({
@@ -354,7 +354,7 @@
                     $('#type_show').val(response.data.type);
                     $('#tax_rate_show').val(response.data.tax_rate);
                     $("#status_show").val(response.data.status).change();
-                    $('#account_show').val(response.data.account ? response.data.account.name : 'None');
+                    $('#account_show').val(response.data.account ? response.data.account.account_name : 'None');
 
                     $('#modal-show').modal('show');
                 }

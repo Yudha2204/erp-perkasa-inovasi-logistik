@@ -97,6 +97,12 @@
                     @endcanany
                 </li>
 
+                @canany(['view-revaluation@process','execute-revaluation@process'])
+                <li class="slide {{ request()->is('process') || request()->is('process/*') ?'bg-primary' : '' }}" style="border-radius: 5px;">
+                    <a href="{{ route('process.index') }}" class="side-menu__item has-link" data-bs-toggle="slide" href=""><i class="side-menu__icon fe fe-calendar text-white"></i><span class="side-menu__label text-white">Process</span></a>
+                </li>
+                @endcanany
+
                 @canany([
                     'create-role@role','edit-role@role','delete-role@role',
                     'create-user@user','edit-user@user','delete-user@user'

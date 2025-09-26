@@ -14,5 +14,6 @@
     "FinancePayments": true,
     "Notification": true,
     "Setting": true,
-    "Inventory": true
+    "Inventory": true,
+    "Process": true
 }

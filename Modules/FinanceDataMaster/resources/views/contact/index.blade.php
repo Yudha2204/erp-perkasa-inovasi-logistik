@@ -46,13 +46,14 @@
                                 <div class="table-responsive">
                                     <table class="table text-nowrap text-md-nowrap mb-0">
                                         <thead>
-                                            <tr style="text-align: ">
+                                            <tr style="text-align: center">
                                                 <th>No</th>
                                                 <th>Name</th>
                                                 <th>Customer ID</th>
                                                 <th>Email</th>
                                                 <th>Type</th>
                                                 <th>Telepon</th>
+                                                <th>PPN</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -77,6 +78,7 @@
                                                         @endforeach
                                                     </td>
                                                     <td>{{ $c->phone_number }}</td>
+                                                    <td>{{ $c->ppn ? $c->ppn->name . ' (' . $c->ppn->tax_rate . '%)' : '-' }}</td>
                                                     <td>
                                                         <div class="g-2">
                                                             <a href="javascript:void(0)" id="btn-show" data-id="{{ $c->id }}" class="btn text-primary btn-sm"
@@ -108,7 +110,7 @@
                                                     </td>
                                                 </tr>
                                             @empty
-                                                <td colspan="7" style="text-align: center">
+                                                <td colspan="8" style="text-align: center">
                                                     <span class="text-danger">
                                                         <strong>Data is Empty</strong>
                                                     </span>
@@ -194,6 +196,17 @@
                                                         <label>Upload Document</label>
                                                         <input type="file" name="document" class="form-control">
                                                     </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>PPN</label>
+                                                    <select class="form-control select2 form-select" name="ppn_id">
+                                                        <option value="">Select PPN</option>
+                                                        @foreach ($taxes as $tax)
+                                                            <option value="{{ $tax->id }}" {{ old('ppn_id') == $tax->id ? 'selected' : '' }}>
+                                                                {{ $tax->name }} ({{ $tax->tax_rate }}%)
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
                                                 </div>
                                                 <div class="row">
                                                     <div class="col-md-12">
@@ -433,6 +446,12 @@
                                                         <div id="file_edit"></div>
                                                     </div>
                                                 </div>
+                                                <div class="form-group">
+                                                    <label>PPN</label>
+                                                    <select class="form-control select2 form-select" name="ppn_id" id="ppn_id_edit">
+                                                        <option value="">Select PPN</option>
+                                                    </select>
+                                                </div>
                                                 <div class="row">
                                                     <div class="col-md-12">
                                                         <label>Category</label>
@@ -643,6 +662,10 @@
                                                         <input type="file" name="document" class="form-control" disabled>
                                                         <div id="file_show"></div>
                                                     </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>PPN</label>
+                                                    <input type="text" name="ppn_name" id="ppn_name_show" class="form-control" disabled>
                                                 </div>
                                                 <div class="row">
                                                     <div class="col-md-12">
@@ -904,6 +927,13 @@
                         $('#pic_for_urgent_status_edit').val(response.data
                             .pic_for_urgent_status);
                         $('#mobile_number_edit').val(response.data.mobile_number);
+                        
+                        // Populate PPN dropdown
+                        $('#ppn_id_edit').empty().append('<option value="">Select PPN</option>');
+                        response.data.master_tax.forEach(function(tax) {
+                            $('#ppn_id_edit').append('<option value="' + tax.id + '">' + tax.name + ' (' + tax.tax_rate + '%)</option>');
+                        });
+                        $('#ppn_id_edit').val(response.data.ppn_id);
 
                         $('input:checkbox[name^="contact_type"]').each(function() {
                             let type = JSON.parse(response.data.type); // response : ['1', '3']
@@ -1052,9 +1082,9 @@
                 $(this).prop('checked', false);
             });
 
-            let id = $(this).data('id');
-            var url = "{{ route('finance.master-data.contact.show', ":id") }}";
-            url = url.replace(':id', id);
+            let showId = $(this).data('id');
+            var url = "{{ route('finance.master-data.contact.show', ':id') }}";
+            url = url.replace(':id', showId);
 
                 $.ajax({
                     headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
@@ -1077,6 +1107,13 @@
                             $('#country_show').val(response.data.country);
                             $('#pic_for_urgent_status_show').val(response.data.pic_for_urgent_status);
                             $('#mobile_number_show').val(response.data.mobile_number);
+                            
+                            // Populate PPN display
+                            if (response.data.ppn) {
+                                $('#ppn_name_show').val(response.data.ppn.name + ' (' + response.data.ppn.tax_rate + '%)');
+                            } else {
+                                $('#ppn_name_show').val('-');
+                            }
 
 
                             $('input:checkbox[name^="contact_type"]').each(function() {

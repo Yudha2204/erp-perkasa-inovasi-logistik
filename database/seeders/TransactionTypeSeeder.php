@@ -31,5 +31,21 @@ class TransactionTypeSeeder extends Seeder
                 'created_at' => Carbon::now()->format('Y-m-d H:i:s')
             ]);
         }
+
+        // Add Profit & Loss Closing and Exchange Revaluation transaction types
+        // Insert Exchange Revaluation with id 99 and Profit & Loss Closing with id 100
+        $additional_types = [
+            101 => "Annual Profit & Loss Closing",
+            100 => "Profit & Loss Closing",
+            99 => "Exchange Revaluation"
+        ];
+
+        foreach ($additional_types as $id => $type) {
+            DB::table('transaction_type')->insert([
+                'id' => $id,
+                'transaction_type' => $type,
+                'created_at' => Carbon::now()->format('Y-m-d H:i:s')
+            ]);
+        }
     }
 }

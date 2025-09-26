@@ -47,4 +47,9 @@ class MasterContact extends Model
     {
         return $this->hasOne(Sao::class, 'vendor_id', 'id');
     }
+
+    public function ppn()
+    {
+        return $this->belongsTo(MasterTax::class, 'ppn_id', 'id');
+    }
 }
