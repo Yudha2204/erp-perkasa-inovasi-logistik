@@ -143,13 +143,13 @@ class ReceivePaymentController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'customer_id'   => 'required',
-                'account_id' => 'required',
+                'head_account_id' => 'required',
                 'date_recieve'    => 'required',
                 'currency_head_id' => 'required',
                 'no_transactions' => 'required'
             ], [
                 "customer_id.required" => "The customer field is required.",
-                "account_id.required" => "The account name field is required.",
+                "head_account_id.required" => "The account name field is required.",
                 "no_transaction.required" => "The transaction number is required.",
                 "date_recieve.required" => "The date is required.",
                 "currency_head_id.required" => "The currency field is required."
@@ -162,11 +162,11 @@ class ReceivePaymentController extends Controller
             }
 
             $customer_id = $request->input('customer_id');
-            $account_id = $request->input('account_id');
+            $head_account_id = $request->input('head_account_id');
             $date_recieve = $request->input('date_recieve');
             $currency_id = $request->input('currency_head_id');
 
-            $validator = MasterAccount::where('id', $account_id)->where('master_currency_id', $currency_id)->get()->first();
+            $validator = MasterAccount::where('id', $head_account_id)->where('master_currency_id', $currency_id)->get()->first();
             if(!$validator) {
                 toast('Failed to Add Data!','error');
                 return redirect()->back()
@@ -207,7 +207,7 @@ class ReceivePaymentController extends Controller
 
             $data = [
                 'contact_id' => $customer_id,
-                'account_id' => $account_id,
+                'account_id' => $head_account_id,
                 'currency_id' => $currency_id,
                 'date_recieve' => $date_recieve,
                 'number' => $number,
@@ -411,13 +411,13 @@ class ReceivePaymentController extends Controller
             if($display_dp > 0 && $isDiscount === false) {
                 $flow = [
                     //debit, kredit
-                    [$grand_total, 0, $account_id],
+                    [$grand_total, 0, $head_account_id],
                     [0, $display_dp, $prepaid_sales_id]
                 ];
             } else {
                 $flow = [
                     //debit, kredit
-                    [$grand_total, 0, $account_id],
+                    [$grand_total, 0, $head_account_id],
                     [$display_dp_invoice, 0, $prepaid_sales_id],
                     [0, $discount_display, $diskon_penjualan_id],
                     // [0, $additional_cost, $pendapatan_lain_id],
@@ -547,13 +547,13 @@ class ReceivePaymentController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'customer_id'   => 'required',
-                'account_id' => 'required',
+                'head_account_id' => 'required',
                 'date_recieve'    => 'required',
                 'currency_head_id' => 'required',
                 'no_transactions' => 'required'
             ], [
                 "customer_id.required" => "The customer field is required.",
-                "account_id.required" => "The account name field is required.",
+                "head_account_id.required" => "The account name field is required.",
                 "no_transaction.required" => "The transaction number is required.",
                 "date_recieve.required" => "The date is required.",
                 "currency_head_id.required" => "The currency field is required."
@@ -566,10 +566,10 @@ class ReceivePaymentController extends Controller
             }
 
             $customer_id = $request->input('customer_id');
-            $account_id = $request->input('account_id');
+            $head_account_id = $request->input('head_account_id');
             $date_recieve = $request->input('date_recieve');
             $currency_id = $request->input('currency_head_id');
-            $validator = MasterAccount::where('id', $account_id)->where('master_currency_id', $currency_id)->get()->first();
+            $validator = MasterAccount::where('id', $head_account_id)->where('master_currency_id', $currency_id)->get()->first();
             if(!$validator) {
                 toast('Failed to Update Data!','error');
                 return redirect()->back()
@@ -610,7 +610,7 @@ class ReceivePaymentController extends Controller
 
             $data = [
                 'contact_id' => $customer_id,
-                'account_id' => $account_id,
+                'account_id' => $head_account_id,
                 'currency_id' => $currency_id,
                 'date_recieve' => $date_recieve,
                 'number' => $number,
@@ -843,13 +843,13 @@ class ReceivePaymentController extends Controller
             if($display_dp > 0 && $isDiscount === false) {
                 $flow = [
                     //debit, kredit
-                    [$grand_total, 0, $account_id],
+                    [$grand_total, 0, $head_account_id],
                     [0, $display_dp, $prepaid_sales_id]
                 ];
             } else {
                 $flow = [
                     //debit, kredit
-                    [$grand_total, 0, $account_id],
+                    [$grand_total, 0, $head_account_id],
                     [$display_dp_invoice, 0, $prepaid_sales_id],
                     [0, $discount_display, $diskon_penjualan_id],
                     // [0, $additional_cost, $pendapatan_lain_id],

@@ -112,25 +112,24 @@ class FinancePaymentsController extends Controller
 
         $purchaseOrder = [];
         if($currency && $vendor) {
+            $query = OrderHead::where('vendor_id', $vendor)
+                ->where('currency_id', $currency)
+                ->where('status', '!=', 'paid');
+
+            if ($customer && $customer != 'null') {
+                $query->where('customer_id', $customer);
+            }
+
             if($job_order && $job_order !== "null") {
                 $exp_jo = explode(":", $job_order);
                 $job_order_id = $exp_jo[0];
                 $job_order_source = $exp_jo[1];
-                $purchaseOrder = OrderHead::where('customer_id', $customer)
-                            ->where('vendor_id', $vendor)
-                            ->where('currency_id', $currency)
-                            ->where('operation_id', $job_order_id)
-                            ->where('source', $job_order_source)
-                            ->where('status','!=','paid')
-                            ->get();
+                $query->where('operation_id', $job_order_id)
+                      ->where('source', $job_order_source);
             } else {
-                $purchaseOrder = OrderHead::where('customer_id', $customer)
-                    ->where('vendor_id', $vendor)
-                    ->where('currency_id', $currency)
-                    ->where('operation_id', null)
-                    ->where('status','!=','paid')
-                    ->get();
+                $query->whereNull('operation_id');
             }
+            $purchaseOrder = $query->get();
         }
 
         return response()->json([

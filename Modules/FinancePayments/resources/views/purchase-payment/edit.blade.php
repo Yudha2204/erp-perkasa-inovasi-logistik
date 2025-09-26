@@ -21,7 +21,7 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="card">
-                        <div class="card-body">                
+                        <div class="card-body">
                             @if ($errors->any())
                                 <div class="alert alert-danger" role="alert">
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button>
@@ -42,7 +42,7 @@
                                                 data-placeholder="Choose One" name="vendor_id" id="vendor_id">
                                                 <option label="Choose One" selected disabled></option>
                                                 @foreach ($vendors as $v)
-                                                    <option value="{{ $v->id }}" {{ $v->id === $head->vendor->id ? "selected" : "" }}>{{ $v->customer_name }}</option>   
+                                                    <option value="{{ $v->id }}" {{ $v->id === $head->vendor->id ? "selected" : "" }}>{{ $v->customer_name }}</option>
                                                 @endforeach
                                             </select>
                                             <div id="btn_edit_contact"></div>
@@ -58,7 +58,7 @@
                                                 data-placeholder="Choose One" name="customer_id" id="customer_id">
                                                 <option value="null">No Customer</option>
                                                 @foreach ($customers as $c)
-                                                    <option value="{{ $c->id }}" {{ isset($head->customer) && $c->id === $head->customer->id ? "selected" : "" }}>{{ $c->customer_name }}</option>   
+                                                    <option value="{{ $c->id }}" {{ isset($head->customer) && $c->id === $head->customer->id ? "selected" : "" }}>{{ $c->customer_name }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -102,7 +102,7 @@
                                     <div class="form-group">
                                         <label for="account_id" class="form-label">Account Name</label>
                                         <select class="form-control select2 form-select"
-                                            data-placeholder="Choose One" name="account_id" id="account_id">
+                                            data-placeholder="Choose One" name="head_account_id" id="account_id">
                                             <option label="Choose One"></option>
                                             @foreach ($accounts as $account)
                                                 <option value="{{ $account->id }}" {{ $account->id === $head->account->id ? "selected" : "" }}>{{ $account->account_name }}</option>
@@ -155,6 +155,7 @@
                                             <th style="min-width:10rem;">Jumlah</th>
                                             <th style="min-width:10rem;">Diskon</th>
                                             <th style="min-width:10rem;">Total</th>
+                                            <th style="min-width:10rem;">Account Name</th>
                                             <th>#</th>
                                         </tr>
                                     </thead>
@@ -175,7 +176,7 @@
                                                 <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" value="{{ $data->remark }}" />
                                             </td>
                                             <td>
-                                                <input type="date" class="form-control" readonly name="detail_date" value="{{ $data->payable->date_order }}"/>                                
+                                                <input type="date" class="form-control" readonly name="detail_date" value="{{ $data->payable->date_order }}"/>
                                             </td>
                                             <td>
                                                 <input type="text" class="form-control" readonly name="detail_jumlah" value="{{ number_format($data->payable->total-$data->payable->dp-$data->getDpPaymentBefore($data->head_id),2,'.',',') }}"/>
@@ -228,6 +229,11 @@
                                                 <input type="text" class="form-control total_input" readonly name="detail_total" value="{{ number_format($data->total,2,'.',',') }}"/>
                                             </td>
                                             <td>
+                                                <select class="form-control select2 form-select coa-ap-select" data-placeholder="Choose One" name="account_id" data-selected="{{ $data->account_id }}">
+                                                    <option label="Choose One" selected disabled></option>
+                                                </select>
+                                            </td>
+                                            <td>
                                                 <div class="d-flex justify-content-between">
                                                     <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
                                                 </div>
@@ -252,14 +258,7 @@
                                 </div>
                                 <div class="col-lg-6">
                                     <table class="table mt-5">
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    Biaya Lain
-                                                    <input type="text" style="width: 50%" class="form-control" name="additional_cost" id="additional_cost" placeholder="0" value="{{ number_format($head->additional_cost,2,'.',',') }}" onchange="changeFormat(this)" />
-                                                </div>
-                                            </td>
-                                        </tr>
+
                                         <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between align-items-center">
@@ -405,7 +404,7 @@
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type2" name="contact_type[]" value="2" @if(is_array(old('contact_type')) && in_array(2,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Vendor</span>
                                                             </label>
-                                                            &nbsp;&nbsp;&nbsp;&nbsp;    
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;
                                                         <label class="custom-control custom-checkbox">
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type3" name="contact_type[]" value="3" @if(is_array(old('contact_type')) && in_array(3,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Karyawan</span>
@@ -688,7 +687,7 @@
                                                 </div>
                                             </div>
                                             <div class="row input_fields_wrap_new edit mt-2">
-                        
+
                                             </div>
                                             <div class="row mt-2">
                                                 <div class="col-3">
@@ -847,7 +846,7 @@
                     $('#email_edit').val(response.data.email);
                     $('#npwp_ktp_edit').val(response.data.npwp_ktp);
                     $('#company_name_edit').val(response.data.company_name);
-                    
+
                     $('#address_edit').val(response.data.address);
                     $('#city_edit').val(response.data.city);
                     $('#postal_code_edit').val(response.data.postal_code);
@@ -1046,7 +1045,7 @@
             });
 
             $(wrapper_new).on("click",".remove_field_new", function(e){ //user click on remove text
-                e.preventDefault(); 
+                e.preventDefault();
                 $(this).parent().parent().remove(); x--;
             })
         });
@@ -1081,6 +1080,32 @@
         $(document).ready(function () {
             getOrder(true)
             resetCurrency(true)
+
+            // Fetch AP Accounts and populate dropdowns
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route('finance.master-data.account') }}',
+                data: { 'account_type_id' :8 },
+                success: function(response) {
+                    if(response.data) {
+                        $('.coa-ap-select').each(function() {
+                            var selectedValue = $(this).data('selected');
+                            $(this).empty().append('<option label="Choose One" selected disabled></option>');
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                $(this).append(newOption);
+                            });
+                            if (selectedValue) {
+                                $(this).val(selectedValue).trigger('change');
+                            }
+                        });
+                    }
+                }
+            });
         })
 
         $('#currency_head_id').on('change', function () {
@@ -1156,7 +1181,7 @@
         document.getElementById('submit-all-form').addEventListener('click', function() {
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
-        
+
             forms.forEach(function(form) {
                 var formDataObj = {};
                 form.querySelectorAll('input, select').forEach(function(input) {
@@ -1164,18 +1189,18 @@
                 });
                 formData.push(formDataObj);
             });
-        
+
             // Menyimpan data dalam input tersembunyi untuk dikirimkan ke backend
             var hiddenInput = document.createElement('input');
             hiddenInput.setAttribute('type', 'hidden');
             hiddenInput.setAttribute('name', 'form_data');
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
-        
+
             // Mengirimkan formulir ke backend
             document.forms['dynamic-form'].submit();
         });
-        
+
         document.getElementById('add-form').addEventListener('click', function() {
             var formContainer = document.getElementById('form-container');
             var newFormWrapper = document.createElement('tr');
@@ -1192,7 +1217,7 @@
                 <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
             </td>
             <td>
-                <input type="date" class="form-control" readonly name="detail_date" />                                
+                <input type="date" class="form-control" readonly name="detail_date" />
             </td>
             <td>
                 <input type="text" class="form-control" readonly name="detail_jumlah"/>
@@ -1231,6 +1256,11 @@
                 <input type="text" class="form-control total_input" readonly name="detail_total"/>
             </td>
             <td>
+                <select class="form-control select2 form-select coa-ap-select" data-placeholder="Choose One" name="account_id">
+                    <option label="Choose One" selected disabled></option>
+                </select>
+            </td>
+            <td>
                 <div class="d-flex justify-content-between">
                     <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
                 </div>
@@ -1240,6 +1270,25 @@
             getCurrencyVia()
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
+
+            const coaApSelect = newFormWrapper.querySelector('.coa-ap-select');
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route('finance.master-data.account') }}',
+                data: { 'account_type_id' :8 },
+                success: function(response) {
+                    if(response.data) {
+                        response.data.forEach(element => {
+                            const newOption = new Option(element.account_name, element.id)
+                            $(coaApSelect).append(newOption);
+                        });
+                    }
+                }
+            })
 
             $('.select2').select2({
                 minimumResultsForSearch: Infinity
@@ -1325,7 +1374,7 @@
                 dataType: 'json',
                 data: {'customer': customer, 'currency': currency, 'job_order': job_order, 'vendor': vendor },
                 url: '{{ route('finance.payments.order') }}',
-                success:function(response) 
+                success:function(response)
                 {
                     if (response.data && (response.data.length > 0 || (customer == customer_current && currency == currency_current && job_order == job_order_current && vendor == vendor_current))) {
                         $('#add-form').show()
@@ -1362,7 +1411,7 @@
                                 <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
                             </td>
                             <td>
-                                <input type="date" class="form-control" readonly name="detail_date" />                                
+                                <input type="date" class="form-control" readonly name="detail_date" />
                             </td>
                             <td>
                                 <input type="text" class="form-control" readonly name="detail_jumlah"/>
@@ -1406,7 +1455,7 @@
                                 </div>
                             </td>
                             `;
-    
+
                             newFormWrapper.innerHTML = formTemplate;
                             formContainer.appendChild(newFormWrapper);
                             getCurrencyVia()
@@ -1445,7 +1494,7 @@
                 dataType: 'json',
                 data: {'order': order },
                 url: '{{ route('finance.payments.order.details') }}',
-                success:function(response) 
+                success:function(response)
                 {
                     if(response.data) {
                         row.querySelector('input[name="detail_date"]').value = response.data.date_order
@@ -1476,7 +1525,7 @@
                 let jumlah = el.querySelector('input[name="detail_jumlah"]').value
                 let diskon = el.querySelector('input[name="detail_discount_nominal"]').value
                 jumlah = parseFloat(jumlah.replace(/,/g, '')) || 0
-                
+
                 const other_currency = el.querySelector('input[name="other_currency"]').value
                 const other_currency_type = el.querySelector('select[name="other_currency_type"]').value
                 let other_currency_nominal = 0
@@ -1486,7 +1535,7 @@
                     const exchange_rate = $('select[name="other_currency_type"] option:selected').data('exchange');
                     jumlah = other_currency_nominal*exchange_rate
                 }
-                
+
                 diskon = parseFloat(diskon.replace(/,/g, '')) || 0
                 const diskon_type = el.querySelector('select[name="detail_discount_type"]').value
                 if(diskon_type === "persen") {
@@ -1517,10 +1566,7 @@
                 grand_diskon += diskon_tr
             })
 
-            let additional = $('#additional_cost').val()
-            additional = parseFloat(additional.replace(/,/g, '')) || 0
 
-            grand_total += additional
             $('#discount_display').val(grand_diskon.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             $('#total_display').val(grand_total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             $('#display_sisa').val((grand_total-grand_dp).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))

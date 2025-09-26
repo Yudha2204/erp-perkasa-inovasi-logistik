@@ -54,7 +54,7 @@
                                     <div class="form-group">
                                         <label for="account_id" class="form-label">Account Name</label>
                                         <select class="form-control select2 form-select"
-                                            data-placeholder="Choose One" name="account_id" id="account_id">
+                                            data-placeholder="Choose One" name="head_account_id" id="account_id">
                                             <option label="Choose One"></option>
                                             @foreach ($accounts as $account)
                                                 <option value="{{ $account->id }}" {{ $account->id === $data_recieve->account->id ? "selected" : "" }}>{{ $account->account_name }}</option>
@@ -1355,7 +1355,7 @@
                             opsi += newOption
                         })
                     }
-                    
+
                     if (!justOpsi) {
                         var formContainer = document.getElementById('form-container');
                         formContainer.innerHTML = '';

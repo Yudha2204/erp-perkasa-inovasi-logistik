@@ -54,7 +54,7 @@
                                     <div class="form-group">
                                         <label for="account_id" class="form-label">Account Name</label>
                                         <select class="form-control select2 form-select"
-                                            data-placeholder="Choose One" name="account_id" id="account_id">
+                                            data-placeholder="Choose One" name="head_account_id" id="account_id">
                                             <option label="Choose One"></option>
                                         </select>
                                         <a data-bs-effect="effect-scale" data-bs-toggle="modal" href="#modaldemo8"><i class="fe fe-plus me-1"></i>Create New Account</a>

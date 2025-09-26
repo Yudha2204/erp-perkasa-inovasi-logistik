@@ -13,13 +13,13 @@ return new class extends Migration
     public function up(): void
     {
         // Insert Revaluation transaction type if not exists
-        DB::table('transaction_type')->insertOrIgnore([
-            'id' => 99,
-            'name' => 'Exchange Revaluation',
-            'description' => 'Monthly exchange rate revaluation for foreign currency accounts',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // DB::table('transaction_type')->insertOrIgnore([
+        //     'id' => 99,
+        //     'transaction_type' => 'Exchange Revaluation',
+        //     // 'description' => 'Monthly exchange rate revaluation for foreign currency accounts',
+        //     'created_at' => now(),
+        //     'updated_at' => now(),
+        // ]);
     }
 
     /**
@@ -28,9 +28,9 @@ return new class extends Migration
     public function down(): void
     {
         // Remove Revaluation transaction type
-        DB::table('transaction_type')
-            ->where('id', 99)
-            ->where('name', 'Exchange Revaluation')
-            ->delete();
+        // DB::table('transaction_type')
+        //     ->where('id', 99)
+        //     ->where('transaction_type', 'Exchange Revaluation')
+        //     ->delete();
     }
 };

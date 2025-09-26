@@ -208,6 +208,7 @@ class PurchaseOrderController extends Controller
                     $totalFull -= $pajak;
                     if($tax->tax_rate > 0 && !$tax->account_id){
                         DB::rollBack();
+                        // dd($tax);
                         return redirect()->back()
                                 ->withErrors(['error' => 'Add the account to tax if rate more than 0']);
                     }else if($tax->account_id){
