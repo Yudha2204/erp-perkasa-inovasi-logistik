@@ -309,7 +309,8 @@ class ReceivePaymentController extends Controller
                         }
                         $totalFull -= $discTotal;
                         $discTotal = 0;
-
+                        // DB::rollBack();
+                        // dd($totalFull);
                         $pajak = 0;
                         if(!$d->tax_id) {
                             $tax_id = null;
@@ -337,6 +338,7 @@ class ReceivePaymentController extends Controller
                             $discTotal = $invoice->discount_nominal;
                         }
                         $totalFull -= $discTotal;
+
                         $totalWithPPn += ($totalFull+ ($totalFull*11/100));
                         $discTotal = 0;
                         $totalFull = $totalWithPPn;
@@ -448,7 +450,7 @@ class ReceivePaymentController extends Controller
         } catch (Exception $e) {
             //throw $th;
             DB::rollBack();
-            // dd($e->getMessage());
+            dd($e->getMessage());
             toast('App Error','error');
                 return redirect()->back()
                     ->withErrors(['error' => 'Error On App Please Contact IT Support']);

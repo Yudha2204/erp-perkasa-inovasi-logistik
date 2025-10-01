@@ -64,10 +64,10 @@ class InvoiceDetail extends Model
             $total = $total-$discount;
         }
 
-        if($this->tax_id) {
-            $tax = MasterTax::find($this->tax_id);
-            return $total-(($tax->tax_rate/100)*$total);
-        }
+        // if($this->tax_id) {
+        //     $tax = MasterTax::find($this->tax_id);
+        //     return $total-(($tax->tax_rate/100)*$total);
+        // }
         return $total;
     }
 

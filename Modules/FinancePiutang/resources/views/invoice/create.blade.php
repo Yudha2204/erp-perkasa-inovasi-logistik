@@ -205,6 +205,23 @@
                                             <td>
                                                 <div class="d-flex justify-content-between">
                                                     <div>
+                                                        <label for="" class="form-label">PPh</label>
+                                                    </div>
+                                                    <div style="width: 150px">
+                                                        <select class="form-control select2 form-select" data-placeholder="Tax" id="pph_tax_master">
+                                                            <option label="pph tax"></option>
+                                                            @foreach ($taxs as $tax)
+                                                                <option value="{{ $tax->id }}:{{ $tax->tax_rate }}">{{ $tax->tax_rate }}%</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
                                                         <label for="" class="form-label">PPn</label>
                                                     </div>
                                                     <div style="width: 150px">
@@ -885,6 +902,12 @@
         });
 
         $(document).ready(function () {
+            $('#pph_tax_master').on('change', function() {
+                var selectedTax = $(this).val();
+                $('.form-wrapper').each(function() {
+                    $(this).find('select[name="pajak_detail"]').val(selectedTax).trigger('change');
+                });
+            });
             $('#customer_id').select2('destroy').select2({
                 placeholder: "Choose One"
             });
@@ -1239,7 +1262,7 @@
 
                 pajak = (pajak/100)*total
                 grand_pajak += pajak
-                total -= pajak
+                // total -= pajak
 
                 if(price > 0) {
                     input[6].value = price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -1424,15 +1447,9 @@
         // })
 
         function total() {
+            var { grand_disc } = calculate(); // This updates row totals and gets sum of row discounts
+
             var total = 0;
-            var disc = document.querySelector('input[name="discount"]').value;
-            if(!disc) disc = "0";
-            disc = parseFloat(disc.replace(/,/g, ''))
-
-            // var additional = document.querySelector('input[name="additional_cost"]').value;
-            // if(!additional) additional = "0";
-            // additional = parseFloat(additional.replace(/,/g, ''))
-
             var totalDetailInputs = document.querySelectorAll('input[name="total_detail"]');
             totalDetailInputs.forEach(function(input) {
                 totalDetail = input.value;
@@ -1440,7 +1457,9 @@
                 total += parseFloat(totalDetail.replace(/,/g, '')) || 0;
             });
 
-            // total += additional
+            var disc = document.querySelector('input[name="discount"]').value;
+            if(!disc) disc = "0";
+            disc = parseFloat(disc.replace(/,/g, ''))
 
             var discount_type = document.querySelector('select[name="discount_type"]').value;
             if(discount_type === "persen") {
@@ -1448,8 +1467,7 @@
             }
             total -= disc
 
-            var { grand_disc } = calculate()
-            disc +=  grand_disc
+            var total_discount_for_display = disc + grand_disc;
 
             var ppn_tax = $('#ppn_tax').val();
             if (ppn_tax) {
@@ -1457,11 +1475,11 @@
                 total = total + (total * (ppn_tax/100));
             }
 
-            // var dp = document.querySelector('input[name="display_dp"]').value;
-            // if(!dp) dp = "0";
-            // dp = parseFloat(dp.replace(/,/g, ''))
+            var dp = document.querySelector('input[name="display_dp"]').value;
+            if(!dp) dp = "0";
+            dp = parseFloat(dp.replace(/,/g, ''))
 
-            $('#discount_display').val(disc.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+            $('#discount_display').val(total_discount_for_display.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             $('#total_display').val(total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             $('#display_sisa').val((total-dp).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             $('#submit-all-form').show()

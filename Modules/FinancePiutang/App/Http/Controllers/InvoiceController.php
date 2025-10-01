@@ -168,7 +168,7 @@ class InvoiceController extends Controller
                 'no_transactions'    => 'required',
                 'date_invoice' => 'required',
                 'term_payment' => 'required',
-                'coa_ar' => 'required'
+                // 'coa_ar' => 'required'
             ], [
                 "customer_id.required" => "The customer field is required.",
                 "sales_no.required" => "The sales no field is required.",
@@ -183,17 +183,25 @@ class InvoiceController extends Controller
                 return redirect()->back()
                             ->withErrors($validator);
             }
-            // Check Exchange Rate
-            $exchange_rate = ExchangeRate::whereDate('date', $request->input('date_invoice'))->first();
-            if (!$exchange_rate) {
-                toast('Exchange rate not found for this date!','error');
-                return redirect()->back()
-                    ->withErrors(['exchange_rate' => 'Exchange rate for this date is not available.']);
-                    // ->withInput();
-            }
+
             $contact_id = $request->input('customer_id');
             $sales_id = $request->input('sales_no');
             $currency_id = SalesOrderHead::find($sales_id)->currency_id;
+             // Check Exchange Rate
+             if($currency_id != 1){
+                $exchange_rate = ExchangeRate::whereDate('date', $request->input('date_invoice'))->
+                where(function ($query) use ($currency_id) {
+                    $query->where('from_currency_id', '=', $currency_id)
+                          ->orWhere('to_currency_id', '=', $currency_id);
+                })
+                ->first();
+                if (!$exchange_rate) {
+                    toast('Exchange rate not found for this date!','error');
+                    return redirect()->back()
+                        ->withErrors(['exchange_rate' => 'Exchange rate for this date is not available.']);
+                        // ->withInput();
+                }
+             }
             $term_payment = $request->input('term_payment');
             $no_transactions = $request->input('no_transactions');
             $date_invoice = $request->input('date_invoice');
@@ -333,17 +341,17 @@ if(!$diskon_penjualan_id) {
                         $pajak += (($tax->tax_rate/100) * $totalFull);
                     // } else if($tax_id == 3 ) {
                     // }
-                    $totalFull -= $pajak;
-                    if($tax->tax_rate > 0 && !$tax->account_id){
-                        DB::rollBack();
-                        // dd($e->getMessage());
-                            return redirect()->back()
-                                ->withErrors(['error' => 'Add the account to tax if rate more than 0']);
-                    }else if($tax->account_id){
-                        $tax_journal[] = [0, $pajak , $tax->account_id ,$tax->id];
-                    }else if($tax->tax_rate == 0 && !$tax->account_id ){
-                        // Skip
-                    }
+                    // $totalFull -= $pajak;
+                    // if($tax->tax_rate > 0 && !$tax->account_id){
+                    //     DB::rollBack();
+                    //     // dd($e->getMessage());
+                    //         return redirect()->back()
+                    //             ->withErrors(['error' => 'Add the account to tax if rate more than 0']);
+                    // }else if($tax->account_id){
+                    //     $tax_journal[] = [0, $pajak , $tax->account_id ,$tax->id];
+                    // }else if($tax->tax_rate == 0 && !$tax->account_id ){
+                    //     // Skip
+                    // }
                 }
                 // $dp = 0;
                 // if($dp_type_detail == "persen") {
@@ -353,7 +361,7 @@ if(!$diskon_penjualan_id) {
                 // }
                 // $grand_dp += $dp;
                 $totalDetailWithoutDiscount += $totalFull;
-                $sales_journal[] = [0,(($totalFull - $pajak) - ($totalDetailWithoutDiscount * ($discount_nominal/100))),$sales_acc_id];
+                $sales_journal[] = [0,(($totalFull) - ($totalDetailWithoutDiscount * ($discount_nominal/100))),$sales_acc_id];
                 InvoiceDetail::create([
                     'head_id' => $head_id,
                     'description' => $des_detail,
@@ -475,7 +483,7 @@ if(!$diskon_penjualan_id) {
                             ->get();
 
         $accounts = MasterAccount::whereIn('account_type_id', [4, 15])
-        ->where('master_currency_id', $invoice->sales->currency_id)
+        // ->where('master_currency_id', $invoice->sales->currency_id)
         ->get()
         ->groupBy('account_type_id');
 
@@ -675,25 +683,25 @@ if(!$diskon_penjualan_id) {
                 $totalFull -= $discTotal;
                 $pajak = 0;
 
-                if(!$d->tax_id) {
-                    $tax_id = null;
-                }else{
-                    $tax = MasterTax::find($d->tax_id);
-                    $pajak += ($tax->tax_rate/100) * $totalFull;
-                    $totalFull -= $pajak;
-                    if($tax->tax_rate > 0 && !$tax->account_id){
-                        DB::rollBack();
-                        // dd($e->getMessage());
-                            return redirect()->back()
-                                ->withErrors(['error' => 'Add the account to tax if rate more than 0']);
-                    }else if($tax->account_id){
-                        $tax_journal[] = [0, $pajak , $tax->account_id ];
-                    }else if($tax->tax_rate == 0 && !$tax->account_id ){
-                        // Skip
-                    }
-                }
+                // if(!$d->tax_id) {
+                //     $tax_id = null;
+                // }else{
+                //     $tax = MasterTax::find($d->tax_id);
+                //     $pajak += ($tax->tax_rate/100) * $totalFull;
+                //     $totalFull -= $pajak;
+                //     if($tax->tax_rate > 0 && !$tax->account_id){
+                //         DB::rollBack();
+                //         // dd($e->getMessage());
+                //             return redirect()->back()
+                //                 ->withErrors(['error' => 'Add the account to tax if rate more than 0']);
+                //     }else if($tax->account_id){
+                //         $tax_journal[] = [0, $pajak , $tax->account_id ];
+                //     }else if($tax->tax_rate == 0 && !$tax->account_id ){
+                //         // Skip
+                //     }
+                // }
                 $totalDetailWithoutDiscount +=($totalFull);
-                $sales_journal[] = [0,(($totalFull - $pajak) - ($totalDetailWithoutDiscount * ($discount_nominal/100))),$d->account_id];
+                $sales_journal[] = [0,(($totalFull ) - ($totalDetailWithoutDiscount * ($discount_nominal/100))),$d->account_id];
             }
 
             $diskon_penjualan_id = MasterAccount::where('account_type_id', 16)->first();
