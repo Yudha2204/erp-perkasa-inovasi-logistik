@@ -214,14 +214,14 @@
                             <div class="row justify-content-end">
                                 <div class="col-lg-6">
                                     <table class="table mt-5">
-                                        <tr>
+                                        {{-- <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between">
                                                     Biaya Lain
                                                     <input type="text" style="width: 50%" class="form-control" name="additional_cost" id="additional_cost" readonly value="{{ number_format($dataSalesOrder->additional_cost, 2, '.', ',') }}" />
                                                 </div>
                                             </td>
-                                        </tr>
+                                        </tr> --}}
                                         <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between">

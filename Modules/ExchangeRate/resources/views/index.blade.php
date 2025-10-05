@@ -13,7 +13,7 @@
             <div class="page-header">
                 <h1 style="color: #015377"><b>Exchange Rate</b></h1>
             </div>
-            
+
             <!-- Bulk Exchange Rate Section -->
             <div class="row mb-4">
                 <div class="col-xl-12">
@@ -30,12 +30,12 @@
                             <form action="{{ route('finance.exchange-rate.bulk-store') }}" method="POST" id="bulk-exchange-form">
                                 @csrf
                                 <input type="hidden" name="_token" value="{{ csrf_token() }}" id="csrf-token-input">
-                                
+
                                 <!-- Information Section -->
                                 <div class="alert alert-info">
                                     <h6><i class="fa fa-info-circle"></i> Bidirectional Protection</h6>
                                     <p class="mb-0">
-                                        The system automatically prevents duplicate currency pairs in both directions. 
+                                        The system automatically prevents duplicate currency pairs in both directions.
                                         For example, if you have "USD → EUR", you cannot add "EUR → USD" for the same date.
                                         This ensures data consistency and prevents conflicting exchange rates.
                                     </p>
@@ -140,7 +140,7 @@
                     <input type="text" id="date_exchange" class="form-control" name="date" value="{{ Request::get('date') ?? \Carbon\Carbon::now()->format('Y-m-d') }}" style="border-color: #E8F4FE; border-width: 2px; max-width: 200px;">
                 </div>
             </form>
-            
+
             <form action="{{ route('finance.exchange-rate.store') }}" method="POST" enctype="multipart/form-data" name="dynamic-form">
             @csrf
             <div class="row">
@@ -175,7 +175,7 @@
                                         @foreach ($exchangeRate as $e)
                                             <tr class="form-wrapper group-form">
                                                 <td></td>
-                                                <td> 
+                                                <td>
                                                     <select class="form-control select2 form-select" data-placeholder="Choose One" name="from_currency" onchange="changeCurrency(this, 'from'); changeOperation(this)" disabled>
                                                         @foreach ($currencies as $c)
                                                         <option value="{{$c->id}}" {{ $c->id === $e->from_currency_id ? "selected" : "" }}>{{$c->initial}}</option>
@@ -188,7 +188,7 @@
                                                 <td>
                                                     <input disabled type="text" value="To" class="form-control" style="background: none; border: 0px; text-align: center">
                                                 </td>
-                                                <td> 
+                                                <td>
                                                     <select class="form-control select2 form-select" data-placeholder="Choose One" name="to_currency" onchange="changeOperation(this)" disabled>
                                                         @foreach ($currencies as $c)
                                                         @if(!($c->id === $e->from_currency_id))
@@ -256,13 +256,13 @@
                     $(this).closest('form').submit()
                 }
             });
-            
+
             // Initialize bulk date pickers
             $("#bulk_start_date").datepicker({
                 dateFormat: "yy-mm-dd",
                 defaultDate: defaultDate
             });
-            
+
             $("#bulk_end_date").datepicker({
                 dateFormat: "yy-mm-dd",
                 defaultDate: defaultDate
@@ -299,7 +299,7 @@
         document.getElementById('submit-all-form').addEventListener('click', function() {
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
-        
+
             forms.forEach(function(form) {
                 var formDataObj = {};
                 form.querySelectorAll('input, select').forEach(function(input) {
@@ -307,7 +307,7 @@
                 });
                 formData.push(formDataObj);
             });
-        
+
             var hiddenInput = document.createElement('input');
             hiddenInput.setAttribute('type', 'hidden');
             hiddenInput.setAttribute('name', 'form_data');
@@ -319,7 +319,7 @@
             dateInput.setAttribute('value', date);
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
             document.querySelector('form[name="dynamic-form"]').appendChild(dateInput);
-        
+
             document.forms['dynamic-form'].submit();
         });
 
@@ -328,10 +328,10 @@
             var newFormWrapper = document.createElement('tr');
             newFormWrapper.classList.add('form-wrapper');
             newFormWrapper.classList.add('group-form');
-        
+
             var formTemplate = `
             <td></td>
-            <td> 
+            <td>
                 <select class="form-control select2 form-select" data-placeholder="Choose One" name="from_currency" onchange="changeCurrency(this, 'from')">
                     <option label="Choose One"></option>
                     @foreach ($currencies as $c)
@@ -345,7 +345,7 @@
             <td>
                 <input disabled type="text" value="To" class="form-control" style="background: none; border: 0px; text-align: center">
             </td>
-            <td> 
+            <td>
                 <select class="form-control select2 form-select" data-placeholder="Choose One" name="to_currency">
                     <option label="Choose One"></option>
                 </select>
@@ -361,7 +361,7 @@
                 </div>
             </td>
             `;
-        
+
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
 
@@ -401,7 +401,7 @@
             const newPairRow = document.createElement('div');
             newPairRow.classList.add('currency-pair-row', 'mb-3');
             newPairRow.setAttribute('data-pair-index', currencyPairIndex);
-            
+
             newPairRow.innerHTML = `
                 <div class="row">
                     <div class="col-md-2">
@@ -450,22 +450,22 @@
                     </div>
                 </div>
             `;
-            
+
             container.appendChild(newPairRow);
-            
+
             // Initialize select2 for new elements
             $('.select2').select2({
                 minimumResultsForSearch: Infinity
             });
-            
+
             // Add event listener for currency changes in new pair
             const newFromCurrency = newPairRow.querySelector('.bulk-from-currency');
             const newToCurrency = newPairRow.querySelector('.bulk-to-currency');
-            
+
             newFromCurrency.addEventListener('change', function() {
                 updateBulkToCurrency(this);
             });
-            
+
             newToCurrency.addEventListener('change', function() {
                 // No automatic checking - only check on submit
             });
@@ -475,15 +475,15 @@
         function removeCurrencyPair(button) {
             const pairRow = button.closest('.currency-pair-row');
             const container = document.getElementById('currency-pairs-container');
-            
+
             // Don't allow removing the last pair
             if (container.children.length <= 1) {
                 alert('At least one currency pair is required!');
                 return;
             }
-            
+
             pairRow.remove();
-            
+
             // No automatic checking - only check on submit
         }
 
@@ -492,10 +492,10 @@
             const fromCurrencyId = selectElement.value;
             const pairRow = selectElement.closest('.currency-pair-row');
             const toCurrencySelect = pairRow.querySelector('.bulk-to-currency');
-            
+
             // Clear existing options
             toCurrencySelect.innerHTML = '<option value="">Choose One</option>';
-            
+
             const allCurrency = {!! json_encode($currencies) !!};
             allCurrency.forEach(currency => {
                 if(currency.id != fromCurrencyId) {
@@ -505,30 +505,30 @@
                     toCurrencySelect.appendChild(option);
                 }
             });
-            
+
             // Reinitialize select2
             $(toCurrencySelect).select2({
                 minimumResultsForSearch: Infinity
             });
-            
+
             // No automatic checking - only check on submit
         }
 
         // No real-time checking - only check on submit button press
 
         // No automatic checking - only check on submit
-        
+
         // Add event listeners for initial currency pair
         document.addEventListener('DOMContentLoaded', function() {
             const initialFromCurrency = document.querySelector('.bulk-from-currency');
             const initialToCurrency = document.querySelector('.bulk-to-currency');
-            
+
             if (initialFromCurrency) {
                 initialFromCurrency.addEventListener('change', function() {
                     updateBulkToCurrency(this);
                 });
             }
-            
+
             if (initialToCurrency) {
                 initialToCurrency.addEventListener('change', function() {
                     // No automatic checking - only check on submit
@@ -539,39 +539,39 @@
         // Bulk form submission handler
         document.getElementById('bulk-exchange-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
             const startDate = formData.get('bulk_start_date');
             const endDate = formData.get('bulk_end_date');
-            
+
             // Validation
             if (new Date(startDate) > new Date(endDate)) {
                 alert('Start Date cannot be greater than End Date!');
                 return;
             }
-            
+
             // Get all currency pairs
             const currencyPairs = [];
             const pairRows = document.querySelectorAll('.currency-pair-row');
-            
+
             for (let i = 0; i < pairRows.length; i++) {
                 const row = pairRows[i];
                 const fromCurrency = row.querySelector('.bulk-from-currency').value;
                 const toCurrency = row.querySelector('.bulk-to-currency').value;
                 const fromNominal = row.querySelector('input[name*="[from_nominal]"]').value;
                 const toNominal = row.querySelector('input[name*="[to_nominal]"]').value;
-                
+
                 // Validate each pair
                 if (!fromCurrency || !toCurrency || !fromNominal || !toNominal) {
                     alert(`Please fill all fields in currency pair ${i + 1}!`);
                     return;
                 }
-                
+
                 if (fromCurrency === toCurrency) {
                     alert(`From Currency and To Currency cannot be the same in pair ${i + 1}!`);
                     return;
                 }
-                
+
                 // Check for duplicate pairs (bidirectional)
                 const pairKey = `${fromCurrency}-${toCurrency}`;
                 const reversePairKey = `${toCurrency}-${fromCurrency}`;
@@ -579,10 +579,10 @@
                     alert(`Duplicate currency pair detected!\n\nPair ${i + 1}: ${fromCurrency} → ${toCurrency}\nThis conflicts with an existing pair in the same direction or reverse direction.\n\nPlease remove duplicate pairs.`);
                     return;
                 }
-                
+
                 currencyPairs.push(pairKey);
             }
-            
+
             // Now check for existing rates before showing confirmation
             checkExistingRatesForSubmission(startDate, endDate, currencyPairs, pairRows, this);
         });
@@ -594,21 +594,21 @@
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Checking existing rates...';
             submitBtn.disabled = true;
-            
+
             // Make API call to check existing rates with timeout
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-            
+
             // Get CSRF token with fallbacks
             const csrfTokenInput = document.getElementById('csrf-token-input');
             const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
             const csrfTokenHidden = document.querySelector('input[name="_token"]');
-            
+
             const csrfToken = csrfTokenInput?.value ||
-                             csrfTokenMeta?.getAttribute('content') || 
+                             csrfTokenMeta?.getAttribute('content') ||
                              csrfTokenHidden?.value ||
                              '{{ csrf_token() }}';
-            
+
             console.log('CSRF Token sources:', {
                 input: csrfTokenInput?.value,
                 meta: csrfTokenMeta?.getAttribute('content'),
@@ -616,7 +616,7 @@
                 fallback: '{{ csrf_token() }}',
                 final: csrfToken
             });
-            
+
             fetch('{{ route("finance.exchange-rate.check-existing") }}', {
                 method: 'POST',
                 headers: {
@@ -639,39 +639,39 @@
             .then(data => {
                 // Clear timeout
                 clearTimeout(timeoutId);
-                
+
                 // Reset button
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalText;
-                
+
                 // Show confirmation with existing rates info
                 const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
                 const totalRecords = daysDiff * pairRows.length;
-                
+
                 let confirmMessage = `This will create exchange rate records from ${startDate} to ${endDate}.\n\n`;
-                
+
                 if (data.has_conflicts && data.existing_rates.length > 0) {
                     const newRecords = totalRecords - data.existing_rates.length;
                     confirmMessage += `• ${newRecords} new records will be created\n`;
                     confirmMessage += `• ${data.existing_rates.length} existing records will be skipped\n\n`;
                     confirmMessage += `Existing rates found:\n`;
-                    
+
                     // Show first few existing rates
                     data.existing_rates.slice(0, 3).forEach(rate => {
                         const directionText = rate.direction === 'same' ? 'same direction' : 'reverse direction';
                         confirmMessage += `• ${rate.date}: Currency pair already exists (${directionText})\n`;
                     });
-                    
+
                     if (data.existing_rates.length > 3) {
                         confirmMessage += `• ... and ${data.existing_rates.length - 3} more\n`;
                     }
-                    
+
                     confirmMessage += `\nDo you want to continue?`;
                 } else {
                     confirmMessage += `• ${totalRecords} records will be created (${pairRows.length} currency pairs × ${daysDiff} days)\n\n`;
                     confirmMessage += `Do you want to continue?`;
                 }
-                
+
                 if (confirm(confirmMessage)) {
                     formElement.submit();
                 }
@@ -679,20 +679,20 @@
             .catch(error => {
                 // Clear timeout
                 clearTimeout(timeoutId);
-                
+
                 console.error('Error checking existing rates:', error);
-                
+
                 // Reset button on error
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
-                
+
                 // Show user-friendly error message and allow submission
                 let errorMessage = 'Unable to check existing rates. ';
                 if (error.name === 'AbortError') {
                     errorMessage += 'Request timed out. ';
                 }
                 errorMessage += 'Do you want to proceed with the bulk insert anyway?';
-                
+
                 if (confirm(errorMessage)) {
                     formElement.submit();
                 }

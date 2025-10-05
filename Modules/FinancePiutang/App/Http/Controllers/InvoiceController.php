@@ -188,20 +188,20 @@ class InvoiceController extends Controller
             $sales_id = $request->input('sales_no');
             $currency_id = SalesOrderHead::find($sales_id)->currency_id;
              // Check Exchange Rate
-             if($currency_id != 1){
-                $exchange_rate = ExchangeRate::whereDate('date', $request->input('date_invoice'))->
-                where(function ($query) use ($currency_id) {
-                    $query->where('from_currency_id', '=', $currency_id)
-                          ->orWhere('to_currency_id', '=', $currency_id);
-                })
-                ->first();
-                if (!$exchange_rate) {
-                    toast('Exchange rate not found for this date!','error');
-                    return redirect()->back()
-                        ->withErrors(['exchange_rate' => 'Exchange rate for this date is not available.']);
-                        // ->withInput();
-                }
-             }
+            //  if($currency_id != 1){
+            //     $exchange_rate = ExchangeRate::whereDate('date', $request->input('date_invoice'))->
+            //     where(function ($query) use ($currency_id) {
+            //         $query->where('from_currency_id', '=', $currency_id)
+            //               ->orWhere('to_currency_id', '=', $currency_id);
+            //     })
+            //     ->first();
+            //     if (!$exchange_rate) {
+            //         toast('Exchange rate not found for this date!','error');
+            //         return redirect()->back()
+            //             ->withErrors(['exchange_rate' => 'Exchange rate for this date is not available.']);
+            //             // ->withInput();
+            //     }
+            //  }
             $term_payment = $request->input('term_payment');
             $no_transactions = $request->input('no_transactions');
             $date_invoice = $request->input('date_invoice');

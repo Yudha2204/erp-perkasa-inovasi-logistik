@@ -312,25 +312,25 @@ class ReceivePaymentController extends Controller
                         // DB::rollBack();
                         // dd($totalFull);
                         $pajak = 0;
-                        if(!$d->tax_id) {
-                            $tax_id = null;
-                        }else{
-                            $tax = MasterTax::find($d->tax_id);
-                            $pajak += ($tax->tax_rate/100) * $totalFull;
-                            $totalFull -= $pajak;
-                            if($tax->tax_rate > 0 && !$tax->account_id){
-                                DB::rollBack();
-                                // dd($e->getMessage());
-                                return redirect()->back()
-                                ->withErrors(['error' => 'Add the account to tax if rate more than 0']);
-                            }else if($tax->account_id){
-                                $grand_total -= $pajak;
-                                $tax_journal[] = [$pajak, 0 , $tax->account_id ];
+                        // if(!$d->tax_id) {
+                        //     $tax_id = null;
+                        // }else{
+                        //     $tax = MasterTax::find($d->tax_id);
+                        //     $pajak += ($tax->tax_rate/100) * $totalFull;
+                        //     $totalFull -= $pajak;
+                        //     if($tax->tax_rate > 0 && !$tax->account_id){
+                        //         DB::rollBack();
+                        //         // dd($e->getMessage());
+                        //         return redirect()->back()
+                        //         ->withErrors(['error' => 'Add the account to tax if rate more than 0']);
+                        //     }else if($tax->account_id){
+                        //         $grand_total -= $pajak;
+                        //         $tax_journal[] = [$pajak, 0 , $tax->account_id ];
 
-                            }else if($tax->tax_rate == 0 && !$tax->account_id ){
-                                // Skip
-                            }
-                        }
+                        //     }else if($tax->tax_rate == 0 && !$tax->account_id ){
+                        //         // Skip
+                        //     }
+                        // }
 
                         if($invoice->discount_type === "persen") {
                             $discTotal = ($invoice->discount_nominal/100)*$totalFull;
@@ -355,15 +355,15 @@ class ReceivePaymentController extends Controller
                     }
 
                     $ppn_tax = MasterTax::find($invoice->tax_id);
-                    // if ($ppn_tax && $ppn_tax->account_id) {
-                    //     $ppn_amount = $total_after_discount - ($total_after_discount /(1 + ($ppn_tax->tax_rate / 100)));
-                    //     $ar_journal[] = [0,$total_after_discount - ($total_after_discount - ($total_after_discount /(1 + ($ppn_tax->tax_rate / 100)))) ,$account_id_detail];
-                    //     $grand_total -= $ppn_amount;
-                    //     $tax_journal[] = [$ppn_amount, 0, $ppn_tax->account_id, $ppn_tax->id];
-                    // }else{
+                    if ($ppn_tax && $ppn_tax->account_id) {
+                        $ppn_amount = $total_after_discount - ($total_after_discount /(1 + ($ppn_tax->tax_rate / 100)));
+                        $ar_journal[] = [0,$total_after_discount  ,$account_id_detail];
+                        $grand_total -= $ppn_amount;
+                        $tax_journal[] = [$ppn_amount, 0, $ppn_tax->account_id, $ppn_tax->id];
+                    }else{
                         $ar_journal[] = [0,$total_after_discount,$account_id_detail];
 
-                    // }
+                    }
 
                     Sao::where('invoice_id', $invoice_id)->update([
                         'isPaid' => true,

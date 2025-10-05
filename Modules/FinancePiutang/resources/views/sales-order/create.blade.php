@@ -189,7 +189,7 @@
                                     <div class="row justify-content-end">
                                         <div class="col-lg-6">
                                             <table class="table mt-5">
-                                                <tr>
+                                                {{-- <tr>
                                                     <td>
                                                         <div class="d-flex justify-content-between">
                                                             Biaya Lain
@@ -198,7 +198,7 @@
                                                                 value="0" />
                                                         </div>
                                                     </td>
-                                                </tr>
+                                                </tr> --}}
                                                 <tr>
                                                     <td>
                                                         <div class="d-flex justify-content-between">
@@ -1058,14 +1058,14 @@
             getJobOrder()
         });
 
-        $('#additional_cost').on('change', function() {
-            hideButton()
-            var additional = $(this).val();
-            $(this).val(Number(additional.replace(/,/g, '')).toLocaleString('en', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }))
-        })
+        // $('#additional_cost').on('change', function() {
+        //     hideButton()
+        //     var additional = $(this).val();
+        //     $(this).val(Number(additional.replace(/,/g, '')).toLocaleString('en', {
+        //         minimumFractionDigits: 2,
+        //         maximumFractionDigits: 2
+        //     }))
+        // })
 
         function hideButton() {
             $('#submit-all-form').hide()
@@ -1257,9 +1257,9 @@
             if (!disc) disc = "0";
             disc = parseFloat(disc.replace(/,/g, ''))
 
-            var additional = document.querySelector('input[name="additional_cost"]').value;
-            if (!additional) additional = "0";
-            additional = parseFloat(additional.replace(/,/g, ''))
+            // var additional = document.querySelector('input[name="additional_cost"]').value;
+            // if (!additional) additional = "0";
+            // additional = parseFloat(additional.replace(/,/g, ''))
 
             var totalDetailInputs = document.querySelectorAll('input[name="total_detail"]');
             totalDetailInputs.forEach(function(input) {
@@ -1268,7 +1268,7 @@
                 total += parseFloat(totalDetail.replace(/,/g, '')) || 0;
             });
 
-            total += additional
+            // total += additional
 
             var discount_type = document.querySelector('select[name="discount_type"]').value;
             if (discount_type === "persen") {
