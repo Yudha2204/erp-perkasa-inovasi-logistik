@@ -32,12 +32,13 @@ class TransactionTypeSeeder extends Seeder
             ]);
         }
 
-        // Add Profit & Loss Closing and Exchange Revaluation transaction types
-        // Insert Exchange Revaluation with id 99 and Profit & Loss Closing with id 100
+        // Add Profit & Loss Closing, Exchange Revaluation, and General Journal transaction types
+        // Insert Exchange Revaluation with id 99, Profit & Loss Closing with id 100, and General Journal with id 9
         $additional_types = [
             101 => "Annual Profit & Loss Closing",
             100 => "Profit & Loss Closing",
-            99 => "Exchange Revaluation"
+            99 => "Exchange Revaluation",
+            9 => "General Journal"
         ];
 
         foreach ($additional_types as $id => $type) {

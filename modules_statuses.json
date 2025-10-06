@@ -15,5 +15,6 @@
     "Notification": true,
     "Setting": true,
     "Inventory": true,
-    "Process": true
+    "Process": true,
+    "GeneralLedger": true
 }

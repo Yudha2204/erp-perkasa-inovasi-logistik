@@ -14,6 +14,7 @@ use Modules\FinancePiutang\App\Models\InvoiceHead;
 use Modules\FinancePiutang\App\Models\RecieveHead;
 use Modules\FinancePiutang\App\Models\SalesOrderHead;
 use Modules\ExchangeRate\App\Models\ExchangeRate;
+use Modules\GeneralLedger\App\Models\GeneralJournalHead;
 use Spatie\Permission\Traits\HasRoles;
 
 class BalanceAccount extends Model
@@ -56,6 +57,8 @@ class BalanceAccount extends Model
             $transaksi = OrderHead::find($this->transaction_id);
         } else if($this->transaction_type_id === 8) {
             $transaksi = PaymentHead::find($this->transaction_id);
+        } else if($this->transaction_type_id === 9) {
+            $transaksi = GeneralJournalHead::find($this->transaction_id);
         }
 
         return $transaksi;

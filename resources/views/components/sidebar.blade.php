@@ -64,16 +64,17 @@
                     <a href="{{ route('realtime-tracking.index') }}" class="side-menu__item has-link" data-bs-toggle="slide" href=""><i class="side-menu__icon fe fe-send text-white"></i><span class="side-menu__label text-white">Realtime Tracking</span></a>
                 </li>
                 <li class="slide">
-                    @canany([
-                        'view-contact@finance','view-account@finance','view-currency@finance','view-tax@finance','view-term@finance',
-                        'view-sales_order@finance','view-invoice@finance','view-receive_payment@finance',
-                        'view-kas_in@finance','view-kas_out@finance',
-                        'view-account_payable@finance','view-payment@finance',
-                        'view-exchange_rate@finance',
-                        'view-buku_besar@finance','view-jurnal_umum@finance','view-neraca_saldo@finance','view-arus_kas@finance','view-laba_rugi@finance',
-                    ])
-                    <a class="side-menu__item {{ request()->is('finance/master-data') || request()->is('finance/master-data/*') || request()->is('finance/piutang') || request()->is('finance/piutang/*') || request()->is('finance/kas') || request()->is('finance/kas/*') || request()->is('finance/payments') || request()->is('finance/payments/*') || request()->is('finance/exchange-rate') || request()->is('finance/exchange-rate/*') || request()->is('finance/report-finance') || request()->is('finance/report-finance/*') ?'bg-primary' : '' }}" data-bs-toggle="slide" href="javascript:void(0)" style="border-radius: 5px;"><i class="side-menu__icon fe fe-pie-chart text-white"></i><span class="side-menu__label text-white">Finance</span><i class="angle fe fe-chevron-right text-white"></i></a>
-                    <ul class="slide-menu"  style="display: {{ request()->is('finance/master-data') || request()->is('finance/master-data/*') || request()->is('finance/piutang') || request()->is('finance/piutang/*')  || request()->is('finance/kas') || request()->is('finance/kas/*') || request()->is('finance/payments') || request()->is('finance/payments/*') || request()->is('finance/exchange-rate') || request()->is('finance/exchange-rate/*') || request()->is('finance/report-finance') || request()->is('finance/report-finance/*') ? 'block' : 'none' }}">
+                @canany([
+                    'view-contact@finance','view-account@finance','view-currency@finance','view-tax@finance','view-term@finance',
+                    'view-sales_order@finance','view-invoice@finance','view-receive_payment@finance',
+                    'view-kas_in@finance','view-kas_out@finance',
+                    'view-account_payable@finance','view-payment@finance',
+                    'view-exchange_rate@finance',
+                    'view-buku_besar@finance','view-jurnal_umum@finance','view-neraca_saldo@finance','view-arus_kas@finance','view-laba_rugi@finance',
+                    'view-general_journal@finance','create-general_journal@finance','edit-general_journal@finance','delete-general_journal@finance',
+                ])
+                    <a class="side-menu__item {{ request()->is('finance/master-data') || request()->is('finance/master-data/*') || request()->is('finance/piutang') || request()->is('finance/piutang/*') || request()->is('finance/kas') || request()->is('finance/kas/*') || request()->is('finance/payments') || request()->is('finance/payments/*') || request()->is('finance/exchange-rate') || request()->is('finance/exchange-rate/*') || request()->is('finance/report-finance') || request()->is('finance/report-finance/*') || request()->is('generalledger') || request()->is('generalledger/*') ?'bg-primary' : '' }}" data-bs-toggle="slide" href="javascript:void(0)" style="border-radius: 5px;"><i class="side-menu__icon fe fe-pie-chart text-white"></i><span class="side-menu__label text-white">Finance</span><i class="angle fe fe-chevron-right text-white"></i></a>
+                    <ul class="slide-menu"  style="display: {{ request()->is('finance/master-data') || request()->is('finance/master-data/*') || request()->is('finance/piutang') || request()->is('finance/piutang/*')  || request()->is('finance/kas') || request()->is('finance/kas/*') || request()->is('finance/payments') || request()->is('finance/payments/*') || request()->is('finance/exchange-rate') || request()->is('finance/exchange-rate/*') || request()->is('finance/report-finance') || request()->is('finance/report-finance/*') || request()->is('generalledger') || request()->is('generalledger/*') ? 'block' : 'none' }}">
                         <li class="side-menu-label1 text-white"><a href="javascript:void(0)">Finance</a></li>
                         @canany(['view-contact@finance','view-account@finance','view-currency@finance','view-tax@finance','view-term@finance'])
                         <li><a href="{{ route('finance.master-data.index') }}" class="slide-item {{ request()->is('finance/master-data') || request()->is('finance/master-data/*') ?'text-primary' : 'text-white' }}"> Master Data</a></li>
@@ -89,6 +90,9 @@
                         @endcanany
                         @canany(['view-exchange_rate@finance'])
                         <li><a href="{{ route('finance.exchange-rate.index') }}" class="slide-item {{ request()->is('finance/exchange-rate') || request()->is('finance/exchange-rate/*') ?'text-primary' : 'text-white' }}"> Exchange Rate</a></li>
+                        @endcanany
+                        @canany(['view-general_journal@finance','create-general_journal@finance','edit-general_journal@finance','delete-general_journal@finance'])
+                        <li><a href="{{ route('generalledger.index') }}" class="slide-item {{ request()->is('generalledger') || request()->is('generalledger/*') ?'text-primary' : 'text-white' }}"> General Ledger</a></li>
                         @endcanany
                         @canany(['view-buku_besar@finance','view-jurnal_umum@finance','view-neraca_saldo@finance','view-arus_kas@finance','view-laba_rugi@finance'])
                         <li><a href="{{ route('finance.report-finance.index') }}" class="slide-item {{ request()->is('finance/report-finance') || request()->is('finance/report-finance/*') ?'text-primary' : 'text-white' }}"> Report</a></li>

@@ -90,5 +90,11 @@ class PermissionSeeder extends Seeder
 
         Permission::create(['group' => 'process', 'name' => 'view-annual-pl-closing@process']);
         Permission::create(['group' => 'process', 'name' => 'execute-annual-pl-closing@finance@process']);
+
+        // General Journal permissions
+        Permission::create(['group' => 'finance', 'name' => 'view-general_journal@finance']);
+        Permission::create(['group' => 'finance', 'name' => 'create-general_journal@finance']);
+        Permission::create(['group' => 'finance', 'name' => 'edit-general_journal@finance']);
+        Permission::create(['group' => 'finance', 'name' => 'delete-general_journal@finance']);
     }
 }

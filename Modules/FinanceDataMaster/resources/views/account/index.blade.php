@@ -70,7 +70,8 @@
                                                 <td>
                                                     @php
                                                         $grand_total = 0;
-                                                        foreach ($a->balance_accounts as $data) {
+                                                        $balance_accounts = $a->balance_accounts->where('currency_id', $a->currency?->id);
+                                                        foreach ($balance_accounts as $data) {
                                                             $total = $data->credit - $data->debit;
                                                             $grand_total += $total;
                                                         }

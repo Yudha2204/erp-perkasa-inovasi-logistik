@@ -1,0 +1,11 @@
+{
+    "name": "GeneralLedger",
+    "alias": "generalledger",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\GeneralLedger\\App\\Providers\\GeneralLedgerServiceProvider"
+    ],
+    "files": []
+}
