@@ -128,6 +128,13 @@
                     </ul>
                 </li>
                 @endcanany
+                
+                @if(auth()->check() && auth()->user()->hasRole('Super Admin'))
+                <li class="slide {{ request()->is('setup') || request()->is('setup/*') ?'bg-primary' : '' }}" style="border-radius: 5px;">
+                    <a href="{{ route('setup.index') }}" class="side-menu__item has-link" data-bs-toggle="slide"><i class="side-menu__icon fe fe-settings text-white"></i><span class="side-menu__label text-white">Setup</span></a>
+                </li>
+                @endif
+                
                 <li class="slide">
                     <a class="side-menu__item has-link" data-bs-toggle="slide" href="{{ route('logout') }}" onclick="event.preventDefault();
                     document.getElementById('logout-form').submit();"><i class="side-menu__icon fe fe-log-out text-white"></i><span class="side-menu__label text-white">Logout</span></a>

@@ -35,10 +35,10 @@ class UtilityController extends Controller
         //
         $role = Role::findById($request->role_id);
         if($role->name=='Super Admin'){
-            return redirect()->back()->withErrors(["error" => "Can not set permissions to Super Admin"]);
+            return redirect()->back()->withErrors(["error" => "Can not set permissions to Super Admin"])->withInput();
         }
         if(auth()->user()->hasRole($role->name)){
-            return redirect()->back()->withErrors(["error" => "Can not set permissions to self role"]);
+            return redirect()->back()->withErrors(["error" => "Can not set permissions to self role"])->withInput();
         }
 
         $role->syncPermissions($request->permissions);

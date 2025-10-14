@@ -3,6 +3,7 @@
 namespace Modules\FinanceDataMaster\App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Setup;
 use Illuminate\Http\Request;
 use Modules\FinanceDataMaster\App\Models\MasterAccount;
 use Illuminate\Support\Facades\Validator;
@@ -103,7 +104,7 @@ class AccountDataController extends Controller
                 if(!$account) {
                     toast('failed to update data!','error');
                     return redirect()->back()
-                                ->withErrors($validator);
+                                ->withErrors($validator)->withInput();
                 }
             }
         }
@@ -127,11 +128,19 @@ class AccountDataController extends Controller
 
     public function storeBeginningBalance(Request $request)
     {
+        $date = Setup::getStartEntryPeriod();
+
+        if (!$date) {
+            toast('Start Entry Period is not set!','error');
+            return redirect()->back();
+        }
+
         BalanceAccount::updateOrCreate([
             'id' => $request->id_balance_account
         ],
         [
             'master_account_id' => $request->id_account,
+            'date' => $date,
             'transaction_type_id' => 1,
             'debit' => $request->debit ?? 0,
             'credit' => $request->credit ?? 0,

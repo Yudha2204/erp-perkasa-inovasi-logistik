@@ -158,7 +158,7 @@ class ReceivePaymentController extends Controller
             if ($validator->fails()) {
                 toast('Failed to Add Data!','error');
                 return redirect()->back()
-                            ->withErrors($validator);
+                            ->withErrors($validator)->withInput();
             }
 
             $customer_id = $request->input('customer_id');
@@ -170,7 +170,7 @@ class ReceivePaymentController extends Controller
             if(!$validator) {
                 toast('Failed to Add Data!','error');
                 return redirect()->back()
-                            ->withErrors(["error" => 'Please input a valid account']);
+                            ->withErrors(["error" => 'Please input a valid account'])->withInput();
             }
 
             $no_transactions = $request->input('no_transactions');
@@ -186,7 +186,7 @@ class ReceivePaymentController extends Controller
                 if($job_order) {
                     $exp_job_order = explode(":", $job_order);
                     if(sizeof($exp_job_order) !== 2) {
-                        return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi']);
+                        return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
                     }
                     $job_order_id = $exp_job_order[0];
                     $job_order_source = $exp_job_order[1];
@@ -221,12 +221,12 @@ class ReceivePaymentController extends Controller
 
             $diskon_penjualan_id = MasterAccount::where('account_type_id', 16)->first();
             if(!$diskon_penjualan_id) {
-                    return redirect()->back()->withErrors(['diskon_penjualan' => 'Please add the account of Sales Discount']);
+                    return redirect()->back()->withErrors(['diskon_penjualan' => 'Please add the account of Sales Discount'])->withInput();
             }
             $diskon_penjualan_id = $diskon_penjualan_id->id;
             $prepaid_sales_id = MasterAccount::where('account_type_id', 10)->first();
             if(!$prepaid_sales_id) {
-                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Prepaid Sales']);
+                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Prepaid Sales'])->withInput();
             }
             $prepaid_sales_id = $prepaid_sales_id->id;
             RecieveHead::create($data);
@@ -453,7 +453,7 @@ class ReceivePaymentController extends Controller
             dd($e->getMessage());
             toast('App Error','error');
                 return redirect()->back()
-                    ->withErrors(['error' => 'Error On App Please Contact IT Support']);
+                    ->withErrors(['error' => 'Error On App Please Contact IT Support'])->withInput();
         }
 
     }
@@ -474,7 +474,7 @@ class ReceivePaymentController extends Controller
     {
         $data_recieve = RecieveHead::find($id);
         if($this->hasLatestReceiveDetail($data_recieve)) {
-            return redirect()->back()->withErrors(['error' => 'Please update latest receive payment']);
+            return redirect()->back()->withErrors(['error' => 'Please update latest receive payment'])->withInput();
         }
 
         $contact = MasterContact::whereJsonContains('type','1')->get();
@@ -564,7 +564,7 @@ class ReceivePaymentController extends Controller
             if ($validator->fails()) {
                 toast('Failed to Update Data!','error');
                 return redirect()->back()
-                            ->withErrors($validator);
+                            ->withErrors($validator)->withInput();
             }
 
             $customer_id = $request->input('customer_id');
@@ -575,7 +575,7 @@ class ReceivePaymentController extends Controller
             if(!$validator) {
                 toast('Failed to Update Data!','error');
                 return redirect()->back()
-                            ->withErrors(["error" => 'Please input a valid account']);
+                            ->withErrors(["error" => 'Please input a valid account'])->withInput();
             }
 
             $no_transactions = $request->input('no_transactions');
@@ -591,7 +591,7 @@ class ReceivePaymentController extends Controller
                 if($job_order) {
                     $exp_job_order = explode(":", $job_order);
                     if(sizeof($exp_job_order) !== 2) {
-                        return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi']);
+                        return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
                     }
                     $job_order_id = $exp_job_order[0];
                     $job_order_source = $exp_job_order[1];
@@ -626,12 +626,12 @@ class ReceivePaymentController extends Controller
 
             $diskon_penjualan_id = MasterAccount::where('account_type_id', 16)->first();
             if(!$diskon_penjualan_id) {
-                    return redirect()->back()->withErrors(['diskon_penjualan' => 'Please add the account of Sales Discount']);
+                    return redirect()->back()->withErrors(['diskon_penjualan' => 'Please add the account of Sales Discount'])->withInput();
             }
             $diskon_penjualan_id = $diskon_penjualan_id->id;
             $prepaid_sales_id = MasterAccount::where('account_type_id', 10)->first();
             if(!$prepaid_sales_id) {
-                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Prepaid Sales']);
+                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Prepaid Sales'])->withInput();
             }
             $prepaid_sales_id = $prepaid_sales_id->id;
 
@@ -885,7 +885,7 @@ class ReceivePaymentController extends Controller
             // dd($e->getMessage());
             toast('App Error','error');
                 return redirect()->back()
-                    ->withErrors(['error' => 'Error On App Please Contact IT Support']);
+                    ->withErrors(['error' => 'Error On App Please Contact IT Support'])->withInput();
         }
     }
 
@@ -902,7 +902,7 @@ class ReceivePaymentController extends Controller
     {
         $recieveHead = RecieveHead::findOrFail($id);
         if($this->hasLatestReceiveDetail($recieveHead)) {
-            return redirect()->back()->withErrors(['error' => 'Please delete latest receive payment first']);
+            return redirect()->back()->withErrors(['error' => 'Please delete latest receive payment first'])->withInput();
         }
 
         BalanceAccount::where('transaction_id', $id)->where('transaction_type_id', 4)->delete();

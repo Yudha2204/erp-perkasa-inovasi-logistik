@@ -181,7 +181,7 @@ class InvoiceController extends Controller
             if ($validator->fails()) {
                 toast('Failed to Add Data!','error');
                 return redirect()->back()
-                            ->withErrors($validator);
+                            ->withErrors($validator)->withInput();
             }
 
             $contact_id = $request->input('customer_id');
@@ -249,7 +249,7 @@ class InvoiceController extends Controller
 
             $diskon_penjualan_id = $diskon_penjualan_id->id;
 if(!$diskon_penjualan_id) {
-                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Sales Discount']);
+                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Sales Discount'])->withInput();
             }
             // $ppn_keluaran_id = MasterAccount::where('code', "220500")
             //                         ->where('account_name', 'PPN Keluaran')
@@ -708,7 +708,7 @@ if(!$diskon_penjualan_id) {
 
             $diskon_penjualan_id = $diskon_penjualan_id->id;
             if(!$diskon_penjualan_id) {
-                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Sales Discount']);
+                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Sales Discount'])->withInput();
             }
             // $prepaid_sales = MasterAccount::where('account_name', 'Prepaid Sales')
             //                         ->where('master_currency_id', $currency_id)->first();

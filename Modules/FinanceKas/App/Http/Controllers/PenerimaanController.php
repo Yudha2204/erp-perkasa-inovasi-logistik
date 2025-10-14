@@ -91,7 +91,7 @@ class PenerimaanController extends Controller
         $template = "$exp_transaction[0]/$exp_transaction[1]/$exp_transaction[2]/";
         $transaction = NoTransactionsKasIn::where('template', $template)->get()->first();
         if(!$transaction) {
-            return redirect()->back()->withErrors(['no_transaction' => 'Please input a valid no transaction']);
+            return redirect()->back()->withErrors(['no_transaction' => 'Please input a valid no transaction'])->withInput();
         }
         $transaction = $transaction->id;
         $number = $exp_transaction[3];
@@ -105,7 +105,7 @@ class PenerimaanController extends Controller
             if($job_order) {
                 $exp_job_order = explode(":", $job_order);
                 if(sizeof($exp_job_order) !== 2) {
-                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi']);
+                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
                 }
                 $job_order_id = $exp_job_order[0];
                 $job_order_source = $exp_job_order[1];
@@ -177,9 +177,9 @@ class PenerimaanController extends Controller
             }
             if($valid === 0) {
                 KasInHead::latest()->first()->delete();
-                return redirect()->back()->withErrors($errors);
+                return redirect()->back()->withErrors($errors)->withInput();
             } else {
-                return redirect()->route('finance.kas.pembayaran.edit', $head_id)->withErrors($errors);
+                return redirect()->route('finance.kas.pembayaran.edit', $head_id)->withErrors($errors)->withInput();
             }
         }
 
@@ -269,7 +269,7 @@ class PenerimaanController extends Controller
         $template = "$exp_transaction[0]/$exp_transaction[1]/$exp_transaction[2]/";
         $transaction = NoTransactionsKasIn::where('template', $template)->get()->first();
         if(!$transaction) {
-            return redirect()->back()->withErrors(['no_transaction' => 'Please input a valid no transaction']);
+            return redirect()->back()->withErrors(['no_transaction' => 'Please input a valid no transaction'])->withInput();
         }
         $transaction = $transaction->id;
         $number = $exp_transaction[3];
@@ -283,7 +283,7 @@ class PenerimaanController extends Controller
             if($job_order) {
                 $exp_job_order = explode(":", $job_order);
                 if(sizeof($exp_job_order) !== 2) {
-                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi']);
+                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
                 }
                 $job_order_id = $exp_job_order[0];
                 $job_order_source = $exp_job_order[1];
@@ -362,7 +362,7 @@ class PenerimaanController extends Controller
             if($errorInvalid > 0) {
                 $errors["invalid"] = "There are $errorInvalid invalid account";
             }
-            return redirect()->back()->withErrors($errors);
+            return redirect()->back()->withErrors($errors)->withInput();
         }
 
         foreach($currentBalanceAccount as $c_balance) {

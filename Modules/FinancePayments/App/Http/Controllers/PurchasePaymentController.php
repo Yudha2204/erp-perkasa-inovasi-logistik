@@ -395,7 +395,7 @@ class PurchasePaymentController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             toast('Failed to Add Data!','error');
-            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
     }
 
@@ -415,7 +415,7 @@ class PurchasePaymentController extends Controller
     {
         $head = PaymentHead::find($id);
         if($this->hasLatestPaymentDetail($head)) {
-            return redirect()->back()->withErrors(['error' => 'Please update latest payment']);
+            return redirect()->back()->withErrors(['error' => 'Please update latest payment'])->withInput();
         }
 
         $vendors = MasterContact::whereJsonContains('type','2')
@@ -540,7 +540,7 @@ class PurchasePaymentController extends Controller
             if($job_order) {
                 $exp_job_order = explode(":", $job_order);
                 if(sizeof($exp_job_order) !== 2) {
-                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi']);
+                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
                 }
                 $job_order_id = $exp_job_order[0];
                 $job_order_source = $exp_job_order[1];
@@ -575,7 +575,7 @@ class PurchasePaymentController extends Controller
         $diskon_pembelian_id = MasterAccount::where('account_type_id', 16)->first();
 
         if(!$diskon_pembelian_id) {
-            return redirect()->back()->withErrors(['diskon_pembelian' => 'Please add the account of Sales Discount']);
+            return redirect()->back()->withErrors(['diskon_pembelian' => 'Please add the account of Sales Discount'])->withInput();
         }
         $diskon_pembelian_id = $diskon_pembelian_id->id;
 
@@ -842,7 +842,7 @@ class PurchasePaymentController extends Controller
     {
         $paymentHead = PaymentHead::findOrFail($id);
         if($this->hasLatestPaymentDetail($paymentHead)) {
-            return redirect()->back()->withErrors(['error' => 'Please delete latest payment first']);
+            return redirect()->back()->withErrors(['error' => 'Please delete latest payment first'])->withInput();
         }
 
         BalanceAccount::where('transaction_id', $id)->where('transaction_type_id', 8)->delete();

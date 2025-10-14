@@ -33,23 +33,23 @@ class TransactionsKasOutController extends Controller
     {
         $head = $request->input('head-code');
         if(!$head) {
-            return redirect()->back()->withErrors(['error' => 'Please input transaction head.']);
+            return redirect()->back()->withErrors(['error' => 'Please input transaction head.'])->withInput();
         }
         $year = date('Y');
         $tail = $request->input('tail-code');
         if(!$tail) {
-            return redirect()->back()->withErrors(['error' => 'Please input transaction tail.']);
+            return redirect()->back()->withErrors(['error' => 'Please input transaction tail.'])->withInput();
         }
         $start = $request->input('start-code');
         if(!$start || !is_numeric($start)) {
-            return redirect()->back()->withErrors(['error' => 'Please input transaction start number.']);
+            return redirect()->back()->withErrors(['error' => 'Please input transaction start number.'])->withInput();
         }
     
         $template = "$head/$year/$tail/";
 
         $exists = NoTransactionsKasOut::where('template', $template)->exists();
         if ($exists) {
-            return redirect()->back()->withErrors(['error' => 'Template transaction already exists.']);
+            return redirect()->back()->withErrors(['error' => 'Template transaction already exists.'])->withInput();
         }
     
         $data = [

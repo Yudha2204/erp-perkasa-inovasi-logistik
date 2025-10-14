@@ -37,8 +37,8 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
         Route::post('/piutang/invoice/{id}/pdf', [InvoiceController::class, 'getPdf'])->name('invoice.pdf');
         Route::get('/piutang/receive-payment/{id}/jurnal', [ReceivePaymentController::class, 'getJurnal'])->name('receive-payment.jurnal');
 
-        Route::resource('/piutang/sales-order', SalesOrderController::class);
-        Route::resource('/piutang/receive-payment', ReceivePaymentController::class);  
-        Route::resource('/piutang/invoice', InvoiceController::class);
+        Route::resource('/piutang/sales-order', SalesOrderController::class)->middleware('check.transaction.date');
+        Route::resource('/piutang/receive-payment', ReceivePaymentController::class)->middleware('check.transaction.date');  
+        Route::resource('/piutang/invoice', InvoiceController::class)->middleware('check.transaction.date');
     });
 });

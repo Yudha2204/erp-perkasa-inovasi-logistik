@@ -22,11 +22,11 @@ Route::group(['middleware' => ['auth','verified']], function () {
     Route::prefix('finance')->name('finance.kas.')->group(function () {
         Route::get('/kas', [FinanceKasController::class, 'index'])->name('index');
 
-        Route::resource('/kas/penerimaan', PenerimaanController::class);
-        Route::resource('/kas/pembayaran', PembayaranController::class);
+        Route::resource('/kas/penerimaan', PenerimaanController::class)->middleware('check.transaction.date');
+        Route::resource('/kas/pembayaran', PembayaranController::class)->middleware('check.transaction.date');
 
-        Route::resource('/kas/transaction-kas-out', TransactionsKasOutController::class);
-        Route::resource('/kas/transaction-kas-in', TransactionsKasInController::class);
+        Route::resource('/kas/transaction-kas-out', TransactionsKasOutController::class)->middleware('check.transaction.date');
+        Route::resource('/kas/transaction-kas-in', TransactionsKasInController::class)->middleware('check.transaction.date');
 
         Route::get('/kas/pembayaran/{id}/jurnal', [PembayaranController::class, 'getJurnal'])->name('pembayaran.jurnal');
         Route::get('/kas/penerimaan/{id}/jurnal', [PenerimaanController::class, 'getJurnal'])->name('penerimaan.jurnal');

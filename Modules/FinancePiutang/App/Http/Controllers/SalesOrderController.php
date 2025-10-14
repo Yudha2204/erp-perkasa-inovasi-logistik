@@ -97,7 +97,7 @@ class SalesOrderController extends Controller
         if ($validator->fails()) {
             toast('Failed to Add Data!','error');
             return redirect()->back()
-                        ->withErrors($validator);
+                        ->withErrors($validator)->withInput();
         }
 
         $contact_id = $request->input('customer_id');
@@ -120,7 +120,7 @@ class SalesOrderController extends Controller
             if($marketing) {
                 $exp_marketing = explode(":", $marketing);
                 if(sizeof($exp_marketing) !== 2) {
-                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi']);
+                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
                 }
                 $marketing_id = $exp_marketing[0];
                 $marketing_source = $exp_marketing[1];
@@ -235,7 +235,7 @@ class SalesOrderController extends Controller
         if ($validator->fails()) {
             toast('Failed to Update Data!','error');
             return redirect()->back()
-                        ->withErrors($validator);
+                        ->withErrors($validator)->withInput();
         }
 
         $contact_id = $request->input('customer_id');
@@ -258,7 +258,7 @@ class SalesOrderController extends Controller
             if($marketing) {
                 $exp_marketing = explode(":", $marketing);
                 if(sizeof($exp_marketing) !== 2) {
-                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi']);
+                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
                 }
                 $marketing_id = $exp_marketing[0];
                 $marketing_source = $exp_marketing[1];

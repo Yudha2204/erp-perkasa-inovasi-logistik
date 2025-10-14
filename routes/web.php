@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\SetupController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,3 +24,8 @@ Route::get('/', function () {
 });
 
 Auth::routes();
+
+// Setup routes
+Route::middleware(['auth'])->group(function () {
+    Route::resource('setup', SetupController::class);
+});

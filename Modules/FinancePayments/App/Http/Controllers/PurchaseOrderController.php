@@ -117,7 +117,7 @@ class PurchaseOrderController extends Controller
                     $exp_operation = explode(":", $operation);
                     if(sizeof($exp_operation) !== 2) {
                         DB::rollBack();
-                        return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi']);
+                        return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
                     }
                     $operation_id = $exp_operation[0];
                     $operation_source = $exp_operation[1];
@@ -156,7 +156,7 @@ class PurchaseOrderController extends Controller
             $diskon_pembelian_id = MasterAccount::where('account_type_id', 16)->first();
             if(!$diskon_pembelian_id) {
                 DB::rollBack();
-                return redirect()->back()->withErrors(['diskon_pembelian' => 'Please add the account of Sales Discount']);
+                return redirect()->back()->withErrors(['diskon_pembelian' => 'Please add the account of Sales Discount'])->withInput();
             }
             $diskon_pembelian_id = $diskon_pembelian_id->id;
 
@@ -287,7 +287,7 @@ class PurchaseOrderController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             toast('Failed to Add Data!','error');
-            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
     }
 
@@ -392,7 +392,7 @@ class PurchaseOrderController extends Controller
                     $exp_operation = explode(":", $operation);
                     if(sizeof($exp_operation) !== 2) {
                         DB::rollBack();
-                        return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi']);
+                        return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
                     }
                     $operation_id = $exp_operation[0];
                     $operation_source = $exp_operation[1];
@@ -509,7 +509,7 @@ class PurchaseOrderController extends Controller
                         $totalFull -= $pajak;
                         if($tax->tax_rate > 0 && !$tax->account_id){
                             DB::rollBack();
-                            return redirect()->back()->withErrors(['error' => 'Add the account to tax if rate more than 0']);
+                            return redirect()->back()->withErrors(['error' => 'Add the account to tax if rate more than 0'])->withInput();
                         }else if($tax->account_id){
                             $tax_journal[] = [$pajak, 0 , $tax->account_id];
                         }
@@ -566,7 +566,7 @@ class PurchaseOrderController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             toast('Failed to Update Data!','error');
-            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
     }
 

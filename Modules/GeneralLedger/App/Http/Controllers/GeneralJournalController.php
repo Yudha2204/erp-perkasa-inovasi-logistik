@@ -93,14 +93,14 @@ class GeneralJournalController extends Controller
 
         if ($validator->fails()) {
             toast('Failed to add data!', 'error');
-            return redirect()->back()->withErrors($validator);
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         $formData = json_decode($request->input('form_data'), true);
         
         if (empty($formData)) {
             toast('Please add at least one journal entry!', 'error');
-            return redirect()->back();
+            return redirect()->back()->withInput();
         }
 
         // Validate form data
@@ -143,12 +143,12 @@ class GeneralJournalController extends Controller
         }
 
         if (!empty($errors)) {
-            return redirect()->back()->withErrors(['form_errors' => $errors]);
+            return redirect()->back()->withErrors(['form_errors' => $errors])->withInput();
         }
 
         // Check if debits equal credits
         if (abs($totalDebit - $totalCredit) > 0.01) {
-            return redirect()->back()->withErrors(['balance' => 'Total debits must equal total credits']);
+            return redirect()->back()->withErrors(['balance' => 'Total debits must equal total credits'])->withInput();
         }
 
         try {
@@ -199,7 +199,7 @@ class GeneralJournalController extends Controller
 
         } catch (Exception $e) {
             DB::rollBack();
-            return redirect()->back()->withErrors(['error' => 'Failed to create journal: ' . $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Failed to create journal: ' . $e->getMessage()])->withInput();
         }
     }
 
@@ -240,14 +240,14 @@ class GeneralJournalController extends Controller
 
         if ($validator->fails()) {
             toast('Failed to update data!', 'error');
-            return redirect()->back()->withErrors($validator);
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         $formData = json_decode($request->input('form_data'), true);
         
         if (empty($formData)) {
             toast('Please add at least one journal entry!', 'error');
-            return redirect()->back();
+            return redirect()->back()->withInput();
         }
 
         // Validate form data
@@ -290,12 +290,12 @@ class GeneralJournalController extends Controller
         }
 
         if (!empty($errors)) {
-            return redirect()->back()->withErrors(['form_errors' => $errors]);
+            return redirect()->back()->withErrors(['form_errors' => $errors])->withInput();
         }
 
         // Check if debits equal credits
         if (abs($totalDebit - $totalCredit) > 0.01) {
-            return redirect()->back()->withErrors(['balance' => 'Total debits must equal total credits']);
+            return redirect()->back()->withErrors(['balance' => 'Total debits must equal total credits'])->withInput();
         }
 
         try {
@@ -354,7 +354,7 @@ class GeneralJournalController extends Controller
 
         } catch (Exception $e) {
             DB::rollBack();
-            return redirect()->back()->withErrors(['error' => 'Failed to update journal: ' . $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Failed to update journal: ' . $e->getMessage()])->withInput();
         }
     }
 

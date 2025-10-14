@@ -139,7 +139,7 @@ class OperationExportController extends Controller
 
             if(count($existing_document_operation) + count($document_operation) > 3) {
                 DB::rollBack();
-                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents']);
+                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents'])->withInput();
             }
             $data->save();
 
@@ -160,7 +160,7 @@ class OperationExportController extends Controller
 
             if(count($existing_document_ac_operation) + count($document_ac_operation) > 3) {
                 DB::rollBack();
-                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents']);
+                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents'])->withInput();
             }
             $activity->save();
 
@@ -250,7 +250,7 @@ class OperationExportController extends Controller
 
             if(count($existing_document_pro_operation) + count($document_pro_operation) > 3) {
                 DB::rollBack();
-                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents']);
+                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents'])->withInput();
             }
 
             //insert document operation arrival
@@ -389,7 +389,7 @@ class OperationExportController extends Controller
 
             if(count($existing_document_operation) + count($document_operation) > 3) {
                 DB::rollBack();
-                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents']);
+                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents'])->withInput();
             }
             $data->save();
 
@@ -417,7 +417,7 @@ class OperationExportController extends Controller
 
             if(count($existing_document_ac_operation) + count($document_ac_operation) > 3) {
                 DB::rollBack();
-                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents']);
+                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents'])->withInput();
             }
             $activity->save();
 
@@ -521,7 +521,7 @@ class OperationExportController extends Controller
 
             if(count($existing_document_pro_operation) + count($document_pro_operation) > 3) {
                 DB::rollBack();
-                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents']);
+                return redirect()->back()->withErrors(["document" => 'Only accept 3 file of documents'])->withInput();
             }
 
             if ($request->e_documents && $request->e_documents[$id_progress]) {

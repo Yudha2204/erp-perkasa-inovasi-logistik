@@ -17,7 +17,7 @@ use Modules\GeneralLedger\App\Http\Controllers\GeneralJournalController;
 
 Route::group([], function () {
     Route::resource('generalledger', GeneralLedgerController::class)->names('generalledger');
-    Route::resource('general-journal', GeneralJournalController::class)->names('generalledger.general-journal');
+    Route::resource('general-journal', GeneralJournalController::class)->names('generalledger.general-journal')->middleware('check.transaction.date');
     Route::get('general-journal/transaction-number', [GeneralJournalController::class, 'getTransactionNumber'])->name('generalledger.general-journal.transaction-number');
     Route::get('general-journal/{id}/jurnal', [GeneralJournalController::class, 'getJurnal'])->name('generalledger.general-journal.jurnal');
 });

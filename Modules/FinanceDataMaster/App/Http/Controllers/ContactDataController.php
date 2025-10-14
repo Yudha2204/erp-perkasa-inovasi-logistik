@@ -178,7 +178,7 @@ class ContactDataController extends Controller
                 return redirect()->back();
             } catch (\Exception $e) {
                 toast('Data Added Failed!','error');
-                return redirect()->back();
+                return redirect()->back()->withInput();
             }
 
         } else {
@@ -254,7 +254,7 @@ class ContactDataController extends Controller
                 return redirect()->back();
             } catch (\Exception $e) {
                 toast('Data Update Failed!','error');
-                return redirect()->back();
+                return redirect()->back()->withInput();
             }
         }
     }
@@ -342,7 +342,7 @@ class ContactDataController extends Controller
             return redirect()->back();
         } catch (\Exception $e) {
             toast('Data Update Failed!','error');
-            return redirect()->back();
+            return redirect()->back()->withInput();
         }
     }
 

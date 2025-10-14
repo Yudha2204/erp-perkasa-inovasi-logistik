@@ -113,6 +113,12 @@ class BalanceAccount extends Model
     protected static function booted()
     {
         static::creating(function ($balanceAccount) {
+            // Check if transaction date is before start_entry_period
+            if (\App\Models\Setup::isDateBeforeStartEntryPeriod($balanceAccount->date) && $balanceAccount->transaction_type_id != 1) {
+                $startEntryPeriod = \App\Models\Setup::getStartEntryPeriod();
+                throw new \Exception("Transaction date cannot be before the start entry period ({$startEntryPeriod->format('d/m/Y')})");
+            }
+
             //check if currency is not idr create another balance account for idr
             $baseCurrency = MasterCurrency::where('initial', 'IDR')->first();
 

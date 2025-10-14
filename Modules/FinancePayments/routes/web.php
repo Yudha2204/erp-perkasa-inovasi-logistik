@@ -30,7 +30,7 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
         Route::get('/payments/account-payable/{id}/jurnal', [PurchaseOrderController::class, 'getJurnal'])->name('account-payable.jurnal');
         Route::get('/payments/purchase-payment/{id}/jurnal', [PurchasePaymentController::class, 'getJurnal'])->name('purchase-payment.jurnal');
 
-        Route::resource('/payments/account-payable', PurchaseOrderController::class);
-        Route::resource('/payments/purchase-payment', PurchasePaymentController::class);
+        Route::resource('/payments/account-payable', PurchaseOrderController::class)->middleware('check.transaction.date');
+        Route::resource('/payments/purchase-payment', PurchasePaymentController::class)->middleware('check.transaction.date');
     });
 });

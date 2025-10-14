@@ -180,9 +180,9 @@ class PembayaranController extends Controller
             }
             if($valid === 0) {
                 KasOutHead::latest()->first()->delete();
-                return redirect()->back()->withErrors($errors);
+                return redirect()->back()->withErrors($errors)->withInput();
             } else {
-                return redirect()->route('finance.kas.pembayaran.edit', $head_id)->withErrors($errors);
+                return redirect()->route('finance.kas.pembayaran.edit', $head_id)->withErrors($errors)->withInput();
             }
         }
 
@@ -366,7 +366,7 @@ class PembayaranController extends Controller
             if($errorInvalid > 0) {
                 $errors["invalid"] = "There are $errorInvalid invalid account";
             }
-            return redirect()->back()->withErrors($errors);
+            return redirect()->back()->withErrors($errors)->withInput();
         }
 
         foreach($currentBalanceAccount as $c_balance) {

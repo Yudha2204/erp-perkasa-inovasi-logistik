@@ -86,10 +86,12 @@
                                                 </td>
                                                 <td>
                                                     <div class="g-2">
-                                                        <a href="javascript:void(0)" id="btn-create-beginning-balance" data-id="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->account_name }}" class="btn text-primary btn-sm"
-                                                            data-bs-toggle="tooltip"
-                                                            data-bs-original-title="Create Saldo Awal"><span
-                                                                class="fe fe-plus fs-14"></span></a>
+                                                        @if ($a->currency)
+                                                            <a href="javascript:void(0)" id="btn-create-beginning-balance" data-id="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->account_name }}" class="btn text-primary btn-sm"
+                                                                data-bs-toggle="tooltip"
+                                                                data-bs-original-title="Create Saldo Awal"><span
+                                                                    class="fe fe-plus fs-14"></span></a>
+                                                        @endif
                                                         <a href="javascript:void(0)" id="btn-show" data-id="{{ $a->id }}" class="btn text-primary btn-sm"
                                                         data-bs-toggle="tooltip"
                                                         data-bs-original-title="Detail"><span
