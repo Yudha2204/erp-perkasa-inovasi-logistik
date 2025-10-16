@@ -179,9 +179,7 @@ class InvoiceController extends Controller
             ]);
             // dd($request->all());
             if ($validator->fails()) {
-                toast('Failed to Add Data!','error');
-                return redirect()->back()
-                            ->withErrors($validator)->withInput();
+                return response()->json(['errors' => $validator->errors()], 422);
             }
 
             $contact_id = $request->input('customer_id');
@@ -249,7 +247,7 @@ class InvoiceController extends Controller
 
             $diskon_penjualan_id = $diskon_penjualan_id->id;
 if(!$diskon_penjualan_id) {
-                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Sales Discount'])->withInput();
+                return response()->json(['errors' => ['pendapatan_lain' => ['Please add the account of Sales Discount']]], 422);
             }
             // $ppn_keluaran_id = MasterAccount::where('code', "220500")
             //                         ->where('account_name', 'PPN Keluaran')
@@ -437,14 +435,12 @@ if(!$diskon_penjualan_id) {
             ];
             Sao::create($dataSao);
             DB::commit();
-            return redirect()->route('finance.piutang.invoice.index')->with('success', 'create successfully!');
+            return response()->json(['message' => 'create successfully!'], 200);
             //code...
         } catch (\Exception $e) {
             DB::rollBack();
             dd($e->getMessage());
-            toast('App Error','error');
-                return redirect()->back()
-                    ->withErrors(['error' => 'Error On App Please Contact IT Support']);
+            return response()->json(['error' => 'Error On App Please Contact IT Support'], 500);
             //throw $th;
         }
 
@@ -523,9 +519,7 @@ if(!$diskon_penjualan_id) {
             ]);
 
             if ($validator->fails()) {
-                toast('Failed to Update Data!','error');
-                return redirect()->back()
-                            ->withErrors($validator);
+                return response()->json(['errors' => $validator->errors()], 422);
             }
 
             $contact_id = $request->input('customer_id');
@@ -708,7 +702,7 @@ if(!$diskon_penjualan_id) {
 
             $diskon_penjualan_id = $diskon_penjualan_id->id;
             if(!$diskon_penjualan_id) {
-                return redirect()->back()->withErrors(['pendapatan_lain' => 'Please add the account of Sales Discount'])->withInput();
+                return response()->json(['errors' => ['pendapatan_lain' => ['Please add the account of Sales Discount']]], 422);
             }
             // $prepaid_sales = MasterAccount::where('account_name', 'Prepaid Sales')
             //                         ->where('master_currency_id', $currency_id)->first();
@@ -769,13 +763,11 @@ if(!$diskon_penjualan_id) {
             $tagertSao->update($dataSao);
             DB::commit();
 
-            return redirect()->route('finance.piutang.invoice.index')->with('success', 'create successfully!');
+            return response()->json(['message' => 'update successfully!'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
             dd($e->getMessage());
-            toast('App Error','error');
-                return redirect()->back()
-                    ->withErrors(['error' => 'Error On App Please Contact IT Support']);
+            return response()->json(['error' => 'Error On App Please Contact IT Support'], 500);
             //throw $th;
         }
     }

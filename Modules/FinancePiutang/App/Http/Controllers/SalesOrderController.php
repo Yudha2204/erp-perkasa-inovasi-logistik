@@ -82,89 +82,91 @@ class SalesOrderController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'customer_id'   => 'required',
-            'no_transaction'    => 'required',
-            'date_sales' => 'required',
-            'currency_id' => 'required',
-        ], [
-            "customer_id.required" => "The customer field is required.",
-            "no_transaction.required" => "The transaction number is required.",
-            "date_sales.required" => "The date is required.",
-            "currency_id.required" => "The currency field is required."
-        ]);
-
-        if ($validator->fails()) {
-            toast('Failed to Add Data!','error');
-            return redirect()->back()
-                        ->withErrors($validator)->withInput();
-        }
-
-        $contact_id = $request->input('customer_id');
-        $no_transactions = $request->input('no_transaction');
-        $date = $request->input('date_sales');
-        $currency_id = $request->input('currency_id');
-        $description = $request->input('des_head_sales');
-        $choose = $request->input('choose_job_order');
-        $additional_cost = $request->input('additional_cost');
-        $discount_type = $request->input('discount_type');
-        $discount_nominal = $request->input('discount');
-
-        $exp_transaction = explode("-", $no_transactions);
-        $number = $exp_transaction[3];
-
-        $marketing_id = null;
-        $marketing_source = null;
-        if($choose === "1") {
-            $marketing = $request->input('no_referensi');
-            if($marketing) {
-                $exp_marketing = explode(":", $marketing);
-                if(sizeof($exp_marketing) !== 2) {
-                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
-                }
-                $marketing_id = $exp_marketing[0];
-                $marketing_source = $exp_marketing[1];
-            }
-        }
-
-        SalesOrderHead::create([
-            'contact_id' => $contact_id,
-            'number' => $number,
-            'date' => $date,
-            'currency_id' => $currency_id,
-            'description' => $description,
-            'marketing_id' => $marketing_id,
-            'source' => $marketing_source,
-            'additional_cost' => $this->numberToDatabase($additional_cost),
-            'discount_type' => $discount_type,
-            'discount_nominal' => $this->numberToDatabase($discount_nominal)
-        ]);
-
-        $newestSalesOrder = SalesOrderHead::latest()->first();
-        $head_id = $newestSalesOrder->id;
-
-        $formData = json_decode($request->input('form_data'), true);
-        foreach ($formData as $data) {
-            $des_detail = $data['des_detail'];
-            $remark_detail = $data['remark_detail'];
-            $qty_detail = $this->numberToDatabase($data['qty_detail']);
-            $uom_detail = $data['uom_detail'];
-            $price_detail = $this->numberToDatabase($data['price_detail']);
-            $disc_detail = $this->numberToDatabase($data['disc_detail']);
-            $disc_type_detail = $data['disc_type_detail'];
-
-            SalesOrderDetail::create([
-                'head_id' => $head_id,
-                'description' => $des_detail,
-                'quantity' => $qty_detail,
-                'uom' => $uom_detail,
-                'price' => $price_detail,
-                'remark' => $remark_detail,
-                'discount_type' => $disc_type_detail,
-                'discount_nominal' => $disc_detail,
+        try {
+            $validator = Validator::make($request->all(), [
+                'customer_id'   => 'required',
+                'no_transaction'    => 'required',
+                'date_sales' => 'required',
+                'currency_id' => 'required',
+            ], [
+                "customer_id.required" => "The customer field is required.",
+                "no_transaction.required" => "The transaction number is required.",
+                "date_sales.required" => "The date is required.",
+                "currency_id.required" => "The currency field is required."
             ]);
+
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            $contact_id = $request->input('customer_id');
+            $no_transactions = $request->input('no_transaction');
+            $date = $request->input('date_sales');
+            $currency_id = $request->input('currency_id');
+            $description = $request->input('des_head_sales');
+            $choose = $request->input('choose_job_order');
+            $additional_cost = $request->input('additional_cost');
+            $discount_type = $request->input('discount_type');
+            $discount_nominal = $request->input('discount');
+
+            $exp_transaction = explode("-", $no_transactions);
+            $number = $exp_transaction[3];
+
+            $marketing_id = null;
+            $marketing_source = null;
+            if($choose === "1") {
+                $marketing = $request->input('no_referensi');
+                if($marketing) {
+                    $exp_marketing = explode(":", $marketing);
+                    if(sizeof($exp_marketing) !== 2) {
+                        return response()->json(['errors' => ['no_referensi' => ['Please input a valid no referensi']]], 422);
+                    }
+                    $marketing_id = $exp_marketing[0];
+                    $marketing_source = $exp_marketing[1];
+                }
+            }
+
+            SalesOrderHead::create([
+                'contact_id' => $contact_id,
+                'number' => $number,
+                'date' => $date,
+                'currency_id' => $currency_id,
+                'description' => $description,
+                'marketing_id' => $marketing_id,
+                'source' => $marketing_source,
+                'additional_cost' => $this->numberToDatabase($additional_cost),
+                'discount_type' => $discount_type,
+                'discount_nominal' => $this->numberToDatabase($discount_nominal)
+            ]);
+
+            $newestSalesOrder = SalesOrderHead::latest()->first();
+            $head_id = $newestSalesOrder->id;
+
+            $formData = json_decode($request->input('form_data'), true);
+            foreach ($formData as $data) {
+                $des_detail = $data['des_detail'];
+                $remark_detail = $data['remark_detail'];
+                $qty_detail = $this->numberToDatabase($data['qty_detail']);
+                $uom_detail = $data['uom_detail'];
+                $price_detail = $this->numberToDatabase($data['price_detail']);
+                $disc_detail = $this->numberToDatabase($data['disc_detail']);
+                $disc_type_detail = $data['disc_type_detail'];
+
+                SalesOrderDetail::create([
+                    'head_id' => $head_id,
+                    'description' => $des_detail,
+                    'quantity' => $qty_detail,
+                    'uom' => $uom_detail,
+                    'price' => $price_detail,
+                    'remark' => $remark_detail,
+                    'discount_type' => $disc_type_detail,
+                    'discount_nominal' => $disc_detail,
+                ]);
+            }
+            return response()->json(['message' => 'create successfully!'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-        return redirect()->route('finance.piutang.sales-order.index')->with('success', 'create successfully!');
     }
 
     /**
@@ -220,111 +222,113 @@ class SalesOrderController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $validator = Validator::make($request->all(), [
-            'customer_id'   => 'required',
-            'no_transaction'    => 'required',
-            'date_sales' => 'required',
-            'currency_id' => 'required',
-        ], [
-            "customer_id.required" => "The customer field is required.",
-            "no_transaction.required" => "The transaction number is required.",
-            "date_sales.required" => "The date is required.",
-            "currency_id.required" => "The currency field is required."
-        ]);
-
-        if ($validator->fails()) {
-            toast('Failed to Update Data!','error');
-            return redirect()->back()
-                        ->withErrors($validator)->withInput();
-        }
-
-        $contact_id = $request->input('customer_id');
-        $no_transactions = $request->input('no_transaction');
-        $date = $request->input('date_sales');
-        $currency_id = $request->input('currency_id');
-        $description = $request->input('des_head_sales');
-        $choose = $request->input('choose_job_order');
-        $additional_cost = $request->input('additional_cost');
-        $discount_type = $request->input('discount_type');
-        $discount_nominal = $request->input('discount');
-
-        $exp_transaction = explode("-", $no_transactions);
-        $number = $exp_transaction[3];
-
-        $marketing_id = null;
-        $marketing_source = null;
-        if($choose === "1") {
-            $marketing = $request->input('no_referensi');
-            if($marketing) {
-                $exp_marketing = explode(":", $marketing);
-                if(sizeof($exp_marketing) !== 2) {
-                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
-                }
-                $marketing_id = $exp_marketing[0];
-                $marketing_source = $exp_marketing[1];
+        try {
+            $validator = Validator::make($request->all(), [
+                'customer_id'   => 'required',
+                'no_transaction'    => 'required',
+                'date_sales' => 'required',
+                'currency_id' => 'required',
+            ], [
+                "customer_id.required" => "The customer field is required.",
+                "no_transaction.required" => "The transaction number is required.",
+                "date_sales.required" => "The date is required.",
+                "currency_id.required" => "The currency field is required."
+            ]);
+    
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
             }
-        }
-
-        $salesOrder = SalesOrderHead::findOrFail($id);
-
-        $salesOrder->update([
-            'contact_id' => $contact_id,
-            'number' => $number,
-            'date' => $date,
-            'currency_id' => $currency_id,
-            'description' => $description,
-            'marketing_id' => $marketing_id,
-            'source' => $marketing_source,
-            'additional_cost' => $this->numberToDatabase($additional_cost),
-            'discount_type' => $discount_type,
-            'discount_nominal' => $this->numberToDatabase($discount_nominal)
-        ]);
-
-        $head_id = $salesOrder->id;
-
-        $formData = json_decode($request->input('form_data'), true);
-        foreach ($formData as $data) {
-            $des_detail = $data['des_detail'];
-            $remark_detail = $data['remark_detail'];
-            $qty_detail = $this->numberToDatabase($data['qty_detail']);
-            $uom_detail = $data['uom_detail'];
-            $price_detail = $this->numberToDatabase($data['price_detail']);
-            $disc_detail = $this->numberToDatabase($data['disc_detail']);
-            $disc_type_detail = $data['disc_type_detail'];
-            $operator = $data['operator'];
-            $exp_operator = explode(":", $operator);
-
-            if($exp_operator[1] === "create") {
-                SalesOrderDetail::create([
-                    'head_id' => $head_id,
-                    'description' => $des_detail,
-                    'quantity' => $qty_detail,
-                    'uom' => $uom_detail,
-                    'price' => $price_detail,
-                    'remark' => $remark_detail,
-                    'discount_type' => $disc_type_detail,
-                    'discount_nominal' => $disc_detail,
-                ]);
-            } else if($exp_operator[1] === "update") {
-                $salesOrderDetail = SalesOrderDetail::find($exp_operator[0]);
-                $salesOrderDetail->update([
-                    'description' => $des_detail,
-                    'quantity' => $qty_detail,
-                    'uom' => $uom_detail,
-                    'price' => $price_detail,
-                    'remark' => $remark_detail,
-                    'discount_type' => $disc_type_detail,
-                    'discount_nominal' => $disc_detail,
-                ]);
-            } else if($exp_operator[1] === "delete") {
-                $salesOrderDetail = SalesOrderDetail::find($exp_operator[0]);
-                if($salesOrderDetail) {
-                    $salesOrderDetail->delete();
+    
+            $contact_id = $request->input('customer_id');
+            $no_transactions = $request->input('no_transaction');
+            $date = $request->input('date_sales');
+            $currency_id = $request->input('currency_id');
+            $description = $request->input('des_head_sales');
+            $choose = $request->input('choose_job_order');
+            $additional_cost = $request->input('additional_cost');
+            $discount_type = $request->input('discount_type');
+            $discount_nominal = $request->input('discount');
+    
+            $exp_transaction = explode("-", $no_transactions);
+            $number = $exp_transaction[3];
+    
+            $marketing_id = null;
+            $marketing_source = null;
+            if($choose === "1") {
+                $marketing = $request->input('no_referensi');
+                if($marketing) {
+                    $exp_marketing = explode(":", $marketing);
+                    if(sizeof($exp_marketing) !== 2) {
+                        return response()->json(['errors' => ['no_referensi' => ['Please input a valid no referensi']]], 422);
+                    }
+                    $marketing_id = $exp_marketing[0];
+                    $marketing_source = $exp_marketing[1];
                 }
             }
+    
+            $salesOrder = SalesOrderHead::findOrFail($id);
+    
+            $salesOrder->update([
+                'contact_id' => $contact_id,
+                'number' => $number,
+                'date' => $date,
+                'currency_id' => $currency_id,
+                'description' => $description,
+                'marketing_id' => $marketing_id,
+                'source' => $marketing_source,
+                'additional_cost' => $this->numberToDatabase($additional_cost),
+                'discount_type' => $discount_type,
+                'discount_nominal' => $this->numberToDatabase($discount_nominal)
+            ]);
+    
+            $head_id = $salesOrder->id;
+    
+            $formData = json_decode($request->input('form_data'), true);
+            foreach ($formData as $data) {
+                $des_detail = $data['des_detail'];
+                $remark_detail = $data['remark_detail'];
+                $qty_detail = $this->numberToDatabase($data['qty_detail']);
+                $uom_detail = $data['uom_detail'];
+                $price_detail = $this->numberToDatabase($data['price_detail']);
+                $disc_detail = $this->numberToDatabase($data['disc_detail']);
+                $disc_type_detail = $data['disc_type_detail'];
+                $operator = $data['operator'];
+                $exp_operator = explode(":", $operator);
+    
+                if($exp_operator[1] === "create") {
+                    SalesOrderDetail::create([
+                        'head_id' => $head_id,
+                        'description' => $des_detail,
+                        'quantity' => $qty_detail,
+                        'uom' => $uom_detail,
+                        'price' => $price_detail,
+                        'remark' => $remark_detail,
+                        'discount_type' => $disc_type_detail,
+                        'discount_nominal' => $disc_detail,
+                    ]);
+                } else if($exp_operator[1] === "update") {
+                    $salesOrderDetail = SalesOrderDetail::find($exp_operator[0]);
+                    $salesOrderDetail->update([
+                        'description' => $des_detail,
+                        'quantity' => $qty_detail,
+                        'uom' => $uom_detail,
+                        'price' => $price_detail,
+                        'remark' => $remark_detail,
+                        'discount_type' => $disc_type_detail,
+                        'discount_nominal' => $disc_detail,
+                    ]);
+                } else if($exp_operator[1] === "delete") {
+                    $salesOrderDetail = SalesOrderDetail::find($exp_operator[0]);
+                    if($salesOrderDetail) {
+                        $salesOrderDetail->delete();
+                    }
+                }
+            }
+    
+            return response()->json(['message' => 'update successfully!'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        return redirect()->route('finance.piutang.sales-order.index')->with('success', 'create successfully!');
     }
 
     /**
@@ -341,7 +345,7 @@ class SalesOrderController extends Controller
 
         SalesOrderDetail::where('head_id', $id)->delete();
         SalesOrderHead::findOrFail($id)->delete();
-        
+
         toast('Data Deleted Successfully!', 'success');
         return redirect()->back()->with('success', 'delete successfully!');
     }

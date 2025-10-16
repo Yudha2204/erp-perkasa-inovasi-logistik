@@ -70,7 +70,7 @@
                                                 <td>{{ $so->description }}</td>
                                                 <td>
                                                     @if(isset($so->currency))
-                                                    {{ $so->currency->initial }}    
+                                                    {{ $so->currency->initial }}
                                                     @endif
                                                     {{ number_format($so->total, 2, '.', ',') }}
                                                 </td>
@@ -84,12 +84,12 @@
                                                                 @csrf
                                                                 @method('DELETE')
                                                                 <button type="submit" class="btn text-danger btn-sm dropdown-item" onclick="return confirmDelete()"><i class="fe fe-trash fs-14"></i> Delete</button>
-                                                            </form>  
+                                                            </form>
                                                         </div>
                                                     </div>
                                                 </td>
                                             </tr>
-                                        @endforeach 
+                                        @endforeach
                                     </tbody>
                                 </table>
                             </div>
@@ -105,6 +105,14 @@
 @endsection
 @push('scripts')
 <script>
+    // document.addEventListener('DOMContentLoaded', function() {
+    //     const successMessage = sessionStorage.getItem('successMessage');
+    //     if (successMessage) {
+    //         alert(successMessage);
+    //         sessionStorage.removeItem('successMessage');
+    //     }
+    // });
+
     function confirmDelete() {
         if (confirm('Are you sure want to delete this item?')) {
             return true;

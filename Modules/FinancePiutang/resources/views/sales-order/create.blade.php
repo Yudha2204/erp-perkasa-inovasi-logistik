@@ -22,9 +22,9 @@
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card">
-                                <div class="card-body">
+                                <div class="card-body" id="error-card">
                                     @if ($errors->any())
-                                        <div class="alert alert-danger" role="alert">
+                                        <div class="alert alert-danger" role="alert" tabindex="-1">
                                             <button type="button" class="btn-close" data-bs-dismiss="alert"
                                                 aria-hidden="true">×</button>
                                             <strong>Whoops!</strong>
@@ -246,7 +246,7 @@
                                         <div class="col-md-12">
                                             <div class="btn-list text-end">
                                                 <a href="javascript: history.go(-1)" class="btn btn-default">Cancel</a>
-                                                <button id="submit-all-form" type="submit" class="btn btn-primary"
+                                                <button id="submit-all-form" type="button" class="btn btn-primary"
                                                     style="display: none;">Save</button>
                                             </div>
                                         </div>
@@ -297,33 +297,33 @@
                                                 <div class="form-group">
                                                     <label>Customer ID</label>
                                                     <input type="text" name="customer_id" id="customer_id"
-                                                        value="{{ old('customer_id') }}" class="form-control" disabled>
+                                                        class="form-control" disabled>
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Customer Name</label>
                                                     <input type="text" name="customer_name" id="customer_name"
-                                                        value="{{ old('customer_name') }}"class="form-control">
+                                                        class="form-control">
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Title</label>
-                                                    <input type="text" name="title" value="{{ old('title') }}"
+                                                    <input type="text" name="title"
                                                         class="form-control">
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Mobile Phone Number</label>
                                                     <input type="text" name="phone_number"
-                                                        value="{{ old('phone_humber') }}" class="form-control">
+                                                         class="form-control">
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Email</label>
-                                                    <input type="text" name="email" value="{{ old('email') }}"
+                                                    <input type="text" name="email"
                                                         class="form-control">
                                                 </div>
                                                 <div class="row">
                                                     <div class="form-group col-6">
                                                         <label>NPWP/KTP</label>
                                                         <input type="text" name="npwp_ktp"
-                                                            value="{{ old('npwp_ktp') }}" class="form-control">
+                                                             class="form-control">
                                                     </div>
                                                     <div class="form-group col-6">
                                                         <label>Upload Document</label>
@@ -337,32 +337,28 @@
                                                             <label class="custom-control custom-checkbox">
                                                                 <input type="checkbox" class="custom-control-input"
                                                                     id="contact_type1" name="contact_type[]"
-                                                                    value="1"
-                                                                    @if (is_array(old('contact_type')) && in_array(1, old('contact_type'))) checked @endif>
+                                                                    value="1">
                                                                 <span class="custom-control-label">Customer</span>
                                                             </label>
                                                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                                             <label class="custom-control custom-checkbox">
                                                                 <input type="checkbox" class="custom-control-input"
                                                                     id="contact_type2" name="contact_type[]"
-                                                                    value="2"
-                                                                    @if (is_array(old('contact_type')) && in_array(2, old('contact_type'))) checked @endif>
+                                                                    value="2">
                                                                 <span class="custom-control-label">Vendor</span>
                                                             </label>
                                                             &nbsp;&nbsp;&nbsp;&nbsp;
                                                             <label class="custom-control custom-checkbox">
                                                                 <input type="checkbox" class="custom-control-input"
                                                                     id="contact_type3" name="contact_type[]"
-                                                                    value="3"
-                                                                    @if (is_array(old('contact_type')) && in_array(3, old('contact_type'))) checked @endif>
+                                                                    value="3">
                                                                 <span class="custom-control-label">Karyawan</span>
                                                             </label>
                                                             &nbsp;&nbsp;&nbsp;&nbsp;
                                                             <label class="custom-control custom-checkbox">
                                                                 <input type="checkbox" class="custom-control-input"
                                                                     id="contact_type4" name="contact_type[]"
-                                                                    value="4"
-                                                                    @if (is_array(old('contact_type')) && in_array(4, old('contact_type'))) checked @endif>
+                                                                    value="4">
                                                                 <span class="custom-control-label">Supplier</span>
                                                             </label>
                                                         </div>
@@ -378,7 +374,7 @@
                                                                 <option label="Choose One" selected disabled></option>
                                                                 @foreach ($terms as $term)
                                                                     <option
-                                                                        {{ old('term_payment_id[]') == $term->id ? 'selected' : '' }}
+
                                                                         value="{{ $term->id }}">{{ $term->name }}
                                                                     </option>
                                                                 @endforeach
@@ -399,29 +395,26 @@
                                                 <div class="form-group">
                                                     <label>Company Name</label>
                                                     <input type="text" name="company_name"
-                                                        value="{{ old('company_name') }}" class="form-control">
+                                                         class="form-control">
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Type Of Company</label>
                                                     <div class="d-flex d-inline">
                                                         <label class="custom-control custom-radio">
                                                             <input type="radio" class="custom-control-input"
-                                                                name="type_of_company" value="1"
-                                                                @if (is_array(old('type_of_company')) && in_array(1, old('type_of_company'))) checked @endif>
+                                                                name="type_of_company" value="1">
                                                             <span class="custom-control-label">PT / Ltd</span>
                                                         </label>
                                                         &nbsp;&nbsp;&nbsp;&nbsp;
                                                         <label class="custom-control custom-radio">
                                                             <input type="radio" class="custom-control-input"
-                                                                name="type_of_company" value="2"
-                                                                @if (is_array(old('type_of_company')) && in_array(2, old('type_of_company'))) checked @endif>
+                                                                name="type_of_company" value="2">
                                                             <span class="custom-control-label">CV</span>
                                                         </label>
                                                         &nbsp;&nbsp;&nbsp;&nbsp;
                                                         <label class="custom-control custom-radio">
                                                             <input type="radio" class="custom-control-input"
-                                                                name="type_of_company" value="3"
-                                                                @if (is_array(old('type_of_company')) && in_array(3, old('type_of_company'))) checked @endif>
+                                                                name="type_of_company" value="3">
                                                             <span class="custom-control-label">UD</span>
                                                         </label>
                                                     </div>
@@ -431,15 +424,13 @@
                                                     <div class="d-flex d-inline">
                                                         <label class="custom-control custom-radio">
                                                             <input type="radio" class="custom-control-input"
-                                                                name="company_tax_status" value="1"
-                                                                @if (is_array(old('company_tax_status')) && in_array(1, old('company_tax_status'))) checked @endif>
+                                                                name="company_tax_status" value="1">
                                                             <span class="custom-control-label">Taxable</span>
                                                         </label>
                                                         &nbsp;&nbsp;&nbsp;&nbsp;
                                                         <label class="custom-control custom-radio">
                                                             <input type="radio" class="custom-control-input"
-                                                                name="company_tax_status" value="2"
-                                                                @if (is_array(old('company_tax_status')) && in_array(2, old('company_tax_status'))) checked @endif>
+                                                                name="company_tax_status" value="2">
                                                             <span class="custom-control-label">Non Taxable</span>
                                                         </label>
                                                     </div>
@@ -450,24 +441,24 @@
                                                 <h4><u>Address</u></h4>
                                                 <div class="form-group">
                                                     <label>Address</label>
-                                                    <input type="text" name="address" value="{{ old('address') }}"
+                                                    <input type="text" name="address"
                                                         class="form-control">
                                                 </div>
                                                 <div class="row">
                                                     <div class="form-group col-md-6">
                                                         <label>City</label>
-                                                        <input type="text" name="city" value="{{ old('city') }}"
+                                                        <input type="text" name="city"
                                                             class="form-control">
                                                     </div>
                                                     <div class="form-group col-md-6">
                                                         <label>Postal Code</label>
                                                         <input type="text" name="postal_code"
-                                                            value="{{ old('postal_code') }}" class="form-control">
+                                                             class="form-control">
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Country</label>
-                                                    <input type="text" name="country" value="{{ old('country') }}"
+                                                    <input type="text" name="country"
                                                         class="form-control">
                                                 </div>
                                             </div>
@@ -476,12 +467,12 @@
                                                 <div class="form-group">
                                                     <label>PIC for Urgent Status</label>
                                                     <input type="text" name="pic_for_urgent_status"
-                                                        value="{{ old('pic_for_urgent_status') }}" class="form-control">
+                                                         class="form-control">
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Mobile Number</label>
                                                     <input type="text" name="mobile_number"
-                                                        value="{{ old('mobile_number') }}" class="form-control">
+                                                         class="form-control">
                                                 </div>
                                             </div>
                                         </div>
@@ -972,7 +963,7 @@
                                     <select class="form-control select2 form-select"
                                         data-placeholder="Choose one" name="term_payment_id[]">
                                         @foreach ($terms as $term)
-                                            <option {{ old('term_payment_id[]') == $term->id ? 'selected' : '' }} value="{{ $term->id }}">{{ $term->name }}</option>
+                                            <option value="{{ $term->id }}">{{ $term->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -1292,7 +1283,8 @@
             $('#submit-all-form').show()
         }
 
-        document.getElementById('submit-all-form').addEventListener('click', function() {
+                document.getElementById('submit-all-form').addEventListener('click', function(event) {
+            event.preventDefault();
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
 
@@ -1311,8 +1303,51 @@
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
 
-            // Mengirimkan formulir ke backend
-            document.forms['dynamic-form'].submit();
+            const form = $('form[name="dynamic-form"]');
+            const formDataToSend = new FormData(form[0]);
+
+            $.ajax({
+                url: form.attr('action'),
+                type: 'POST',
+                data: formDataToSend,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(data) {
+                    sessionStorage.setItem('successMessage', data.message);
+                    window.location.href = "{{ route('finance.piutang.sales-order.index') }}";
+                },
+                error: function(xhr, status, error) {
+                    const data = xhr.responseJSON;
+                    let errorCard = $('#error-card');
+                    let errorAlert = errorCard.find('.alert-danger');
+
+                    if (errorAlert.length === 0) {
+                        errorAlert = $('<div class="alert alert-danger" role="alert" tabindex="-1"><button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button><strong>Whoops!</strong><ul></ul></div>');
+                        errorCard.prepend(errorAlert);
+                    }
+
+                    let errorList = errorAlert.find('ul');
+                    errorList.empty();
+
+                    for (const key in data.errors) {
+                        if (Object.hasOwnProperty.call(data.errors, key)) {
+                            const messages = data.errors[key];
+                            console.log(messages)
+                            messages.forEach(message => {
+                                errorList.append($('<li>').text(message));
+                            });
+                        }
+                    }
+
+                    errorAlert.show();
+                    errorAlert.focus();
+                    hideButton();
+                }
+            });
         });
 
         function deleteList(element) {
