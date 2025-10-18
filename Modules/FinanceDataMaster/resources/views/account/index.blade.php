@@ -212,7 +212,7 @@
 
 {{-- modal create beginning balance --}}
 <div class="modal fade" id="createBeginningBalance" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">+ Add Saldo Awal</h5>
@@ -227,6 +227,12 @@
                             @csrf
                             <input type="hidden" name="id_account" id="id_account">
                             <input type="hidden" name="id_balance_account" id="id_balance_account">
+                            <input type="hidden" name="account_type_id" id="account_type_id_beginning_balance">
+                            
+                            <!-- Hidden fields to store multiple entries data -->
+                            <input type="hidden" name="invoice_entries" id="invoice_entries" value="">
+                            <input type="hidden" name="ap_entries" id="ap_entries" value="">
+                            
                             <div class="form-group">
                                 <label>Code</label>
                                 <input type="text" name="code" value="{{ old('code') }}" id="code_beginning_balance" class="form-control" disabled>
@@ -235,13 +241,125 @@
                                 <label>Account Name</label>
                                 <input type="text" name="account_name" value="{{ old('account_name') }}" id="account_name_beginning_balance" class="form-control" disabled>
                             </div>
-                            <div class="form-group">
-                                <label>Debit</label>
-                                <input type="text" name="debit" value="{{ old('debit') }}" id="debit" class="form-control">
+                            
+                            <!-- AR Account Fields (Account Receivable) -->
+                            <div id="ar_fields" style="display: none;">
+                                <h6 class="text-primary">Invoice Information (Account Receivable)</h6>
+                                
+                                <!-- Add New Invoice Form -->
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Add New Invoice</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label>Invoice Number <span class="text-danger">*</span></label>
+                                                    <input type="number" min="1" step="1" id="new_invoice_number" class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label>Invoice Date <span class="text-danger">*</span></label>
+                                                    <input type="date" id="new_invoice_date" class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label>Beginning Balance Value <span class="text-danger">*</span></label>
+                                                    <input type="number" step="0.01" id="new_invoice_value" class="form-control">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="addInvoiceEntry()">
+                                            <i class="fe fe-plus"></i> Add Invoice
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Invoice Entries Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="invoice_table">
+                                        <thead>
+                                            <tr>
+                                                <th>Invoice Number</th>
+                                                <th>Invoice Date</th>
+                                                <th>Value</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="invoice_table_body">
+                                            <!-- Invoice entries will be added here dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Kredit</label>
-                                <input type="text" name="credit" value="{{ old('credit') }}" id="credit" class="form-control">
+                            
+                            <!-- AP Account Fields (Account Payable) -->
+                            <div id="ap_fields" style="display: none;">
+                                <h6 class="text-primary">Account Payable Information</h6>
+                                
+                                <!-- Add New AP Form -->
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Add New Account Payable</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label>AP Number <span class="text-danger">*</span></label>
+                                                    <input type="text" id="new_ap_number" class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label>AP Date <span class="text-danger">*</span></label>
+                                                    <input type="date" id="new_ap_date" class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label>Beginning Balance Value <span class="text-danger">*</span></label>
+                                                    <input type="number" step="0.01" id="new_ap_value" class="form-control">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="addAPEntry()">
+                                            <i class="fe fe-plus"></i> Add AP
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- AP Entries Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="ap_table">
+                                        <thead>
+                                            <tr>
+                                                <th>AP Number</th>
+                                                <th>AP Date</th>
+                                                <th>Value</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ap_table_body">
+                                            <!-- AP entries will be added here dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Debit/Credit fields for non-AR/AP accounts -->
+                            <div id="debit_credit_fields">
+                                <div class="form-group">
+                                    <label>Debit</label>
+                                    <input type="text" name="debit" value="{{ old('debit') }}" id="debit" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Kredit</label>
+                                    <input type="text" name="credit" value="{{ old('credit') }}" id="credit" class="form-control">
+                                </div>
                             </div>
 
                             <div class="mt-3" style="text-align: right">
@@ -257,73 +375,35 @@
 </div>
 
 {{-- modal edit --}}
-<div class="modal fade" id="modal-edit" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
+<div class="modal fade z-index-1000" id="modal-edit-beginning-balance" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg bg-white" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">+ Edit Currency</h5>
-                <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">×</span>
-                </button>
+                <h5 class="modal-title">+ Update Saldo Awal</h5>
             </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-12">
-                        <form action="{{ route('finance.master-data.account.store') }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="id" id="id_edit">
-                            <div class="form-group">
-                                <label>Type</label>
-                                <select class="form-control select2 form-select"
-                                    data-placeholder="Choose one" name="type" id="type_edit">
-                                    <option value="header">Header</option>
-                                    <option value="detail">Detail</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Account Type</label>
-                                <select class="form-control select2 form-select"
-                                    data-placeholder="Choose one" name="account_type_id" id="account_type_id_edit">
-                                    @foreach ($accountTypes as $accountType)
-                                        <option value="{{ $accountType->id }}" data-report-type="{{ $accountType->report_type ?? 'NONE' }}">{{ $accountType->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Code</label>
-                                <input type="text" name="code" id="code_edit" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label>Account Name</label>
-                                <input type="text" name="account_name" id="account_name_edit" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label>Parent</label>
-                                <select class="form-control select2 form-select"
-                                    data-placeholder="Choose one" name="parent" id="parent_edit">
-                                    <option>Not Selected</option>
-                                    @foreach ($headerAccounts as $account)
-                                        <option value="{{ $account->id }}">{{ $account->code }} - {{ $account->account_name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Currency</label>
-                                <select class="form-control select2 form-select"
-                                    data-placeholder="Choose one" name="master_currency_id" id="master_currency_id_edit">
-                                    @foreach ($currencies as $currency)
-                                        <option value="{{ $currency->id }}">{{ $currency->initial }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="mt-3" style="text-align: right">
-                                <a class="btn btn-white color-grey" data-bs-dismiss="modal">Close</a>
-                                <button type="submit" class="btn btn-primary">Update</button>
-                            </div>
-                        </form>
+            <form action="{{ route('finance.master-data.account.update-beginning-balance') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="id_ar_ap">
+                    <input type="hidden" name="type" id="edit_type">
+                    <div class="form-group">
+                        <label>Number</label>
+                        <input type="text" name="number_edit_beginning_balance" id="number_edit_beginning_balance" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" name="date_edit_beginning_balance" id="date_edit_beginning_balance" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Value</label>
+                        <input type="text" name="value_edit_beginning_balance" id="value_edit_beginning_balance" class="form-control">
                     </div>
                 </div>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -471,9 +551,9 @@
 
     $('body').on('click', '#btn-create-beginning-balance', function () {
 
-        let id = $(this).data('id');
-        var url = "{{ route('finance.master-data.account.show', ":id") }}";
-        url = url.replace(':id', id);
+        let accountId = $(this).data('id');
+        var url = "{{ route('finance.master-data.account.show', ':id') }}";
+        url = url.replace(':id', accountId);
 
         $.ajax({
             headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
@@ -481,14 +561,64 @@
             dataType: 'json',
             url: url,
             success:function(response){
-                    // //fill data to form
+                    // Fill basic data to form
                     $('#id_account').val(response.data.id);
                     $('#code_beginning_balance').val(response.data.code);
                     $('#account_name_beginning_balance').val(response.data.account_name);
+                    $('#account_type_id_beginning_balance').val(response.data.account_type_id);
 
                     $('#id_balance_account').val(response.data.id_balance_account);
                     $('#credit').val(response.data.credit);
                     $('#debit').val(response.data.debit);
+
+                    // Show/hide AR and AP fields based on account type
+                    const accountTypeId = response.data.account_type_id;
+                    
+                    // Hide all special fields first
+                    $('#ar_fields').hide();
+                    $('#ap_fields').hide();
+                    $('#debit_credit_fields').show(); // Show debit/credit by default
+                    
+                    // Clear existing entries
+                    invoiceEntries = [];
+                    apEntries = [];
+                    $('#invoice_table_body').empty();
+                    $('#ap_table_body').empty();
+                    
+                    // Show AR fields for Account Receivable (ID 4)
+                    if (accountTypeId == 4) {
+                        $('#ar_fields').show();
+                        $('#debit_credit_fields').hide(); // Hide debit/credit for AR
+                        
+                        // Load existing invoice entries if any
+                        if (response.data.invoice_entries && response.data.invoice_entries.length > 0) {
+                            response.data.invoice_entries.forEach(function(entry) {
+                                // Add to the entries array
+                                invoiceEntries.push(entry);
+                                // Add to the table
+                                addInvoiceEntryToTable(entry);
+                            });
+                            // Update the hidden field
+                            updateInvoiceEntriesHiddenField();
+                        }
+                    }
+                    // Show AP fields for Account Payable (ID 8)
+                    else if (accountTypeId == 8) {
+                        $('#ap_fields').show();
+                        $('#debit_credit_fields').hide(); // Hide debit/credit for AP
+                        
+                        // Load existing AP entries if any
+                        if (response.data.ap_entries && response.data.ap_entries.length > 0) {
+                            response.data.ap_entries.forEach(function(entry) {
+                                // Add to the entries array
+                                apEntries.push(entry);
+                                // Add to the table
+                                addAPEntryToTable(entry);
+                            });
+                            // Update the hidden field
+                            updateAPEntriesHiddenField();
+                        }
+                    }
 
                     $('#createBeginningBalance').modal('show');
                 }
@@ -499,9 +629,9 @@
     //edit data
     $('body').on('click', '#btn-edit', function () {
 
-        let id = $(this).data('id');
-        var url = "{{ route('finance.master-data.account.edit', ":id") }}";
-        url = url.replace(':id', id);
+        let editId = $(this).data('id');
+        var url = "{{ route('finance.master-data.account.edit', ':id') }}";
+        url = url.replace(':id', editId);
 
 
         $.ajax({
@@ -532,9 +662,9 @@
     //show data
     $('body').on('click', '#btn-show', function () {
 
-    let id = $(this).data('id');
-    var url = "{{ route('finance.master-data.account.show', ":id") }}";
-    url = url.replace(':id', id);
+    let showId = $(this).data('id');
+    var url = "{{ route('finance.master-data.account.show', ':id') }}";
+    url = url.replace(':id', showId);
 
         $.ajax({
             headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
@@ -561,5 +691,147 @@
                 }
         });
     });
+
+    // Global variables to store entries
+    let invoiceEntries = [];
+    let apEntries = [];
+
+    // Invoice entry functions
+    function addInvoiceEntry() {
+        const number = $('#new_invoice_number').val();
+        const date = $('#new_invoice_date').val();
+        const value = $('#new_invoice_value').val();
+
+        if (!number || !date || !value) {
+            alert('Please fill all required fields');
+            return;
+        }
+
+        const entry = {
+            id: Date.now(), // Temporary ID for new entries
+            number: number,
+            date: date,
+            value: parseFloat(value)
+        };
+
+        invoiceEntries.push(entry);
+        addInvoiceEntryToTable(entry);
+        updateInvoiceEntriesHiddenField();
+        
+        // Clear form
+        $('#new_invoice_number').val('');
+        $('#new_invoice_date').val('');
+        $('#new_invoice_value').val('');
+    }
+
+    function addInvoiceEntryToTable(entry) {
+        const row = `
+            <tr data-entry-id="${entry.id}">
+                <td>${entry.number}</td>
+                <td>${entry.date}</td>
+                <td>${entry.value.toLocaleString()}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-warning" onclick="editInvoiceEntry('${entry.id}')">
+                        <i class="fe fe-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteInvoiceEntry('${entry.id}')">
+                        <i class="fe fe-trash-2"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        $('#invoice_table_body').append(row);
+    }
+
+    function editInvoiceEntry(entryId) {
+        const entry = invoiceEntries.find(e => e.id == entryId || e.id == parseInt(entryId));
+        if (entry) {
+            $('#id_ar_ap').val(entry.id);
+            $('#edit_type').val("invoice");
+            $('#number_edit_beginning_balance').val(entry.number);
+            $('#date_edit_beginning_balance').val(entry.date);
+            $('#value_edit_beginning_balance').val(entry.value);
+            $('#modal-edit-beginning-balance').modal('show');
+        }
+    }
+
+    function deleteInvoiceEntry(entryId) {
+        invoiceEntries = invoiceEntries.filter(e => e.id != entryId && e.id != parseInt(entryId));
+        $(`tr[data-entry-id="${entryId}"]`).remove();
+        updateInvoiceEntriesHiddenField();
+    }
+
+    function updateInvoiceEntriesHiddenField() {
+        $('#invoice_entries').val(JSON.stringify(invoiceEntries));
+    }
+
+    // AP entry functions
+    function addAPEntry() {
+        const number = $('#new_ap_number').val();
+        const date = $('#new_ap_date').val();
+        const value = $('#new_ap_value').val();
+
+        if (!number || !date || !value) {
+            alert('Please fill all required fields');
+            return;
+        }
+
+        const entry = {
+            id: Date.now(), // Temporary ID for new entries
+            number: number,
+            date: date,
+            value: parseFloat(value)
+        };
+
+        apEntries.push(entry);
+        addAPEntryToTable(entry);
+        updateAPEntriesHiddenField();
+        
+        // Clear form
+        $('#new_ap_number').val('');
+        $('#new_ap_date').val('');
+        $('#new_ap_value').val('');
+    }
+
+    function addAPEntryToTable(entry) {
+        const row = `
+            <tr data-entry-id="${entry.id}">
+                <td>${entry.number}</td>
+                <td>${entry.date}</td>
+                <td>${entry.value.toLocaleString()}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-warning" onclick="editAPEntry('${entry.id}')">
+                        <i class="fe fe-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteAPEntry('${entry.id}')">
+                        <i class="fe fe-trash-2"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        $('#ap_table_body').append(row);
+    }
+
+    function editAPEntry(entryId) {
+        const entry = apEntries.find(e => e.id == entryId || e.id == parseInt(entryId));
+        if (entry) {
+            $('#id_ar_ap').val(entry.id);
+            $('#edit_type').val("ap");
+            $('#number_edit_beginning_balance').val(entry.number);
+            $('#date_edit_beginning_balance').val(entry.date);
+            $('#value_edit_beginning_balance').val(entry.value);
+            $('#modal-edit-beginning-balance').modal('show');
+        }
+    }
+
+    function deleteAPEntry(entryId) {
+        apEntries = apEntries.filter(e => e.id != entryId && e.id != parseInt(entryId));
+        $(`tr[data-entry-id="${entryId}"]`).remove();
+        updateAPEntriesHiddenField();
+    }
+
+    function updateAPEntriesHiddenField() {
+        $('#ap_entries').val(JSON.stringify(apEntries));
+    }
     </script>
 @endpush

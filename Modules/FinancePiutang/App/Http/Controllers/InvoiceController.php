@@ -40,7 +40,7 @@ class InvoiceController extends Controller
      */
     public function index()
     {
-        $invoice = InvoiceHead::all();
+        $invoice = InvoiceHead::whereNot('status', 'Beginning Balance');
         $bank = BankAccount::all();
         foreach($invoice as $i) {
             $i->updateStatus();
@@ -125,7 +125,7 @@ class InvoiceController extends Controller
     public function getSalesOrder(Request $request)
     {
         $id = $request->id;
-        $invoice = InvoiceHead::all()->pluck('id');
+        $invoice = InvoiceHead::whereNot('status', 'Beginning Balance')->pluck('sales_id');
         $salesOrder = SalesOrderHead::where('contact_id', $id)
                             ->whereNotIn('id', $invoice)
                             ->get();

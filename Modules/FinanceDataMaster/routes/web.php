@@ -30,6 +30,7 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
         Route::resource('/master-data/term-of-payment', TermOfPaymentDataController::class);
 
         Route::post('master-data/account/store-beginning-balance', [AccountDataController::class, 'storeBeginningBalance'])->name('account.store-beginning-balance');
+        Route::post('master-data/account/update-beginning-balance', [AccountDataController::class, 'updateBeginningBalance'])->name('account.update-beginning-balance');
         Route::resource('/master-data/account', AccountDataController::class);
         Route::resource('/master-data/account-type', AccountTypeController::class);
 
