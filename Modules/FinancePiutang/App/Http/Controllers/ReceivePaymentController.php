@@ -662,6 +662,7 @@ class ReceivePaymentController extends Controller
             $tax_journal = [];
             $ar_journal = [];
             $formData = json_decode($request->input('form_data'), true);
+            $totalDiscount = 0;
             foreach ($formData as $idx => $data) {
                 $invoice_id = $data["detail_invoice"];
                 if(!$invoice_id) {
@@ -707,7 +708,8 @@ class ReceivePaymentController extends Controller
                         continue;
                     }
                 }
-
+                $total_after_discount = 0;
+                $totalWithPPn = 0;
                 if($is_dp == 1) {
                     if($idx === 0) {
                         $isDiscount = false;
@@ -720,8 +722,7 @@ class ReceivePaymentController extends Controller
                     $invoice->update([
                         "status" => "paid"
                     ]);
-                    $total_after_discount = 0;
-                    $totalWithPPn = 0;
+
                     foreach($invoice->details as $d) {
                         $totalFull = ($d->price*$d->quantity);
                         $discTotal = 0;
@@ -730,6 +731,7 @@ class ReceivePaymentController extends Controller
                         }else{
                             $discTotal = $d->discount_nominal;
                         }
+                        $totalDiscount += $discTotal;
                         $totalFull -= $discTotal;
                         $discTotal = 0;
 
@@ -758,32 +760,33 @@ class ReceivePaymentController extends Controller
                         }else{
                             $discTotal = $invoice->discount_nominal;
                         }
+                        $totalDiscount += $discTotal;
                         $totalFull -= $discTotal;
-                        $totalWithPPn += ($totalFull+ ($totalFull*11/100));
+                        // $totalWithPPn += ($totalFull+ ($totalFull*11/100));
                         $discTotal = 0;
-                        $totalFull = $totalWithPPn;
-                        if($discount_type === "persen") {
-                            $discTotal = ($discount_nominal/100)*$totalFull;
-                        }else{
-                            $discTotal = $discount_nominal;
-                        }
-                        $totalFull -= $discTotal;
+                        // $totalFull = $totalWithPPn;
+                        // if($discount_type === "persen") {
+                        //     $discTotal = ($discount_nominal/100)*$totalFull;
+                        // }else{
+                        //     $discTotal = $discount_nominal;
+                        // }
+                        // $totalFull -= $discTotal;
 
                         $total_after_discount += ($totalFull - $discTotal);
                         // DB::rollBack();
-                        // dd(($totalFull+ ($totalFull*11/100)) , $discTotal);
+                        // dd($total_after_discount,$d->price*$d->quantity,$d->price,$d->quantity);
                     }
 
                     $ppn_tax = MasterTax::find($invoice->tax_id);
-                    // if ($ppn_tax && $ppn_tax->account_id) {
-                    //     $ppn_amount = $total_after_discount - ($total_after_discount /(1 + ($ppn_tax->tax_rate / 100)));
-                    //     $ar_journal[] = [0,$total_after_discount - ($total_after_discount - ($total_after_discount /(1 + ($ppn_tax->tax_rate / 100)))) ,$account_id_detail];
-                    //     $grand_total -= $ppn_amount;
-                    //     $tax_journal[] = [$ppn_amount, 0, $ppn_tax->account_id, $ppn_tax->id];
-                    // }else{
+                    if ($ppn_tax && $ppn_tax->account_id) {
+                        $ppn_amount = $total_after_discount * ($ppn_tax->tax_rate / 100);
+                        $ar_journal[] = [0,$total_after_discount + $ppn_amount  ,$account_id_detail];
+                        $grand_total -= $ppn_amount;
+                        $tax_journal[] = [$ppn_amount, 0, $ppn_tax->account_id, $ppn_tax->id];
+                    }else{
                         $ar_journal[] = [0,$total_after_discount,$account_id_detail];
 
-                    // }
+                    }
 
                     Sao::where('invoice_id', $invoice_id)->update([
                         'isPaid' => true,
@@ -840,9 +843,9 @@ class ReceivePaymentController extends Controller
             } else {
                 $flow = [
                     //debit, kredit
-                    [$grand_total, 0, $head_account_id],
+                    [$grand_total + $totalDiscount, 0, $head_account_id],
                     [$display_dp_invoice, 0, $prepaid_sales_id],
-                    [0, $discount_display, $diskon_penjualan_id],
+                    [0, $totalDiscount, $diskon_penjualan_id],
                     // [0, $additional_cost, $pendapatan_lain_id],
                     // [0, $totBalance+$display_dp_invoice, $piutang_usaha_id]
                 ];

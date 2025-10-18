@@ -245,10 +245,10 @@ class InvoiceController extends Controller
             // 13092025 ganti ke sales discount
             $diskon_penjualan_id = MasterAccount::where('account_type_id', 16)->first();
 
-            $diskon_penjualan_id = $diskon_penjualan_id->id;
-if(!$diskon_penjualan_id) {
+            if(!$diskon_penjualan_id) {
                 return response()->json(['errors' => ['pendapatan_lain' => ['Please add the account of Sales Discount']]], 422);
             }
+            $diskon_penjualan_id = $diskon_penjualan_id->id;
             // $ppn_keluaran_id = MasterAccount::where('code', "220500")
             //                         ->where('account_name', 'PPN Keluaran')
             //                         ->where('master_currency_id', $currency_id)->first();
@@ -298,6 +298,7 @@ if(!$diskon_penjualan_id) {
             $tax_journal = [];
             $sales_jourjal = [];
             $totalDetailWithoutDiscount = 0;
+            $totalDiscount = 0;
             foreach ($formData as $data) {
                 $des_detail = $data['des_detail'];
                 $renark_detail = $data['remark_detail'];
@@ -327,6 +328,7 @@ if(!$diskon_penjualan_id) {
                 }else{
                     $discTotal = $discount_detail;
                 }
+                $totalDiscount += $discTotal;
                 $totalFull -= $discTotal;
                 $pajak = 0;
 
@@ -359,7 +361,7 @@ if(!$diskon_penjualan_id) {
                 // }
                 // $grand_dp += $dp;
                 $totalDetailWithoutDiscount += $totalFull;
-                $sales_journal[] = [0,(($totalFull) - ($totalDetailWithoutDiscount * ($discount_nominal/100))),$sales_acc_id];
+                $sales_journal[] = [0,(($price_detail*$qty_detail) ),$sales_acc_id];
                 InvoiceDetail::create([
                     'head_id' => $head_id,
                     'description' => $des_detail,
@@ -375,7 +377,7 @@ if(!$diskon_penjualan_id) {
                     // 'dp_nominal' => $dp_detail
                 ]);
             }
-
+            // $totalDiscou
             $ppn_tax_id = $request->input('ppn_tax') ? explode(":",$request->input('ppn_tax'))[0] : null;
             $ppn_tax = MasterTax::find($ppn_tax_id);
             if ($ppn_tax && $ppn_tax->account_id) {
@@ -383,12 +385,15 @@ if(!$diskon_penjualan_id) {
                 $ppn_amount = $total_after_discount - ($total_after_discount /(1 + ($ppn_tax->tax_rate / 100)));
                 $tax_journal[] = [0, $ppn_amount, $ppn_tax->account_id, $ppn_tax->id];
             }
-
+            $discount_value = ($discount_nominal == 0 || is_null($discount_nominal))
+    ? 0
+    : ($totalDetailWithoutDiscount * ($discount_nominal / 100));
+            $totalDiscount += $discount_value;
             $flow = [
                 //debit, kredit
                 // [$total_display, 0, $piutang_usaha_id],
                 [($total_display), 0, $coa_ar],
-                [($totalDetailWithoutDiscount * ($discount_nominal/100)), 0, $diskon_penjualan_id],
+                [$totalDiscount, 0, $diskon_penjualan_id],
                 // [$display_pajak, 0, $ppn_keluaran_id],
                 // [$display_dp, 0, $kas_id],
                 // [0, $display_dp, $dp_id],
@@ -565,6 +570,7 @@ if(!$diskon_penjualan_id) {
             $totBalance = 0;
             $formData = json_decode($request->input('form_data'), true);
             $grand_dp = 0;
+            $totalDiscount = 0;
             foreach ($formData as $data) {
                 $des_detail = $data['des_detail'];
                 $renark_detail = $data['remark_detail'];
@@ -601,6 +607,7 @@ if(!$diskon_penjualan_id) {
                 }else{
                     $discTotal = $discount_detail;
                 }
+                $totalDiscount += $discTotal;
                 $totalFull -= $discTotal;
                 $pajak = 0;
                 if($tax_id == 2 ) {
@@ -695,7 +702,7 @@ if(!$diskon_penjualan_id) {
                 //     }
                 // }
                 $totalDetailWithoutDiscount +=($totalFull);
-                $sales_journal[] = [0,(($totalFull ) - ($totalDetailWithoutDiscount * ($discount_nominal/100))),$d->account_id];
+                $sales_journal[] = [0,(($price_detail*$qty_detail)),$d->account_id];
             }
 
             $diskon_penjualan_id = MasterAccount::where('account_type_id', 16)->first();
@@ -719,11 +726,14 @@ if(!$diskon_penjualan_id) {
                 $ppn_amount = $total_after_discount - ($total_after_discount /(1 + ($ppn_tax->tax_rate / 100)));
                 $tax_journal[] = [0, $ppn_amount, $ppn_tax->account_id, $ppn_tax->id];
             }
-
+            $discount_value = ($discount_nominal == 0 || is_null($discount_nominal))
+            ? 0
+            : ($totalDetailWithoutDiscount * ($discount_nominal / 100));
+                    $totalDiscount += $discount_value;
             $flow = [
                 //debit, kredit
-                [($total_display - ($totalDetailWithoutDiscount * ($discount_nominal/100))), 0, $coa_ar],
-                [($totalDetailWithoutDiscount * ($discount_nominal/100)), 0, $diskon_penjualan_id],
+                [($total_display), 0, $coa_ar],
+                [$totalDiscount, 0, $diskon_penjualan_id],
                 // [0, 0, $prepaid_sales],
             ];
 
