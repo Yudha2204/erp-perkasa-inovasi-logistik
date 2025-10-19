@@ -237,6 +237,7 @@ class ReceivePaymentController extends Controller
             $formData = json_decode($request->input('form_data'), true);
             $totalDiscount = 0;
             foreach ($formData as $idx => $data) {
+                $tmpDiscount = 0;
                 $invoice_id = $data["detail_invoice"];
                 if(!$invoice_id) {
                     continue;
@@ -281,7 +282,6 @@ class ReceivePaymentController extends Controller
                         continue;
                     }
                 }
-
                 $total_after_discount = 0;
                 $totalWithPPn = 0;
                 if($is_dp == 1) {
@@ -306,6 +306,7 @@ class ReceivePaymentController extends Controller
                             $discTotal = $d->discount_nominal;
                         }
                         $totalDiscount += $discTotal;
+                        $tmpDiscount += $discTotal;
                         $totalFull -= $discTotal;
                         $discTotal = 0;
 
@@ -335,6 +336,7 @@ class ReceivePaymentController extends Controller
                             $discTotal = $invoice->discount_nominal;
                         }
                         $totalDiscount += $discTotal;
+                        $tmpDiscount += $discTotal;
                         $totalFull -= $discTotal;
                         // $totalWithPPn += ($totalFull+ ($totalFull*11/100));
                         $discTotal = 0;
@@ -356,24 +358,24 @@ class ReceivePaymentController extends Controller
                         $ppn_amount = $total_after_discount * ($ppn_tax->tax_rate / 100);
                         if($discount_type === "persen") {
                             $discTotal = ($discount_nominal/100)*($total_after_discount + $ppn_amount);
-                            $ar_journal[] = [0,$total_after_discount + $ppn_amount - $discTotal  ,$account_id_detail];
-                        //     DB::rollBack();
-                        // dd($ar_journal);
+                            $ar_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) + $tmpDiscount)  ,$account_id_detail];
                         }else{
                             $discTotal = $discount_nominal;
-                            $ar_journal[] = [0,$total_after_discount + $ppn_amount - $discTotal  ,$account_id_detail];
+                            $ar_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) + $tmpDiscount)  ,$account_id_detail];
                         }
                         $totalDiscount += $discTotal;
+                        // DB::rollBack();
+                        // dd($ar_journal ,($discTotal + $tmpDiscount) , $totalDiscount,($total_after_discount + $ppn_amount));
                         // $totalFull -= $discTotal;
                         $grand_total -= $ppn_amount;
                         $tax_journal[] = [$ppn_amount, 0, $ppn_tax->account_id, $ppn_tax->id];
                     }else{
                         if($discount_type === "persen") {
                             $discTotal = ($discount_nominal/100)*$total_after_discount;
-                            $ar_journal[] = [0,$total_after_discount  - $discTotal  ,$account_id_detail];
+                            $ar_journal[] = [0,$total_after_discount  - (($discTotal * 2) + $tmpDiscount)  ,$account_id_detail];
                         }else{
                             $discTotal = $discount_nominal;
-                            $ar_journal[] = [0,$total_after_discount  - $discTotal  ,$account_id_detail];
+                            $ar_journal[] = [0,$total_after_discount  - (($discTotal * 2) + $tmpDiscount)  ,$account_id_detail];
                         }
                         $totalDiscount += $discTotal;
                     }
@@ -432,7 +434,7 @@ class ReceivePaymentController extends Controller
             } else {
                 $flow = [
                     //debit, kredit
-                    [$grand_total + $totalDiscount, 0, $head_account_id],
+                    [$grand_total , 0, $head_account_id],
                     [$display_dp_invoice, 0, $prepaid_sales_id],
                     [0, $totalDiscount, $diskon_penjualan_id],
                     // [0, $additional_cost, $pendapatan_lain_id],
@@ -681,6 +683,7 @@ class ReceivePaymentController extends Controller
             $formData = json_decode($request->input('form_data'), true);
             $totalDiscount = 0;
             foreach ($formData as $idx => $data) {
+                $tmpDiscount = 0;
                 $invoice_id = $data["detail_invoice"];
                 if(!$invoice_id) {
                     continue;
@@ -749,6 +752,7 @@ class ReceivePaymentController extends Controller
                             $discTotal = $d->discount_nominal;
                         }
                         $totalDiscount += $discTotal;
+                        $tmpDiscount += $discTotal;
                         $totalFull -= $discTotal;
                         $discTotal = 0;
 
@@ -778,6 +782,7 @@ class ReceivePaymentController extends Controller
                             $discTotal = $invoice->discount_nominal;
                         }
                         $totalDiscount += $discTotal;
+                        $tmpDiscount += $discTotal;
                         $totalFull -= $discTotal;
                         // $totalWithPPn += ($totalFull+ ($totalFull*11/100));
                         $discTotal = 0;
@@ -799,24 +804,24 @@ class ReceivePaymentController extends Controller
                         $ppn_amount = $total_after_discount * ($ppn_tax->tax_rate / 100);
                         if($discount_type === "persen") {
                             $discTotal = ($discount_nominal/100)*($total_after_discount + $ppn_amount);
-                            $ar_journal[] = [0,$total_after_discount + $ppn_amount - $discTotal  ,$account_id_detail];
-                        //     DB::rollBack();
-                        // dd($ar_journal);
+                            $ar_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) + $tmpDiscount)  ,$account_id_detail];
                         }else{
                             $discTotal = $discount_nominal;
-                            $ar_journal[] = [0,$total_after_discount + $ppn_amount - $discTotal  ,$account_id_detail];
+                            $ar_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) + $tmpDiscount)  ,$account_id_detail];
                         }
                         $totalDiscount += $discTotal;
+                        // DB::rollBack();
+                        // dd($ar_journal ,($discTotal + $tmpDiscount) , $totalDiscount,($total_after_discount + $ppn_amount));
                         // $totalFull -= $discTotal;
                         $grand_total -= $ppn_amount;
                         $tax_journal[] = [$ppn_amount, 0, $ppn_tax->account_id, $ppn_tax->id];
                     }else{
                         if($discount_type === "persen") {
                             $discTotal = ($discount_nominal/100)*$total_after_discount;
-                            $ar_journal[] = [0,$total_after_discount  - $discTotal  ,$account_id_detail];
+                            $ar_journal[] = [0,$total_after_discount  - (($discTotal * 2) + $tmpDiscount)  ,$account_id_detail];
                         }else{
                             $discTotal = $discount_nominal;
-                            $ar_journal[] = [0,$total_after_discount  - $discTotal  ,$account_id_detail];
+                            $ar_journal[] = [0,$total_after_discount  - (($discTotal * 2) + $tmpDiscount)  ,$account_id_detail];
                         }
                         $totalDiscount += $discTotal;
                     }
@@ -876,7 +881,7 @@ class ReceivePaymentController extends Controller
             } else {
                 $flow = [
                     //debit, kredit
-                    [$grand_total + $totalDiscount, 0, $head_account_id],
+                    [$grand_total , 0, $head_account_id],
                     [$display_dp_invoice, 0, $prepaid_sales_id],
                     [0, $totalDiscount, $diskon_penjualan_id],
                     // [0, $additional_cost, $pendapatan_lain_id],
