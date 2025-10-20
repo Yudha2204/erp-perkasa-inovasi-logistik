@@ -335,19 +335,9 @@ class ReceivePaymentController extends Controller
                         }else{
                             $discTotal = $invoice->discount_nominal;
                         }
-                        // $totalDiscount += $discTotal;
                         $tmpDiscount += $discTotal;
                         $totalFull -= $discTotal;
-                        // $totalWithPPn += ($totalFull+ ($totalFull*11/100));
                         $discTotal = 0;
-                        // $totalFull = $totalWithPPn;
-                        // if($discount_type === "persen") {
-                        //     $discTotal = ($discount_nominal/100)*$totalFull;
-                        // }else{
-                        //     $discTotal = $discount_nominal;
-                        // }
-                        // $totalFull -= $discTotal;
-
                         $total_after_discount += ($totalFull - $discTotal);
 
                     }
@@ -364,9 +354,6 @@ class ReceivePaymentController extends Controller
                             $ar_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) )  ,$account_id_detail];
                         }
                         $totalDiscount += $discTotal;
-                        // DB::rollBack();
-                        // dd($ar_journal ,($discTotal + $tmpDiscount) , $totalDiscount,($total_after_discount + $ppn_amount));
-                        // $totalFull -= $discTotal;
                         $grand_total -= $ppn_amount;
                         $tax_journal[] = [$ppn_amount, 0, $ppn_tax->account_id, $ppn_tax->id];
                     }else{
@@ -751,7 +738,6 @@ class ReceivePaymentController extends Controller
                         }else{
                             $discTotal = $d->discount_nominal;
                         }
-                        // $totalDiscount += $discTotal;
                         $tmpDiscount += $discTotal;
                         $totalFull -= $discTotal;
                         $discTotal = 0;
