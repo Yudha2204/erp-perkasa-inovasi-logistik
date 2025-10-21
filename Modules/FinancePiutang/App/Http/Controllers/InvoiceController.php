@@ -702,7 +702,7 @@ class InvoiceController extends Controller
                 //     }
                 // }
                 $totalDetailWithoutDiscount +=($totalFull);
-                $sales_journal[] = [0,(($price_detail*$qty_detail)),$d->account_id];
+                $sales_journal[] = [0,(($d->price*$d->quantity)),$d->account_id];
             }
 
             $diskon_penjualan_id = MasterAccount::where('account_type_id', 16)->first();

@@ -179,6 +179,7 @@ class PurchaseOrderController extends Controller
             $tax_journal = [];
             $expense_journal = [];
             $totalDetailWithoutDiscount = 0;
+            $totalDiscount = 0;
             foreach ($formData as $data) {
                 $des_detail = $data['des_detail'];
                 $renark_detail = $data['remark_detail'];
@@ -193,31 +194,31 @@ class PurchaseOrderController extends Controller
                 $exp_tax = explode(":", $pajak_detail);
                 $tax_id = $exp_tax[0];
                 $totalFull = ($price_detail*$qty_detail);
+                $discTotal = 0;
                 if($disc_type_detail === "persen") {
                     $discTotal = ($discount_detail/100)*$totalFull;
                 }else{
                     $discTotal = $discount_detail;
                 }
-                $totalFull -= $discTotal;
+                $totalDiscount += $discTotal;
+                $totalAfterItemDiscount = $totalFull - $discTotal;
                 $pajak = 0;
 
                 if($tax_id) {
                     $tax = MasterTax::find($tax_id);
 
-                    $pajak = (($tax->tax_rate/100) * $totalFull);
-                    $totalFull -= $pajak;
+                    $pajak = (($tax->tax_rate/100) * $totalAfterItemDiscount);
                     if($tax->tax_rate > 0 && !$tax->account_id){
                         DB::rollBack();
-                        // dd($tax);
                         return redirect()->back()
                                 ->withErrors(['error' => 'Add the account to tax if rate more than 0']);
                     }else if($tax->account_id){
                         $tax_journal[] = [$pajak, 0 , $tax->account_id];
                     }
                 }
-                $totalDetailWithoutDiscount += $totalFull;
+                $totalDetailWithoutDiscount += $totalAfterItemDiscount;
 
-                $expense_journal[] = [(($totalFull - $pajak) - ($totalDetailWithoutDiscount * ($discount_nominal/100))), 0, $expense_acc_id];
+                $expense_journal[] = [$totalFull, 0, $expense_acc_id];
 
                 OrderDetail::create([
                     'head_id' => $head_id,
@@ -240,16 +241,23 @@ class PurchaseOrderController extends Controller
                 $tax_journal[] = [$ppn_amount, 0, $ppn_tax->account_id];
             }
 
+            $discount_value = 0;
+            if ($discount_type === 'persen') {
+                $discount_value = $totalDetailWithoutDiscount * ($discount_nominal / 100);
+            } else if($discount_nominal) {
+                $discount_value = $discount_nominal;
+            }
+            $totalDiscount += $discount_value;
 
             $flow = [
                 //debit, kredit
                 [0, $total_display, $coa_ap],
-                [0, ($totalDetailWithoutDiscount * ($discount_nominal/100)), $diskon_pembelian_id],
+                [0, $totalDiscount, $diskon_pembelian_id],
             ];
             $flow = [
-                    ...$flow,
-                    ...$expense_journal,
-                    ...$tax_journal,
+                ...$flow,
+                ...$expense_journal,
+                ...$tax_journal,
             ];
 
             foreach ($flow as $item) {
