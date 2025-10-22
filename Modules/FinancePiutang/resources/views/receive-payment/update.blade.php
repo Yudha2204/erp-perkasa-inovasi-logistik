@@ -1089,6 +1089,7 @@
                             });
                             if (selectedValue) {
                                 $(this).val(selectedValue).trigger('change');
+                                $(this).prop('disabled', true);
                             }
                         });
                     }
@@ -1416,6 +1417,8 @@
 
             const row = element.closest('tr')
 
+            $(row.querySelector('.coa-ar-select')).prop('disabled', false);
+
             row.querySelector('input[name="detail_date"]').value = ''
             row.querySelector('input[name="detail_jumlah"]').value = ''
             row.querySelector('input[name="detail_discount_nominal"]').value = 0
@@ -1442,6 +1445,11 @@
                         row.querySelector('input[name="detail_jumlah"]').value = total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         row.querySelector('input[name="detail_total"]').value = total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         row.querySelector('input[name="detail_dp_invoice_nominal"]').value = (Number(response.data.dp) + Number(response.data.dp_receive)).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        if (response.data.coa_ar_id) {
+                            const coaSelect = $(row.querySelector('.coa-ar-select'));
+                            coaSelect.val(response.data.coa_ar_id).trigger('change');
+                            coaSelect.prop('disabled', true);
+                        }
                     }
                 }
             })
