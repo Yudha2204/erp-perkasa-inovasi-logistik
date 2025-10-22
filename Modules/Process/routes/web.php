@@ -6,7 +6,16 @@ use Modules\Process\App\Http\Controllers\ExchangeRevaluationController;
 use Modules\Process\App\Http\Controllers\ProfitLossClosingController;
 use Modules\Process\App\Http\Controllers\AnnualProfitLossClosingController;
 
-// 1) Put the specific routes FIRST
+// Combined Process Routes (Main Interface)
+Route::prefix('process')->name('process.')->group(function () {
+    Route::get('/', [ProcessController::class, 'index'])->name('index');
+    Route::post('/execute', [ProcessController::class, 'executeProcesses'])->name('execute');
+    Route::post('/check-status', [ProcessController::class, 'checkStatus'])->name('check-status');
+    Route::get('/periods', [ProcessController::class, 'getAvailablePeriods'])->name('periods');
+    Route::get('/years', [ProcessController::class, 'getAvailableYears'])->name('years');
+});
+
+// Legacy Individual Process Routes (for backward compatibility)
 Route::prefix('process/exchange-revaluation')->name('process.exchange-revaluation.')->group(function () {
     Route::get('/', [ExchangeRevaluationController::class, 'index'])->name('index');
     Route::post('/execute', [ExchangeRevaluationController::class, 'execute'])->name('execute');
@@ -30,11 +39,9 @@ Route::prefix('process/annual-profit-loss-closing')->name('process.annual-pl-clo
     Route::get('/years', [AnnualProfitLossClosingController::class, 'getAvailableYears'])->name('years');
 });
 
-// 2) Then your process resource (constrain the wildcard)
+// Resource routes for backward compatibility
 Route::resource('process', ProcessController::class)
     ->names('process')
-    ->whereNumber('process'); // or ->whereUuid('process') if you’re using UUIDs
-
-// 3) If you keep a manual index, that’s fine too
-Route::get('process', [ProcessController::class, 'index'])->name('process.index');
+    ->whereNumber('process')
+    ->except(['show', 'create', 'store', 'edit', 'update', 'destroy']); // Exclude methods we don't need
 
