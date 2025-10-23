@@ -198,13 +198,19 @@ class PurchasePaymentController extends Controller
             $tax_journal = [];
             $isDiscount = true;
             $allDetails = [];
+            $account_charges = []; // Track account charges for journal entries
             $formData = json_decode($request->input('form_data'), true);
             foreach ($formData as $idx => $data) {
-                $payable_id = $data["detail_order"];
-                if(!$payable_id) {
+                $payable_id = $data["detail_order"] ?? null;
+                $charge_type = $data["charge_type"] ?? 'payable';
+                
+                // Skip if no payable_id and not account charge
+                if(!$payable_id && $charge_type !== 'account') {
                     continue;
                 }
-                if(in_array($payable_id, $allDetails)) {
+                
+                // For payable charges, check if already processed
+                if($charge_type === 'payable' && $payable_id && in_array($payable_id, $allDetails)) {
                     continue;
                 }
                 $remark = $data['detail_remark'];
@@ -336,7 +342,7 @@ class PurchasePaymentController extends Controller
 
                 $detail = [
                     'head_id' => $head_id,
-                    'payable_id' => $payable_id,
+                    'payable_id' => $charge_type === 'payable' ? $payable_id : null,
                     'discount_type' => $discount_type,
                     'discount_nominal' => $discount_nominal,
                     'dp_type' => $dp_type,
@@ -345,11 +351,26 @@ class PurchasePaymentController extends Controller
                     'amount_via' => $amount_via,
                     'remark' => $remark,
                     'account_id' => $account_id_detail,
+                    'charge_type' => $charge_type,
+                    'amount' => $charge_type === 'account' ? $amount : null,
+                    'description' => $charge_type === 'account' ? ($data['description'] ?? null) : null,
                 ];
 
-                $allDetails[] = $payable_id;
+                // Only add to allDetails if it's a payable charge
+                if($charge_type === 'payable' && $payable_id) {
+                    $allDetails[] = $payable_id;
+                }
 
                 PaymentDetail::create($detail);
+                
+                // Collect account charges for journal entries
+                if($charge_type === 'account') {
+                    $account_charges[] = [
+                        'amount' => $amount,
+                        'account_id' => $account_id_detail,
+                        'description' => $data['description'] ?? null
+                    ];
+                }
             }
 
             if($isDiscount === true) {
@@ -370,11 +391,22 @@ class PurchasePaymentController extends Controller
                     [$discount_display, 0, $diskon_pembelian_id],
                 ];
             }
+            
+            // Add account charges to flow
+            $account_charge_flow = [];
+            foreach($account_charges as $charge) {
+                $account_charge_flow[] = [
+                    $charge['amount'], // credit
+                    0, // debit
+                    $charge['account_id'] // account_id
+                ];
+            }
 
             $flow = [
                 ...$flow,
                 ...$ap_journal,
                 ...$tax_journal,
+                ...$account_charge_flow,
             ];
 
             foreach ($flow as $item) {
@@ -629,14 +661,20 @@ class PurchasePaymentController extends Controller
         $allDetails = [];
         $tax_journal = [];
         $ap_journal = [];
+        $account_charges = []; // Track account charges for journal entries
         $totalDisc = [];
         $formData = json_decode($request->input('form_data'), true);
         foreach ($formData as $idx => $data) {
-            $payable_id = $data["detail_order"];
-            if(!$payable_id) {
+            $payable_id = $data["detail_order"] ?? null;
+            $charge_type = $data["charge_type"] ?? 'payable';
+            
+            // Skip if no payable_id and not account charge
+            if(!$payable_id && $charge_type !== 'account') {
                 continue;
             }
-            if(in_array($payable_id, $allDetails)) {
+            
+            // For payable charges, check if already processed
+            if($charge_type === 'payable' && $payable_id && in_array($payable_id, $allDetails)) {
                 continue;
             }
             $remark = $data['detail_remark'];
@@ -776,7 +814,7 @@ class PurchasePaymentController extends Controller
 
             $detail = [
                 'head_id' => $head_id,
-                'payable_id' => $payable_id,
+                'payable_id' => $charge_type === 'payable' ? $payable_id : null,
                 'discount_type' => $discount_type,
                 'discount_nominal' => $discount_nominal,
                 'dp_type' => $dp_type,
@@ -785,11 +823,26 @@ class PurchasePaymentController extends Controller
                 'amount_via' => $amount_via,
                 'remark' => $remark,
                 'account_id' => $account_id_detail,
+                'charge_type' => $charge_type,
+                'amount' => $charge_type === 'account' ? $amount : null,
+                'description' => $charge_type === 'account' ? ($data['description'] ?? null) : null,
             ];
 
-            $allDetails[] = $payable_id;
+            // Only add to allDetails if it's a payable charge
+            if($charge_type === 'payable' && $payable_id) {
+                $allDetails[] = $payable_id;
+            }
 
             PaymentDetail::create($detail);
+            
+            // Collect account charges for journal entries
+            if($charge_type === 'account') {
+                $account_charges[] = [
+                    'amount' => $amount,
+                    'account_id' => $account_id_detail,
+                    'description' => $data['description'] ?? null
+                ];
+            }
         }
         // DB::rollback();
         // dd($totalDisc);
@@ -813,10 +866,21 @@ class PurchasePaymentController extends Controller
             ];
         }
 
+        // Add account charges to flow
+        $account_charge_flow = [];
+        foreach($account_charges as $charge) {
+            $account_charge_flow[] = [
+                $charge['amount'], // credit
+                0, // debit
+                $charge['account_id'] // account_id
+            ];
+        }
+        
         $flow = [
             ...$flow,
             ...$ap_journal,
             ...$tax_journal,
+            ...$account_charge_flow,
         ];
 
         foreach ($flow as $item) {

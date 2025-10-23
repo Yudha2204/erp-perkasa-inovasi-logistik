@@ -31,6 +31,18 @@ class PaymentDetail extends Model
 
     public function getTotalAttribute()
     {   
+        if ($this->charge_type === 'account') {
+            $amount = $this->amount ?? 0;
+            $discount = $this->discount_nominal;
+            $discount_type = $this->discount_type;
+            
+            if($discount_type === "persen") {
+                return $amount-(($discount/100)*$amount);
+            }
+            return $amount-$discount;
+        }
+        
+        // Original payable logic
         $discount = $this->discount_nominal;
         $discount_type = $this->discount_type;
         $amount = $this->payable->total;
@@ -57,6 +69,18 @@ class PaymentDetail extends Model
 
     public function getDiscountAttribute()
     {   
+        if ($this->charge_type === 'account') {
+            $amount = $this->amount ?? 0;
+            $discount = $this->discount_nominal;
+            $discount_type = $this->discount_type;
+            
+            if($discount_type === "persen") {
+                return ($discount/100)*$amount;
+            }
+            return $discount;
+        }
+        
+        // Original payable logic
         $discount = $this->discount_nominal;
         $discount_type = $this->discount_type;
         $amount = $this->payable->total;
@@ -101,6 +125,16 @@ class PaymentDetail extends Model
             $dpFromPayment += $dp->dp;
         }
         return $dpFromPayment;
+    }
+
+    public function isAccountCharge()
+    {
+        return $this->charge_type === 'account';
+    }
+    
+    public function isPayableCharge()
+    {
+        return $this->charge_type === 'payable';
     }
 
     protected $appends = ['total', 'discount','dp'];

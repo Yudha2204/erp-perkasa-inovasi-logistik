@@ -123,6 +123,7 @@ class OrderHead extends Model
     {
         $jurnal = BalanceAccount::where('transaction_type_id', 7)
                     ->where('transaction_id', $this->id)
+                    ->where('currency_id', $this->currency_id)
                     ->get();
         return $jurnal;
     }

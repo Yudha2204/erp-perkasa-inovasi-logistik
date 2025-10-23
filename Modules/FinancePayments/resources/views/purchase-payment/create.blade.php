@@ -144,11 +144,12 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th style="min-width:15rem;">Account Payable</th>
+                                            <th style="min-width:15rem;">Charge Type / Payable</th>
                                             <th style="min-width:15rem;">Tanggal</th>
                                             <th style="min-width:10rem;">Jumlah</th>
                                             <th style="min-width:10rem;">Diskon/DP</th>
                                             <th style="min-width:10rem;">Total</th>
+                                            <th style="min-width:15rem;">Account Name</th>
                                             <th>#</th>
                                         </tr>
                                     </thead>
@@ -1251,18 +1252,27 @@
             var formTemplate = `
             <td></td>
             <td>
-                <select class="form-control select2 form-select" name="detail_order" data-placeholder="Choose One" onchange="getData(this)">
-                    <option label="Choose One" selected disabled></option>
-                    ${opsi}
+                <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
+                    <option value="payable">Payable</option>
+                    <option value="account">Account</option>
                 </select>
-                <label for="" class="form-label">Remark</label>
-                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
+                <div class="payable-section">
+                    <label class="form-label">Payable</label>
+                    <select class="form-control select2 form-select" name="detail_order" data-placeholder="Choose One" onchange="getData(this)">
+                        <option label="Choose One" selected disabled></option>
+                        ${opsi}
+                    </select>
+                </div>
+                <div class="account-section" style="display: none;">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
+                </div>
             </td>
             <td>
                 <input type="date" class="form-control" readonly name="detail_date" />
             </td>
             <td>
-                <input type="text" class="form-control" readonly name="detail_jumlah"/>
+                <input type="text" class="form-control amount-input" name="detail_jumlah" placeholder="Enter amount" onchange="getTotal(this)"/>
                 <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
                     <input type="checkbox" class="custom-control-input" name="other_currency" value="0" onchange="changeOpsi(this); getTotal(this)">
                     <span class="custom-control-label form-label">Mata Uang Lain</span>
@@ -1301,6 +1311,8 @@
                 <select class="form-control select2 form-select coa-ap-select" data-placeholder="Choose One" name="account_id" >
                     <option label="Choose One" selected disabled></option>
                 </select>
+                <label class="form-label">Remark</label>
+                <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" />
             </td>
             <td>
                 <div class="d-flex justify-content-between">
@@ -1561,6 +1573,33 @@
                         }
                     }
                 })
+            }
+        }
+
+        function toggleChargeType(element) {
+            const row = element.closest('tr');
+            const chargeType = element.value;
+            const coaApSelect = $(row.querySelector('.coa-ap-select'));
+            const payableSection = row.querySelector('.payable-section');
+            const accountSection = row.querySelector('.account-section');
+            const amountInput = row.querySelector('input[name="detail_jumlah"]');
+            const dateInput = row.querySelector('input[name="detail_date"]');
+            
+            if (chargeType === 'account') {
+                payableSection.style.display = 'none';
+                accountSection.style.display = 'block';
+                coaApSelect.prop('disabled', false);
+                coaApSelect.val('').trigger('change');
+                amountInput.removeAttribute('readonly');
+                dateInput.value = '';
+                dateInput.removeAttribute('readonly');
+            } else {
+                payableSection.style.display = 'block';
+                accountSection.style.display = 'none';
+                coaApSelect.prop('disabled', false);
+                coaApSelect.val('').trigger('change');
+                amountInput.setAttribute('readonly', 'readonly');
+                dateInput.setAttribute('readonly', 'readonly');
             }
         }
     </script>

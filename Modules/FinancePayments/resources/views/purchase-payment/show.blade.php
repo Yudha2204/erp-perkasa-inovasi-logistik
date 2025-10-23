@@ -137,11 +137,12 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th style="min-width:15rem;">Account Payable</th>
+                                            <th style="min-width:15rem;">Charge Type / Payable</th>
                                             <th style="min-width:15rem;">Tanggal</th>
                                             <th style="min-width:10rem;">Jumlah</th>
                                             <th style="min-width:10rem;">Diskon</th>
                                             <th style="min-width:10rem;">Total</th>
+                                            <th style="min-width:15rem;">Account Name</th>
                                             <th>#</th>
                                         </tr>
                                     </thead>
@@ -150,17 +151,30 @@
                                         <tr class="form-wrapper">
                                             <td></td>
                                             <td>
-                                                <select class="form-control select2 form-select" name="detail_order" data-placeholder="Choose One" disabled>
-                                                    <option value="{{ $data->payable_id }}">{{ $data->payable->transaction }}</option>
+                                                <select class="form-control select2 form-select" disabled>
+                                                    <option value="{{ $data->charge_type }}" selected>{{ ucfirst($data->charge_type) }}</option>
                                                 </select>
-                                                <label for="" class="form-label">Remark</label>
-                                                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" value="{{ $data->remark }}" readonly/>
+                                                @if($data->charge_type === 'payable' && $data->payable)
+                                                <select class="form-control select2 form-select" name="detail_order" data-placeholder="Choose One" disabled>
+                                                    <option value="{{ $data->payable_id }}" selected>{{ $data->payable->transaction }}</option>
+                                                </select>
+                                                @elseif($data->charge_type === 'account')
+                                                <input type="text" class="form-control" value="{{ $data->description }}" readonly/>
+                                                @endif
                                             </td>
                                             <td>
-                                                <input type="date" class="form-control" readonly name="detail_date" value="{{ $data->payable->date_order }}" readonly/>                                
+                                                @if($data->charge_type === 'payable' && $data->payable)
+                                                <input type="date" class="form-control" readonly name="detail_date" value="{{ $data->payable->date_order }}" readonly/>
+                                                @else
+                                                <input type="date" class="form-control" readonly name="detail_date" value="{{ $data->created_at ? $data->created_at->format('Y-m-d') : '' }}" readonly/>
+                                                @endif
                                             </td>
                                             <td>
+                                                @if($data->charge_type === 'payable' && $data->payable)
                                                 <input type="text" class="form-control" readonly name="detail_jumlah" value="{{ number_format($data->payable->total-$data->payable->dp-$data->getDpPaymentBefore($data->head_id),2,'.',',') }}" readonly/>
+                                                @else
+                                                <input type="text" class="form-control" readonly name="detail_jumlah" value="{{ number_format($data->amount, 2, '.', ',') }}" readonly/>
+                                                @endif
                                                 @if(isset($data->currency_via_id))
                                                 <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
                                                     <input type="radio" class="custom-control-input" value="1" checked>
@@ -206,6 +220,13 @@
                                             </td>
                                             <td>
                                                 <input type="text" class="form-control total_input" readonly name="detail_total" value="{{ number_format($data->total,2,'.',',') }}"/>
+                                            </td>
+                                            <td>
+                                                <select class="form-control select2 form-select" disabled>
+                                                    <option value="{{ $data->account->id }}">{{ $data->account->account_name }}</option>
+                                                </select>
+                                                <label class="form-label">Remark</label>
+                                                <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" value="{{ $data->remark }}" readonly/>
                                             </td>
                                             <td>
                                                 <div class="d-flex justify-content-between">

@@ -150,7 +150,7 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th style="min-width:15rem;">Account Payable</th>
+                                            <th style="min-width:15rem;">Charge Type / Payable</th>
                                             <th style="min-width:15rem;">Tanggal</th>
                                             <th style="min-width:10rem;">Jumlah</th>
                                             <th style="min-width:10rem;">Diskon</th>
@@ -164,22 +164,37 @@
                                         <tr class="form-wrapper">
                                             <td></td>
                                             <td>
-                                                <select class="form-control select2 form-select" data-order-id="{{ $data->payable_id }}" name="detail_order" data-placeholder="Choose One" onchange="getData(this)">
-                                                    <option value="{{ $data->payable_id }}">{{ $data->payable->transaction }}</option>
-                                                    @foreach($purchaseOrder as $i)
-                                                        @if($data->payable_id !== $i->id)
-                                                        <option value="{{ $i->id }}" {{ $i->id === $data->payable_id ? "selected" : "" }}>{{ $i->transaction }}</option>
-                                                        @endif
-                                                    @endforeach
+                                                <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
+                                                    <option value="payable" {{ $data->charge_type === 'payable' ? 'selected' : '' }}>Payable</option>
+                                                    <option value="account" {{ $data->charge_type === 'account' ? 'selected' : '' }}>Account</option>
                                                 </select>
-                                                <label for="" class="form-label">Remark</label>
-                                                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" value="{{ $data->remark }}" />
+                                                <div class="payable-section" style="{{ $data->charge_type === 'account' ? 'display: none;' : '' }}">
+                                                    <select class="form-control select2 form-select" data-order-id="{{ $data->payable_id }}" name="detail_order" data-placeholder="Choose One" onchange="getData(this)">
+                                                        <option value="{{ $data->payable_id }}">{{ $data->payable->transaction }}</option>
+                                                        @foreach($purchaseOrder as $i)
+                                                            @if($data->payable_id !== $i->id)
+                                                            <option value="{{ $i->id }}" {{ $i->id === $data->payable_id ? "selected" : "" }}>{{ $i->transaction }}</option>
+                                                            @endif
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="account-section" style="{{ $data->charge_type === 'payable' ? 'display: none;' : '' }}">
+                                                    <input type="text" class="form-control account-description" name="description" placeholder="Enter description" value="{{ $data->description }}"/>
+                                                </div>
                                             </td>
                                             <td>
+                                                @if($data->charge_type === 'payable' && $data->payable)
                                                 <input type="date" class="form-control" readonly name="detail_date" value="{{ $data->payable->date_order }}"/>
+                                                @else
+                                                <input type="date" class="form-control" name="detail_date" value="{{ $data->created_at ? $data->created_at->format('Y-m-d') : '' }}"/>
+                                                @endif
                                             </td>
                                             <td>
+                                                @if($data->charge_type === 'payable' && $data->payable)
                                                 <input type="text" class="form-control" readonly name="detail_jumlah" value="{{ number_format($data->payable->total-$data->payable->dp-$data->getDpPaymentBefore($data->head_id),2,'.',',') }}"/>
+                                                @else
+                                                <input type="text" class="form-control amount-input" name="detail_jumlah" placeholder="Enter amount" value="{{ number_format($data->amount, 2, '.', ',') }}" onchange="getTotal(this)"/>
+                                                @endif
                                                 <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
                                                     <input type="checkbox" class="custom-control-input" name="other_currency" value="{{ isset($data->currency_via_id) ? 1 : 0 }}" onchange="changeOpsi(this); getTotal(this)" {{ isset($data->currency_via_id) ? "checked" : "" }}>
                                                     <span class="custom-control-label form-label">Mata Uang Lain</span>
@@ -232,6 +247,8 @@
                                                 <select class="form-control select2 form-select coa-ap-select" data-placeholder="Choose One" name="account_id" data-selected="{{ $data->account_id }}">
                                                     <option label="Choose One" selected disabled></option>
                                                 </select>
+                                                <label class="form-label">Remark</label>
+                                                <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" value="{{ $data->remark }}" />
                                             </td>
                                             <td>
                                                 <div class="d-flex justify-content-between">
@@ -1209,18 +1226,25 @@
             var formTemplate = `
             <td></td>
             <td>
-                <select class="form-control select2 form-select" name="detail_order" data-placeholder="Choose One" onchange="getData(this)">
-                    <option label="Choose One" selected disabled></option>
-                    ${opsi}
+                <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
+                    <option value="payable">Payable</option>
+                    <option value="account">Account</option>
                 </select>
-                <label for="" class="form-label">Remark</label>
-                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
+                <div class="payable-section">
+                    <select class="form-control select2 form-select" name="detail_order" data-placeholder="Choose One" onchange="getData(this)">
+                        <option label="Choose One" selected disabled></option>
+                        ${opsi}
+                    </select>
+                </div>
+                <div class="account-section" style="display: none;">
+                    <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
+                </div>
             </td>
             <td>
                 <input type="date" class="form-control" readonly name="detail_date" />
             </td>
             <td>
-                <input type="text" class="form-control" readonly name="detail_jumlah"/>
+                <input type="text" class="form-control amount-input" name="detail_jumlah" placeholder="Enter amount" onchange="getTotal(this)"/>
                 <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
                     <input type="checkbox" class="custom-control-input" name="other_currency" value="0" onchange="changeOpsi(this); getTotal(this)">
                     <span class="custom-control-label form-label">Mata Uang Lain</span>
@@ -1259,6 +1283,8 @@
                 <select class="form-control select2 form-select coa-ap-select" data-placeholder="Choose One" name="account_id">
                     <option label="Choose One" selected disabled></option>
                 </select>
+                <label class="form-label">Remark</label>
+                <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" />
             </td>
             <td>
                 <div class="d-flex justify-content-between">
@@ -1688,6 +1714,33 @@
                         }
                     }
                 })
+            }
+        }
+
+        function toggleChargeType(element) {
+            const row = element.closest('tr');
+            const chargeType = element.value;
+            const coaApSelect = $(row.querySelector('.coa-ap-select'));
+            const payableSection = row.querySelector('.payable-section');
+            const accountSection = row.querySelector('.account-section');
+            const amountInput = row.querySelector('input[name="detail_jumlah"]');
+            const dateInput = row.querySelector('input[name="detail_date"]');
+            
+            if (chargeType === 'account') {
+                payableSection.style.display = 'none';
+                accountSection.style.display = 'block';
+                coaApSelect.prop('disabled', false);
+                coaApSelect.val('').trigger('change');
+                amountInput.removeAttribute('readonly');
+                dateInput.value = '';
+                dateInput.removeAttribute('readonly');
+            } else {
+                payableSection.style.display = 'block';
+                accountSection.style.display = 'none';
+                coaApSelect.prop('disabled', false);
+                coaApSelect.val('').trigger('change');
+                amountInput.setAttribute('readonly', 'readonly');
+                dateInput.setAttribute('readonly', 'readonly');
             }
         }
     </script>

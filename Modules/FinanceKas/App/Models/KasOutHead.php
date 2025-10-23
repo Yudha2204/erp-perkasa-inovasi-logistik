@@ -73,6 +73,7 @@ class KasOutHead extends Model
     {
         $jurnal = BalanceAccount::where('transaction_type_id', 5)
                     ->where('transaction_id', $this->id)
+                    ->where('currency_id', $this->currency_id)
                     ->get();
         return $jurnal;
     }
