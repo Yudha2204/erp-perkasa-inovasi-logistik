@@ -26,6 +26,16 @@ class RecieveDetail extends Model
     {
         return $this->belongsTo(InvoiceHead::class, 'invoice_id', 'id');
     }
+    
+    public function isAccountCharge()
+    {
+        return $this->charge_type === 'account';
+    }
+    
+    public function isInvoiceCharge()
+    {
+        return $this->charge_type === 'invoice';
+    }
 
     public function currency_via()
     {
@@ -37,6 +47,19 @@ class RecieveDetail extends Model
     }
     public function getTotalAttribute()
     {
+        // Handle account-based charges
+        if ($this->charge_type === 'account') {
+            $amount = $this->amount ?? 0;
+            $discount = $this->discount_nominal;
+            $discount_type = $this->discount_type;
+            
+            if($discount_type === "persen") {
+                return $amount-(($discount/100)*$amount);
+            }
+            return $amount-$discount;
+        }
+        
+        // Handle invoice-based charges (existing logic)
         $discount = $this->discount_nominal;
         $discount_type = $this->discount_type;
         $amount = $this->invoice->total;
@@ -65,6 +88,17 @@ class RecieveDetail extends Model
     {
         $discount = $this->discount_nominal;
         $discount_type = $this->discount_type;
+        
+        // Handle account-based charges
+        if ($this->charge_type === 'account') {
+            $amount = $this->amount ?? 0;
+            if($discount_type === "persen") {
+                return ($discount/100)*$amount;
+            }
+            return $discount;
+        }
+        
+        // Handle invoice-based charges (existing logic)
         $amount = $this->invoice->total;
         if($this->currency_via_id) {
             $exchange = ExchangeRate::find($this->currency_via_id);

@@ -234,17 +234,24 @@ class ReceivePaymentController extends Controller
             $allDetails = [];
             $tax_journal = [];
             $ar_jourjal = [];
+            $account_charges = []; // Track account charges for journal entries
             $formData = json_decode($request->input('form_data'), true);
             $totalDiscount = 0;
             foreach ($formData as $idx => $data) {
                 $tmpDiscount = 0;
-                $invoice_id = $data["detail_invoice"];
-                if(!$invoice_id) {
+                $invoice_id = $data["detail_invoice"] ?? null;
+                $charge_type = $data["charge_type"] ?? 'invoice';
+                
+                // Skip if no invoice_id and not account charge
+                if(!$invoice_id && $charge_type !== 'account') {
                     continue;
                 }
-                if(in_array($invoice_id, $allDetails)) {
+                
+                // For invoice charges, check if already processed
+                if($charge_type === 'invoice' && $invoice_id && in_array($invoice_id, $allDetails)) {
                     continue;
                 }
+                
                 $remark = $data['detail_remark'];
                 $discount_type = $data['detail_discount_type'];
                 $discount_nominal = $this->numberToDatabase($data['detail_discount_nominal']);
@@ -291,11 +298,13 @@ class ReceivePaymentController extends Controller
                     $dp_type = $data["detail_dp_type"];
                     $dp_nominal = $this->numberToDatabase($data["detail_dp_nominal"]);
                 } else {
-                    $invoice = InvoiceHead::find($invoice_id);
+                    // Only process invoice logic for invoice charges
+                    if($charge_type === 'invoice' && $invoice_id) {
+                        $invoice = InvoiceHead::find($invoice_id);
 
-                    $invoice->update([
-                        "status" => "paid"
-                    ]);
+                        $invoice->update([
+                            "status" => "paid"
+                        ]);
 
                     foreach($invoice->details as $d) {
                         $totalFull = ($d->price*$d->quantity);
@@ -388,11 +397,12 @@ class ReceivePaymentController extends Controller
                             $head->update(['status' => 'open']);
                         }
                     }
+                    } // End of invoice processing
                 }
 
                 $detail = [
                     'head_id' => $head_id,
-                    'invoice_id' => $invoice_id,
+                    'invoice_id' => $charge_type === 'invoice' ? $invoice_id : null,
                     'discount_type' => $discount_type,
                     'discount_nominal' => $discount_nominal,
                     'dp_type' => $dp_type,
@@ -401,11 +411,26 @@ class ReceivePaymentController extends Controller
                     'amount_via' => $amount_via,
                     'remark' => $remark,
                     'account_id' => $account_id_detail,
+                    'charge_type' => $charge_type,
+                    'amount' => $charge_type === 'account' ? $amount : null,
+                    'description' => $charge_type === 'account' ? ($data['description'] ?? null) : null,
                 ];
 
-                $allDetails[] = $invoice_id;
+                // Only add to allDetails if it's an invoice charge
+                if($charge_type === 'invoice' && $invoice_id) {
+                    $allDetails[] = $invoice_id;
+                }
 
                 RecieveDetail::create($detail);
+                
+                // Collect account charges for journal entries
+                if($charge_type === 'account') {
+                    $account_charges[] = [
+                        'amount' => $amount,
+                        'account_id' => $account_id_detail,
+                        'description' => $data['description'] ?? null
+                    ];
+                }
             }
 
             if($isDiscount === true) {
@@ -428,10 +453,22 @@ class ReceivePaymentController extends Controller
                     // [0, $totBalance+$display_dp_invoice, $piutang_usaha_id]
                 ];
             }
+            
+            // Add account charges to flow
+            $account_charge_flow = [];
+            foreach($account_charges as $charge) {
+                $account_charge_flow[] = [
+                    0, // debit
+                    $charge['amount'], // credit
+                    $charge['account_id'] // account_id
+                ];
+            }
+            
             $flow = [
                 ...$flow,
                 ...$ar_journal,
                 ...$tax_journal,
+                ...$account_charge_flow,
             ];
             // return response()->json($flow);
             foreach ($flow as $item) {
@@ -667,15 +704,21 @@ class ReceivePaymentController extends Controller
             $allDetails = [];
             $tax_journal = [];
             $ar_journal = [];
+            $account_charges = []; // Track account charges for journal entries
             $formData = json_decode($request->input('form_data'), true);
             $totalDiscount = 0;
             foreach ($formData as $idx => $data) {
                 $tmpDiscount = 0;
-                $invoice_id = $data["detail_invoice"];
-                if(!$invoice_id) {
+                $invoice_id = $data["detail_invoice"] ?? null;
+                $charge_type = $data["charge_type"] ?? 'invoice';
+                
+                // Skip if no invoice_id and not account charge
+                if(!$invoice_id && $charge_type !== 'account') {
                     continue;
                 }
-                if(in_array($invoice_id, $allDetails)) {
+                
+                // For invoice charges, check if already processed
+                if($charge_type === 'invoice' && $invoice_id && in_array($invoice_id, $allDetails)) {
                     continue;
                 }
                 $remark = $data['detail_remark'];
@@ -724,11 +767,13 @@ class ReceivePaymentController extends Controller
                     $dp_type = $data["detail_dp_type"];
                     $dp_nominal = $this->numberToDatabase($data["detail_dp_nominal"]);
                 } else {
-                    $invoice = InvoiceHead::find($invoice_id);
+                    // Only process invoice logic for invoice charges
+                    if($charge_type === 'invoice' && $invoice_id) {
+                        $invoice = InvoiceHead::find($invoice_id);
 
-                    $invoice->update([
-                        "status" => "paid"
-                    ]);
+                        $invoice->update([
+                            "status" => "paid"
+                        ]);
 
                     foreach($invoice->details as $d) {
                         $totalFull = ($d->price*$d->quantity);
@@ -826,11 +871,12 @@ class ReceivePaymentController extends Controller
                             $head->update(['status' => 'open']);
                         }
                     }
+                    } // End of invoice processing
                 }
 
                 $detail = [
                     'head_id' => $head_id,
-                    'invoice_id' => $invoice_id,
+                    'invoice_id' => $charge_type === 'invoice' ? $invoice_id : null,
                     'discount_type' => $discount_type,
                     'discount_nominal' => $discount_nominal,
                     'dp_type' => $dp_type,
@@ -839,11 +885,26 @@ class ReceivePaymentController extends Controller
                     'amount_via' => $amount_via,
                     'remark' => $remark,
                     'account_id' => $account_id_detail,
+                    'charge_type' => $charge_type,
+                    'amount' => $charge_type === 'account' ? $amount : null,
+                    'description' => $charge_type === 'account' ? ($data['description'] ?? null) : null,
                 ];
 
-                $allDetails[] = $invoice_id;
+                // Only add to allDetails if it's an invoice charge
+                if($charge_type === 'invoice' && $invoice_id) {
+                    $allDetails[] = $invoice_id;
+                }
 
                 RecieveDetail::create($detail);
+                
+                // Collect account charges for journal entries
+                if($charge_type === 'account') {
+                    $account_charges[] = [
+                        'amount' => $amount,
+                        'account_id' => $account_id_detail,
+                        'description' => $data['description'] ?? null
+                    ];
+                }
             }
 
             if($isDiscount === true) {
@@ -867,10 +928,22 @@ class ReceivePaymentController extends Controller
                     // [0, $totBalance+$display_dp_invoice, $piutang_usaha_id]
                 ];
             }
+            
+            // Add account charges to flow
+            $account_charge_flow = [];
+            foreach($account_charges as $charge) {
+                $account_charge_flow[] = [
+                    0, // debit
+                    $charge['amount'], // credit
+                    $charge['account_id'] // account_id
+                ];
+            }
+            
             $flow = [
                 ...$flow,
                 ...$ar_journal,
                 ...$tax_journal,
+                ...$account_charge_flow,
             ];
 
             foreach ($flow as $item) {

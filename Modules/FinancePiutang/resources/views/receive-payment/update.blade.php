@@ -134,7 +134,7 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th style="min-width:15rem;">No Invoice</th>
+                                            <th style="min-width:15rem;">Charge Type / Invoice</th>
                                             <th style="min-width:15rem;">Tanggal</th>
                                             <th style="min-width:10rem;">Jumlah</th>
                                             <th style="min-width:10rem;">Diskon/DP</th>
@@ -148,19 +148,36 @@
                                         <tr class="form-wrapper">
                                             <td></td>
                                             <td>
-                                                <select class="form-control select2 form-select" name="detail_invoice" onchange="getData(this)">
-                                                    @foreach($selectable_invoices as $invoice)
-                                                        <option value="{{ $invoice->id }}" {{ $invoice->id === $data->invoice_id ? "selected" : "" }}>{{ $invoice->transaction }}</option>
-                                                    @endforeach
+                                                <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
+                                                    <option value="invoice" {{ $data->charge_type === 'invoice' ? 'selected' : '' }}>Invoice</option>
+                                                    <option value="account" {{ $data->charge_type === 'account' ? 'selected' : '' }}>Account</option>
                                                 </select>
-                                                <label for="" class="form-label">Remark</label>
-                                                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" value="{{ $data->remark }}" />
+                                                <div class="invoice-section" style="{{ $data->charge_type === 'account' ? 'display: none;' : '' }}">
+                                                    <label class="form-label">Invoice</label>
+                                                    <select class="form-control select2 form-select" name="detail_invoice" onchange="getData(this)">
+                                                        @foreach($selectable_invoices as $invoice)
+                                                            <option value="{{ $invoice->id }}" {{ $invoice->id === $data->invoice_id ? "selected" : "" }}>{{ $invoice->transaction }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="account-section" style="{{ $data->charge_type === 'invoice' ? 'display: none;' : '' }}">
+                                                    <label class="form-label">Description</label>
+                                                    <input type="text" class="form-control account-description" name="description" placeholder="Enter description" value="{{ $data->description }}"/>
+                                                </div>
                                             </td>
                                             <td>
+                                                @if($data->charge_type === 'invoice' && $data->invoice)
                                                 <input type="date" class="form-control" readonly name="detail_date" value="{{ $data->invoice->date_invoice }}"/>
+                                                @else
+                                                <input type="date" class="form-control" name="detail_date" value="{{ $data->created_at ? $data->created_at->format('Y-m-d') : '' }}"/>
+                                                @endif
                                             </td>
                                             <td>
+                                                @if($data->charge_type === 'invoice' && $data->invoice)
                                                 <input type="text" class="form-control" readonly name="detail_jumlah" value="{{ number_format($data->invoice->total-$data->invoice->dp-$data->getDpReceiveBefore($data->head_id),2,'.',',') }}"/>
+                                                @else
+                                                <input type="text" class="form-control amount-input" name="detail_jumlah" placeholder="Enter amount" value="{{ number_format($data->amount, 2, '.', ',') }}" onchange="getTotal(this)"/>
+                                                @endif
                                                 <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
                                                     <input type="checkbox" class="custom-control-input" name="other_currency" value="{{ isset($data->currency_via_id) ? 1 : 0 }}" onchange="changeOpsi(this); getTotal(this)" {{ isset($data->currency_via_id) ? "checked" : "" }}>
                                                     <span class="custom-control-label form-label">Mata Uang Lain</span>
@@ -213,6 +230,8 @@
                                                 <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id" data-selected="{{ $data->account_id }}">
                                                     <option label="Choose One" selected disabled></option>
                                                 </select>
+                                                <label class="form-label">Remark</label>
+                                                <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" value="{{ $data->remark }}" />
                                             </td>
                                             <td>
                                                 <div class="d-flex justify-content-between">
@@ -1243,18 +1262,27 @@
             var formTemplate = `
             <td></td>
             <td>
-                <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
-                    <option label="Choose One" selected disabled></option>
-                    ${opsi}
+                <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
+                    <option value="invoice">Invoice</option>
+                    <option value="account">Account</option>
                 </select>
-                <label for="" class="form-label">Remark</label>
-                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
+                <div class="invoice-section">
+                    <label class="form-label">Invoice</label>
+                    <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
+                        <option label="Choose One" selected disabled></option>
+                        ${opsi}
+                    </select>
+                </div>
+                <div class="account-section" style="display: none;">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
+                </div>
             </td>
             <td>
                 <input type="date" class="form-control" readonly name="detail_date" />
             </td>
             <td>
-                <input type="text" class="form-control" readonly name="detail_jumlah"/>
+                <input type="text" class="form-control amount-input" name="detail_jumlah" placeholder="Enter amount" onchange="getTotal(this)"/>
                 <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
                     <input type="checkbox" class="custom-control-input" name="other_currency" value="0" onchange="changeOpsi(this); getTotal(this)">
                     <span class="custom-control-label form-label">Mata Uang Lain</span>
@@ -1293,6 +1321,8 @@
                 <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id">
                     <option label="Choose One" selected disabled></option>
                 </select>
+                <label class="form-label">Remark</label>
+                <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" />
             </td>
             <td>
                 <div class="d-flex justify-content-between">
@@ -1424,6 +1454,31 @@
             row.querySelector('input[name="detail_discount_nominal"]').value = 0
             row.querySelector('input[name="detail_total"]').value = ''
             hideButton()
+
+            // Check for duplicate invoices
+            if (invoice) {
+                const allRows = document.querySelectorAll('.form-wrapper');
+                let duplicateFound = false;
+                
+                allRows.forEach(function(otherRow) {
+                    if (otherRow !== row) {
+                        const otherInvoiceSelect = otherRow.querySelector('select[name="detail_invoice"]');
+                        const otherChargeType = otherRow.querySelector('select[name="charge_type"]');
+                        
+                        if (otherInvoiceSelect && otherChargeType && otherChargeType.value === 'invoice') {
+                            if (otherInvoiceSelect.value === invoice) {
+                                duplicateFound = true;
+                            }
+                        }
+                    }
+                });
+                
+                if (duplicateFound) {
+                    alert('This invoice has already been selected in another row. Please choose a different invoice.');
+                    element.value = '';
+                    return;
+                }
+            }
 
             $.ajax({
                 headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
@@ -1635,5 +1690,55 @@
                 })
             }
         }
+
+        function toggleChargeType(element) {
+            const row = element.closest('tr');
+            const chargeType = element.value;
+            const coaArSelect = $(row.querySelector('.coa-ar-select'));
+            const invoiceSection = row.querySelector('.invoice-section');
+            const accountSection = row.querySelector('.account-section');
+            const amountInput = row.querySelector('input[name="detail_jumlah"]');
+            const dateInput = row.querySelector('input[name="detail_date"]');
+            
+            if (chargeType === 'account') {
+                invoiceSection.style.display = 'none';
+                accountSection.style.display = 'block';
+                coaArSelect.prop('disabled', false);
+                coaArSelect.val('').trigger('change');
+                amountInput.removeAttribute('readonly');
+                dateInput.value = '';
+                dateInput.removeAttribute('readonly');
+            } else {
+                invoiceSection.style.display = 'block';
+                accountSection.style.display = 'none';
+                amountInput.setAttribute('readonly', 'readonly');
+                dateInput.setAttribute('readonly', 'readonly');
+            }
+        }
+
+        function populateAccountOptions(currencyId) {
+            const accountSelects = document.querySelectorAll('.coa-ar-select');
+            accountSelects.forEach(function(select) {
+                const $select = $(select);
+                $select.html('<option label="Choose One" selected disabled></option>');
+                
+                $.ajax({
+                    headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '{{ route('finance.master-data.account') }}',
+                    data: { 'account_type_id': 4 },
+                    success: function(response) {
+                        if(response.data) {
+                            response.data.forEach(function(account) {
+                                const newOption = new Option(account.account_name, account.id);
+                                $select.append(newOption);
+                            });
+                        }
+                    }
+                });
+            });
+        }
+
     </script>
 @endpush

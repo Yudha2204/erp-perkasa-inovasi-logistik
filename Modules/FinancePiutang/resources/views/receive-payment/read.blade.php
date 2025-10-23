@@ -120,7 +120,7 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th style="min-width:15rem;">No Invoice</th>
+                                            <th style="min-width:15rem;">Charge Type / Invoice</th>
                                             <th style="min-width:15rem;">Tanggal</th>
                                             <th style="min-width:10rem;">Jumlah</th>
                                             <th style="min-width:10rem;">Diskon/DP</th>
@@ -134,22 +134,31 @@
                                         <tr class="form-wrapper">
                                             <td></td>
                                             <td>
-                                                @if($data->invoice)
-                                                <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" disabled>
-                                                    <option value="{{ $data->invoice_id }}">{{ $data->invoice->transaction }}</option>
+                                                <select class="form-control select2 form-select" disabled>
+                                                    <option value="{{ $data->charge_type }}" selected>{{ ucfirst($data->charge_type) }}</option>
                                                 </select>
+                                                @if($data->charge_type === 'invoice' && $data->invoice)
+                                                <label class="form-label">Invoice</label>
+                                                <select class="form-control select2 form-select" disabled>
+                                                    <option value="{{ $data->invoice_id }}" selected>{{ $data->invoice->transaction }}</option>
+                                                </select>
+                                                @elseif($data->charge_type === 'account')
+                                                <label class="form-label">Description</label>
+                                                <input type="text" class="form-control" value="{{ $data->description }}" readonly/>
                                                 @endif
-                                                <label for="" class="form-label">Remark</label>
-                                                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" value="{{ $data->remark }}" readonly/>
                                             </td>
                                             <td>
-                                                @if($data->invoice)
+                                                @if($data->charge_type === 'invoice' && $data->invoice)
                                                 <input type="date" class="form-control" readonly name="detail_date" value="{{ $data->invoice->date_invoice }}" readonly/>
+                                                @else
+                                                <input type="date" class="form-control" readonly name="detail_date" value="{{ $data->created_at ? $data->created_at->format('Y-m-d') : '' }}" readonly/>
                                                 @endif
                                             </td>
                                             <td>
-                                                @if($data->invoice)
+                                                @if($data->charge_type === 'invoice' && $data->invoice)
                                                 <input type="text" class="form-control" readonly name="detail_jumlah" value="{{ number_format($data->invoice->total-$data->invoice->dp-$data->getDpReceiveBefore($data->head_id),2,'.',',') }}" readonly/>
+                                                @else
+                                                <input type="text" class="form-control" readonly name="detail_jumlah" value="{{ number_format($data->amount, 2, '.', ',') }}" readonly/>
                                                 @endif
                                                 @if(isset($data->currency_via_id))
                                                 <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
@@ -201,6 +210,8 @@
                                                 <select class="form-control select2 form-select" disabled>
                                                     <option value="{{ $data->account->id }}">{{ $data->account->account_name }}</option>
                                                 </select>
+                                                <label class="form-label">Remark</label>
+                                                <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" value="{{ $data->remark }}" readonly/>
                                             </td>
                                             <td>
                                                 <div class="d-flex justify-content-between">
