@@ -65,7 +65,7 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="" class="form-label">Nomor Transaksi</label>
-                                        <input type="text" name="no_transaction" id="no-transaction" class="form-control" placeholder="Input Transaction" />
+                                        <input type="text" name="no_transaction" id="no-transaction" class="form-control" value="{{ $transaction_number }}" readonly />
                                     </div>
                                 </div>
                             </div>
@@ -228,6 +228,23 @@
                                             <td>
                                                 <div class="d-flex justify-content-between">
                                                     <div>
+                                                        <label for="" class="form-label">PPh</label>
+                                                    </div>
+                                                    <div style="width: 150px">
+                                                        <select class="form-control select2 form-select" data-placeholder="Tax" id="pph_tax_master">
+                                                            <option label="pph tax"></option>
+                                                            @foreach ($taxs as $tax)
+                                                                <option value="{{ $tax->id }}:{{ $tax->tax_rate }}">{{ $tax->tax_rate }}%</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
                                                         <label for="" class="form-label">PPn</label>
                                                     </div>
                                                     <div style="width: 150px">
@@ -244,7 +261,7 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between">
-                                                    Total Pajak
+                                                    Total PPh
                                                     <input type="text" style="width: 50%" class="form-control" id="display_pajak" name="display_pajak" readonly value="0" />
                                                 </div>
                                             </td>
@@ -273,7 +290,7 @@
                                 <div class="col-md-12">
                                     <div class="btn-list text-end">
                                         <a href="javascript: history.go(-1)" class="btn btn-default">Cancel</a>
-                                        <button id="submit-all-form" type="submit" class="btn btn-primary"  style="display: none;">Save</button>
+                                        <button id="submit-all-form" type="button" class="btn btn-primary"  style="display: none;">Save</button>
                                     </div>
                                 </div>
                             </div>
@@ -892,6 +909,13 @@
         });
 
         $(document).ready(function () {
+            $('#pph_tax_master').on('change', function() {
+                var selectedTax = $(this).val();
+                $('.form-wrapper').each(function() {
+                    $(this).find('select[name="pajak_detail"]').val(selectedTax).trigger('change');
+                });
+            });
+
             // show beneficiary - siwft code if select checkbox vendor value
             $("input:checkbox[name^='contact_type']").on('change', function () {
                 if ($('#contact_type2').prop('checked')) {
@@ -1235,7 +1259,8 @@
             $('#submit-all-form').show()
         }
 
-        document.getElementById('submit-all-form').addEventListener('click', function() {
+        document.getElementById('submit-all-form').addEventListener('click', function(event) {
+            event.preventDefault();
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
 
@@ -1254,8 +1279,49 @@
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
 
-            // Mengirimkan formulir ke backend
-            document.forms['dynamic-form'].submit();
+            const form = $('form[name="dynamic-form"]');
+            const formDataToSend = new FormData(form[0]);
+
+            $.ajax({
+                url: form.attr('action'),
+                type: 'POST',
+                data: formDataToSend,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(data) {
+                    sessionStorage.setItem('successMessage', data.message);
+                    window.location.href = "{{ route('finance.payments.account-payable.index') }}";
+                },
+                error: function(xhr, status, error) {
+                    const data = xhr.responseJSON;
+                    let errorCard = $('.card-body').first();
+                    let errorAlert = errorCard.find('.alert-danger');
+
+                    if (errorAlert.length === 0) {
+                        errorAlert = $('<div class="alert alert-danger" role="alert" tabindex="-1"><button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button><strong>Whoops!</strong><ul></ul></div>');
+                        errorCard.prepend(errorAlert);
+                    }
+
+                    let errorList = errorAlert.find('ul');
+                    errorList.empty();
+
+                    for (const key in data.errors) {
+                        if (Object.hasOwnProperty.call(data.errors, key)) {
+                            const messages = data.errors[key];
+                            messages.forEach(message => {
+                                errorList.append($('<li>').text(message));
+                            });
+                        }
+                    }
+
+                    errorAlert.show();
+                    errorAlert.focus();
+                }
+            });
         });
 
         function deleteList(element) {

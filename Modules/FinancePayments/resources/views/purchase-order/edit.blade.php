@@ -22,7 +22,7 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="card">
-                        <div class="card-body">                
+                        <div class="card-body">
                             @if ($errors->any())
                                 <div class="alert alert-danger" role="alert">
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button>
@@ -40,7 +40,7 @@
                                         <label class="form-label">Vendor</label>
                                         <select class="form-control select2 form-select" data-placeholder="Choose One" name="vendor_id" id="vendor_id">
                                             @foreach ($vendor as $v)
-                                                <option value="{{ $v->id }}" {{ $v->id === $order->vendor_id ? "selected" : "" }}>{{ $v->customer_name }}</option>   
+                                                <option value="{{ $v->id }}" {{ $v->id === $order->vendor_id ? "selected" : "" }}>{{ $v->customer_name }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -51,7 +51,7 @@
                                         <select class="form-control select2 form-select" data-placeholder="Choose One" name="customer_id" id="customer_id">
                                             <option value="null">No Customer</option>
                                             @foreach ($customer as $c)
-                                                <option value="{{ $c->id }}" {{ $order->customer_id === $c->id ? "selected" : "" }}>{{ $c->customer_name }}</option>   
+                                                <option value="{{ $c->id }}" {{ $order->customer_id === $c->id ? "selected" : "" }}>{{ $c->customer_name }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -75,7 +75,7 @@
                                         <label for="" class="form-label">Currency</label>
                                         <select class="form-control select2 form-select" data-placeholder="Choose One" name="currency_id" id="currency_id">
                                             @foreach ($currencies as $c)
-                                                <option value="{{ $c->id }}" {{ $c->id === $order->currency_id ? "selected" : "" }}>{{ $c->initial }}</option>   
+                                                <option value="{{ $c->id }}" {{ $c->id === $order->currency_id ? "selected" : "" }}>{{ $c->initial }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -253,7 +253,7 @@
                                 <div class="col-md-12">
                                     <div class="btn-list text-end">
                                         <a href="javascript: history.go(-1)" class="btn btn-default">Cancel</a>
-                                        <button id="submit-all-form" type="submit" class="btn btn-primary"  style="display: none;">Save</button>
+                                        <button id="submit-all-form" type="button" class="btn btn-primary"  style="display: none;">Save</button>
                                     </div>
                                 </div>
                             </div>
@@ -276,7 +276,7 @@
 
     <script>
         $(document).ready(function() {
-            calculate(); 
+            calculate();
             total();
         });
 
@@ -340,7 +340,7 @@
         function toUpdate(element) {
             const querySelector = element.closest('tr').querySelector('input[name="operator"]')
             const id = querySelector.value.split(':')[0]
-            if (id !== "0") { 
+            if (id !== "0") {
                 querySelector.value = `${id}:update`
             }
         }
@@ -351,7 +351,7 @@
             var grand_disc = 0;
             var grand_pajak = 0;
             forms.forEach(function(form) {
-                if (form.style.display === 'none') return; 
+                if (form.style.display === 'none') return;
 
                 var input = form.querySelectorAll("input, select");
                 var quantity = input[2].value
@@ -401,7 +401,7 @@
 
             var totalDetailInputs = document.querySelectorAll('input[name="total_detail"]');
             totalDetailInputs.forEach(function(input) {
-                if (input.closest('tr').style.display === 'none') return; 
+                if (input.closest('tr').style.display === 'none') return;
                 totalDetail = input.value;
                 if(!totalDetail) totalDetail = "0";
                 total += parseFloat(totalDetail.replace(/,/g, '')) || 0;
@@ -433,9 +433,9 @@
             const operatorInput = row.querySelector('input[name="operator"]');
             const id = operatorInput.value.split(':')[0];
 
-            if (id === '0') { 
+            if (id === '0') {
                 row.remove();
-            } else { 
+            } else {
                 row.style.display = 'none';
                 operatorInput.value = `${id}:delete`;
             }
@@ -447,7 +447,8 @@
             $('#submit-all-form').hide()
         }
 
-        document.getElementById('submit-all-form').addEventListener('click', function() {
+        document.getElementById('submit-all-form').addEventListener('click', function(event) {
+            event.preventDefault();
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
 
@@ -465,7 +466,49 @@
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
 
-            document.forms['dynamic-form'].submit();
+            const form = $('form[name="dynamic-form"]');
+            const formDataToSend = new FormData(form[0]);
+
+            $.ajax({
+                url: form.attr('action'),
+                type: 'POST',
+                data: formDataToSend,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(data) {
+                    sessionStorage.setItem('successMessage', data.message);
+                    window.location.href = "{{ route('finance.payments.account-payable.index') }}";
+                },
+                error: function(xhr, status, error) {
+                    const data = xhr.responseJSON;
+                    let errorCard = $('.card-body').first();
+                    let errorAlert = errorCard.find('.alert-danger');
+
+                    if (errorAlert.length === 0) {
+                        errorAlert = $('<div class="alert alert-danger" role="alert" tabindex="-1"><button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button><strong>Whoops!</strong><ul></ul></div>');
+                        errorCard.prepend(errorAlert);
+                    }
+
+                    let errorList = errorAlert.find('ul');
+                    errorList.empty();
+
+                    for (const key in data.errors) {
+                        if (Object.hasOwnProperty.call(data.errors, key)) {
+                            const messages = data.errors[key];
+                            messages.forEach(message => {
+                                errorList.append($('<li>').text(message));
+                            });
+                        }
+                    }
+
+                    errorAlert.show();
+                    errorAlert.focus();
+                }
+            });
         });
 
     </script>
