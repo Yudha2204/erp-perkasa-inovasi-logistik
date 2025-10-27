@@ -31,7 +31,13 @@ class CheckTransactionDate
         $startEntryPeriod = $this->getCachedStartEntryPeriod();
 
         if (!$startEntryPeriod) {
-            return $next($request);
+        return $next($request);
+
+            return response()->json([
+                'errors' => [
+                    "Setup" => ["Cant do A Transaction Before Setup"]
+                ]
+            ], 422);
         }
 
         // Validate date fields

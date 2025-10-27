@@ -241,17 +241,17 @@ class ReceivePaymentController extends Controller
                 $tmpDiscount = 0;
                 $invoice_id = $data["detail_invoice"] ?? null;
                 $charge_type = $data["charge_type"] ?? 'invoice';
-                
+
                 // Skip if no invoice_id and not account charge
                 if(!$invoice_id && $charge_type !== 'account') {
                     continue;
                 }
-                
+
                 // For invoice charges, check if already processed
                 if($charge_type === 'invoice' && $invoice_id && in_array($invoice_id, $allDetails)) {
                     continue;
                 }
-                
+
                 $remark = $data['detail_remark'];
                 $discount_type = $data['detail_discount_type'];
                 $discount_nominal = $this->numberToDatabase($data['detail_discount_nominal']);
@@ -325,7 +325,7 @@ class ReceivePaymentController extends Controller
                         }else{
                             $tax = MasterTax::find($d->tax_id);
                             $pajak += ($tax->tax_rate/100) * $totalFull;
-                            $totalFull -= $pajak;
+                            // $totalFull -= $pajak;
                             if($tax->tax_rate > 0 && !$tax->account_id){
                                 DB::rollBack();
                                 // dd($e->getMessage());
@@ -422,7 +422,7 @@ class ReceivePaymentController extends Controller
                 }
 
                 RecieveDetail::create($detail);
-                
+
                 // Collect account charges for journal entries
                 if($charge_type === 'account') {
                     $account_charges[] = [
@@ -453,7 +453,7 @@ class ReceivePaymentController extends Controller
                     // [0, $totBalance+$display_dp_invoice, $piutang_usaha_id]
                 ];
             }
-            
+
             // Add account charges to flow
             $account_charge_flow = [];
             foreach($account_charges as $charge) {
@@ -463,7 +463,7 @@ class ReceivePaymentController extends Controller
                     $charge['account_id'] // account_id
                 ];
             }
-            
+
             $flow = [
                 ...$flow,
                 ...$ar_journal,
@@ -711,12 +711,12 @@ class ReceivePaymentController extends Controller
                 $tmpDiscount = 0;
                 $invoice_id = $data["detail_invoice"] ?? null;
                 $charge_type = $data["charge_type"] ?? 'invoice';
-                
+
                 // Skip if no invoice_id and not account charge
                 if(!$invoice_id && $charge_type !== 'account') {
                     continue;
                 }
-                
+
                 // For invoice charges, check if already processed
                 if($charge_type === 'invoice' && $invoice_id && in_array($invoice_id, $allDetails)) {
                     continue;
@@ -793,7 +793,7 @@ class ReceivePaymentController extends Controller
                         }else{
                             $tax = MasterTax::find($d->tax_id);
                             $pajak += ($tax->tax_rate/100) * $totalFull;
-                            $totalFull -= $pajak;
+                            // $totalFull -= $pajak;
                             if($tax->tax_rate > 0 && !$tax->account_id){
                                 DB::rollBack();
                                 // dd($e->getMessage());
@@ -896,7 +896,7 @@ class ReceivePaymentController extends Controller
                 }
 
                 RecieveDetail::create($detail);
-                
+
                 // Collect account charges for journal entries
                 if($charge_type === 'account') {
                     $account_charges[] = [
@@ -928,7 +928,7 @@ class ReceivePaymentController extends Controller
                     // [0, $totBalance+$display_dp_invoice, $piutang_usaha_id]
                 ];
             }
-            
+
             // Add account charges to flow
             $account_charge_flow = [];
             foreach($account_charges as $charge) {
@@ -938,7 +938,7 @@ class ReceivePaymentController extends Controller
                     $charge['account_id'] // account_id
                 ];
             }
-            
+
             $flow = [
                 ...$flow,
                 ...$ar_journal,

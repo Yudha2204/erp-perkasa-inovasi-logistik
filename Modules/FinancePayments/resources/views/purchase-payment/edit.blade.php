@@ -332,7 +332,7 @@
                                 <div class="col-md-12">
                                     <div class="btn-list text-end">
                                         <a href="javascript: history.go(-1)" class="btn btn-default">Cancel</a>
-                                        <button id="submit-all-form" style="display: none;" type="submit" class="btn btn-primary">Save</button>
+                                        <button id="submit-all-form" style="display: none;" type="button" class="btn btn-primary">Save</button>
                                     </div>
                                 </div>
                             </div>
@@ -1195,7 +1195,8 @@
             })
         }
 
-        document.getElementById('submit-all-form').addEventListener('click', function() {
+        document.getElementById('submit-all-form').addEventListener('click', function(event) {
+            event.preventDefault();
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
 
@@ -1214,8 +1215,50 @@
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
 
-            // Mengirimkan formulir ke backend
-            document.forms['dynamic-form'].submit();
+            const form = $('form[name="dynamic-form"]');
+            const formDataToSend = new FormData(form[0]);
+
+            $.ajax({
+                url: form.attr('action'),
+                type: 'POST',
+                data: formDataToSend,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(data) {
+                    sessionStorage.setItem('successMessage', data.message);
+                    window.location.href = "{{ route('finance.payments.purchase-payment.index') }}";
+                },
+                error: function(xhr, status, error) {
+                    const data = xhr.responseJSON;
+                    let errorCard = $('.card-body').first();
+                    let errorAlert = errorCard.find('.alert-danger');
+
+                    if (errorAlert.length === 0) {
+                        errorAlert = $('<div class="alert alert-danger" role="alert" tabindex="-1"><button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button><strong>Whoops!</strong><ul></ul></div>');
+                        errorCard.prepend(errorAlert);
+                    }
+
+                    let errorList = errorAlert.find('ul');
+                    errorList.empty();
+
+                    for (const key in data.errors) {
+                        if (Object.hasOwnProperty.call(data.errors, key)) {
+                            const messages = data.errors[key];
+                            console.log(messages)
+                            messages.forEach(message => {
+                                errorList.append($('<li>').text(message));
+                            });
+                        }
+                    }
+
+                    errorAlert.show();
+                    errorAlert.focus();
+                }
+            });
         });
 
         document.getElementById('add-form').addEventListener('click', function() {
@@ -1429,18 +1472,25 @@
                             var formTemplate = `
                             <td></td>
                             <td>
-                                <select class="form-control select2 form-select" name="detail_order" data-placeholder="Choose One" onchange="getData(this)">
-                                    <option label="Choose One" selected disabled></option>
-                                    ${opsi}
+                                <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
+                                    <option value="payable">Payable</option>
+                                    <option value="account">Account</option>
                                 </select>
-                                <label for="" class="form-label">Remark</label>
-                                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
+                                <div class="payable-section">
+                                    <select class="form-control select2 form-select" name="detail_order" data-placeholder="Choose One" onchange="getData(this)">
+                                        <option label="Choose One" selected disabled></option>
+                                        ${opsi}
+                                    </select>
+                                </div>
+                                <div class="account-section" style="display: none;">
+                                    <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
+                                </div>
                             </td>
                             <td>
                                 <input type="date" class="form-control" readonly name="detail_date" />
                             </td>
                             <td>
-                                <input type="text" class="form-control" readonly name="detail_jumlah"/>
+                                <input type="text" class="form-control amount-input" name="detail_jumlah" placeholder="Enter amount" onchange="getTotal(this)"/>
                                 <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
                                     <input type="checkbox" class="custom-control-input" name="other_currency" value="0" onchange="changeOpsi(this); getTotal(this)">
                                     <span class="custom-control-label form-label">Mata Uang Lain</span>
@@ -1476,6 +1526,13 @@
                                 <input type="text" class="form-control total_input" readonly name="detail_total"/>
                             </td>
                             <td>
+                                <select class="form-control select2 form-select coa-ap-select" data-placeholder="Choose One" name="account_id">
+                                    <option label="Choose One" selected disabled></option>
+                                </select>
+                                <label class="form-label">Remark</label>
+                                <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" />
+                            </td>
+                            <td>
                                 <div class="d-flex justify-content-between">
                                     <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
                                 </div>
@@ -1485,6 +1542,12 @@
                             newFormWrapper.innerHTML = formTemplate;
                             formContainer.appendChild(newFormWrapper);
                             getCurrencyVia()
+                        } else {
+                            $('select[name="detail_order"]').each(function() {
+                                let current_value = $(this).data('order-id');
+                                $(this).html(opsi);
+                                $(this).val(current_value).trigger('change');
+                            });
                         }
 
                         $('.select2').select2({
@@ -1507,6 +1570,8 @@
             const order = $(element).val()
 
             const row = element.closest('tr')
+
+            $(row.querySelector('.coa-ap-select')).prop('disabled', false);
 
             row.querySelector('input[name="detail_date"]').value = ''
             row.querySelector('input[name="detail_jumlah"]').value = ''
@@ -1534,6 +1599,11 @@
                         row.querySelector('input[name="detail_jumlah"]').value = total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         row.querySelector('input[name="detail_total"]').value = total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         row.querySelector('input[name="detail_dp_order_nominal"]').value = (Number(response.data.dp) + Number(response.data.dp_payment)).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        if (response.data.account_id) {
+                            const coaSelect = $(row.querySelector('.coa-ap-select'));
+                            coaSelect.val(response.data.account_id).trigger('change');
+                            coaSelect.prop('disabled', true);
+                        }
                     }
                 }
             })
@@ -1737,8 +1807,6 @@
             } else {
                 payableSection.style.display = 'block';
                 accountSection.style.display = 'none';
-                coaApSelect.prop('disabled', false);
-                coaApSelect.val('').trigger('change');
                 amountInput.setAttribute('readonly', 'readonly');
                 dateInput.setAttribute('readonly', 'readonly');
             }

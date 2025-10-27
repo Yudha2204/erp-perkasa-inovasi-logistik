@@ -92,26 +92,26 @@ class PurchasePaymentController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
         DB::beginTransaction();
         try {
             $validator = Validator::make($request->all(), [
                 'vendor_id'   => 'required',
-                'account_id' => 'required',
+                'head_account_id' => 'required',
                 'date_payment'    => 'required',
                 'currency_head_id' => 'required',
                 'no_transactions' => 'required'
             ], [
                 "vendor_id.required" => "The vendor field is required.",
-                "account_id.required" => "The account name field is required.",
+                "head_account_id.required" => "The account name field is required.",
                 "no_transaction.required" => "The transaction number is required.",
                 "date_payment.required" => "The date is required.",
                 "currency_head_id.required" => "The currency field is required."
             ]);
 
             if ($validator->fails()) {
-                throw new Exception($validator->errors()->first());
+                return response()->json(['errors' => $validator->errors()], 422);
             }
 
             $vendor_id = $request->input('vendor_id');
@@ -182,14 +182,6 @@ class PurchasePaymentController extends Controller
             }
             $diskon_pembelian_id = $diskon_pembelian_id->id;
 
-            // $dp_id = MasterAccount::where('code', "550501")
-            //                         ->where('account_name', 'Uang Muka kepada Vendor')
-            //                         ->where('master_currency_id', $currency_id)->first();
-            // if(!$dp_id) {
-            //     throw new Exception('Please add the account of Uang Muka kepada Vendor with code number is 550501');
-            // }
-            // $dp_id = $dp_id->id;
-
             PaymentHead::create($data);
             $payment = PaymentHead::latest()->first();
             $head_id = $payment->id;
@@ -200,15 +192,17 @@ class PurchasePaymentController extends Controller
             $allDetails = [];
             $account_charges = []; // Track account charges for journal entries
             $formData = json_decode($request->input('form_data'), true);
+            $totalDiscount = 0;
             foreach ($formData as $idx => $data) {
+                $tmpDiscount = 0;
                 $payable_id = $data["detail_order"] ?? null;
                 $charge_type = $data["charge_type"] ?? 'payable';
-                
+
                 // Skip if no payable_id and not account charge
                 if(!$payable_id && $charge_type !== 'account') {
                     continue;
                 }
-                
+
                 // For payable charges, check if already processed
                 if($charge_type === 'payable' && $payable_id && in_array($payable_id, $allDetails)) {
                     continue;
@@ -256,86 +250,94 @@ class PurchasePaymentController extends Controller
                     $dp_type = $data["detail_dp_type"];
                     $dp_nominal = $this->numberToDatabase($data["detail_dp_nominal"]);
                 } else {
-                    $order = OrderHead::find($payable_id);
-                    $total_after_discount = 0;
-                    $totalWithPPn = 0;
-                    foreach($order->details as $d) {
-                        $fullDisc = 0;
+                    if ($charge_type === 'payable' && $payable_id) {
+                        $order = OrderHead::find($payable_id);
+                        $total_after_discount = 0;
 
-                        $totalFull = ($d->price*$d->quantity);
-                        $discTotal = 0;
-                        if($d->discount_type === "persen") {
-                            $discTotal = ($d->discount_nominal/100)*$totalFull;
-                        }else{
-                            $discTotal = $d->discount_nominal;
-                        }
-
-                        $totalFull -= $discTotal;
-                        $discTotal = 0;
-
-                        $pajak = 0;
-                        if(!$d->tax_id) {
-                            $tax_id = null;
-                        }else{
-                            $tax = MasterTax::find($d->tax_id);
-                            $pajak += ($tax->tax_rate/100) * $totalFull;
-                            $totalFull -= $pajak;
-                            if($tax->tax_rate > 0 && !$tax->account_id){
-                                throw new Exception('Add the account to tax if rate more than 0');
-                            }else if($tax->account_id){
-                                $grand_total -= $pajak;
-                                $tax_journal[] = [0, $pajak , $tax->account_id ];
-
-                            }else if($tax->tax_rate == 0 && !$tax->account_id ){
-                                // Skip
+                        foreach($order->details as $d) {
+                            $totalFull = ($d->price*$d->quantity);
+                            $discTotal = 0;
+                            if($d->discount_type === "persen") {
+                                $discTotal = ($d->discount_nominal/100)*$totalFull;
+                            }else{
+                                $discTotal = $d->discount_nominal;
                             }
+                            $tmpDiscount += $discTotal;
+                            $totalFull -= $discTotal;
+                            $discTotal = 0;
+
+                            $pajak = 0;
+                            if($d->tax_id) {
+                                $tax = MasterTax::find($d->tax_id);
+                                $pajak += ($tax->tax_rate/100) * $totalFull;
+                                $totalFull -= $pajak;
+                                if($tax->tax_rate > 0 && !$tax->account_id){
+                                    throw new Exception('Add the account to tax if rate more than 0');
+                                }else if($tax->account_id){
+                                    $grand_total -= $pajak;
+                                    $tax_journal[] = [$pajak, 0 , $tax->account_id ];
+
+                                }else if($tax->tax_rate == 0 && !$tax->account_id ){
+                                    // Skip
+                                }
+                            }
+
+                            if($order->discount_type === "persen") {
+                                $discTotal = ($order->discount_nominal/100)*$totalFull;
+                            }else{
+                                $discTotal = $order->discount_nominal;
+                            }
+                            $tmpDiscount += $discTotal;
+                            $totalFull -= $discTotal;
+                            $discTotal = 0;
+                            $total_after_discount += ($totalFull - $discTotal);
                         }
 
-                        if($order->discount_type === "persen") {
-                            $discTotal = ($order->discount_nominal/100)*$totalFull;
-                        }else{
-                            $discTotal = $order->discount_nominal;
-                        }
-                        $totalFull -= $discTotal;
-                        if($order->tax_id){
-                            $totalWithPPn += ($totalFull+ ($totalFull*$order->ppnTax->tax_rate/100));
-                            $totalFull = $totalWithPPn;
-                        }
+                        $ppn_tax = MasterTax::find($order->tax_id);
                         $discTotal = 0;
-                        if($discount_type === "persen") {
-                            $discTotal = ($discount_nominal/100)*$totalFull;
+                        if ($ppn_tax && $ppn_tax->account_id) {
+                            $ppn_amount = $total_after_discount * ($ppn_tax->tax_rate / 100);
+                            if($discount_type === "persen") {
+                                $discTotal = ($discount_nominal/100)*($total_after_discount + $ppn_amount);
+                            }else{
+                                $discTotal = $discount_nominal;
+                            }
+                            $ap_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) ) , $account_id_detail];
+                            $totalDiscount += $discTotal;
                         }else{
-                            $discTotal = $discount_nominal;
+                            if($discount_type === "persen") {
+                                $discTotal = ($discount_nominal/100)*$total_after_discount;
+                            }else{
+                                $discTotal = $discount_nominal;
+                            }
+                            $ap_journal[] = [ 0,$total_after_discount  - (($discTotal * 2)),$account_id_detail];
+                            $totalDiscount += $discTotal;
                         }
-                        $fullDisc += $discTotal;
-                        $totalFull -= $discTotal;
-                        $total_after_discount += ($totalFull - $discTotal);
-                        $ap_journal[] = [($totalFull - $fullDisc), 0, $account_id_detail];
-                    }
 
-                    $order->update([
-                        "status" => "paid"
-                    ]);
+                        $order->update([
+                            "status" => "paid"
+                        ]);
 
-                    Sao::where('order_id', $payable_id)->update([
-                        'isPaid' => true,
-                    ]);
+                        Sao::where('order_id', $payable_id)->update([
+                            'isPaid' => true,
+                        ]);
 
-                    $payments = PaymentHead::whereHas('details', function($query) use ($payable_id) {
-                        $query->where('payable_id', $payable_id);
-                    })->get();
+                        $payments = PaymentHead::whereHas('details', function($query) use ($payable_id) {
+                            $query->where('payable_id', $payable_id);
+                        })->get();
 
-                    foreach ($payments as $head) {
-                        $all_paid = PaymentDetail::where('head_id', $head->id)
-                            ->whereHas('payable', function($query) {
-                                $query->where('status', '!=', 'paid');
-                            })
-                            ->doesntExist();
+                        foreach ($payments as $head) {
+                            $all_paid = PaymentDetail::where('head_id', $head->id)
+                                ->whereHas('payable', function($query) {
+                                    $query->where('status', '!=', 'paid');
+                                })
+                                ->doesntExist();
 
-                        if ($all_paid) {
-                            $head->update(['status' => 'paid']);
-                        } else {
-                            $head->update(['status' => 'open']);
+                            if ($all_paid) {
+                                $head->update(['status' => 'paid']);
+                            } else {
+                                $head->update(['status' => 'open']);
+                            }
                         }
                     }
                 }
@@ -362,7 +364,7 @@ class PurchasePaymentController extends Controller
                 }
 
                 PaymentDetail::create($detail);
-                
+
                 // Collect account charges for journal entries
                 if($charge_type === 'account') {
                     $account_charges[] = [
@@ -386,12 +388,12 @@ class PurchasePaymentController extends Controller
             } else {
                 $flow = [
                     //debit, kredit
-                    [0, $grand_total, $head_account_id],
+                    [$grand_total, 0, $head_account_id],
                     // [0, $display_dp_order, $dp_id],
-                    [$discount_display, 0, $diskon_pembelian_id],
+                    [0, $totalDiscount, $diskon_pembelian_id],
                 ];
             }
-            
+
             // Add account charges to flow
             $account_charge_flow = [];
             foreach($account_charges as $charge) {
@@ -423,11 +425,10 @@ class PurchasePaymentController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('finance.payments.purchase-payment.index')->with('success', 'create successfully!');
+            return response()->json(['message' => 'create successfully!'], 200);
         } catch (Exception $e) {
             DB::rollBack();
-            toast('Failed to Add Data!','error');
-            return redirect()->back()->withErrors(['error' => $e->getMessage()])->withInput();
+            return response()->json(['errors' => ['error' => [$e->getMessage()]]], 500);
         }
     }
 
@@ -514,338 +515,317 @@ class PurchasePaymentController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id): RedirectResponse
+    public function update(Request $request, $id)
     {
-        //
-        $validator = Validator::make($request->all(), [
-            'vendor_id'   => 'required',
-            'head_account_id' => 'required',
-            'date_payment'    => 'required',
-            'currency_head_id' => 'required',
-            'no_transactions' => 'required'
-        ], [
-            "vendor_id.required" => "The vendor field is required.",
-            "head_account_id.required" => "The account name field is required.",
-            "no_transaction.required" => "The transaction number is required.",
-            "date_payment.required" => "The date is required.",
-            "currency_head_id.required" => "The currency field is required."
-        ]);
-        if ($validator->fails()) {
-            toast('Failed to Update Data!','error');
-            return redirect()->back()
-            ->withErrors($validator);
-        }
-
-        $vendor_id = $request->input('vendor_id');
-        $customer_id = $request->input('customer_id');
-        if($customer_id === "null") {
-            $customer_id = null;
-        }
-        if($customer_id == $vendor_id) {
-            toast('Failed to Add Data!','error');
-            return redirect()->back()
-            ->withErrors(["errors" => "Please input different customer"]);
-        }
-        $head_account_id = $request->input('head_account_id');
-        DB::rollback();
-        // dd($head_account_id);
-        $date_payment = $request->input('date_payment');
-        $currency_id = $request->input('currency_head_id');
-
-        $validator = MasterAccount::where('id', $head_account_id)->where('master_currency_id', $currency_id)->get()->first();
-        if(!$validator) {
-            toast('Failed to Update Data!','error');
-            return redirect()->back()
-                        ->withErrors(["error" => 'Please input a valid account']);
-        }
-
-        $no_transactions = $request->input('no_transactions');
-        $exp_transaction = explode("-", $no_transactions);
-        $number = $exp_transaction[2];
-
-        $description = $request->input('description');
-        $is_job_order = $request->input('choose_job_order');
-        $job_order_id = null;
-        $job_order_source = null;
-        if($is_job_order === "1") {
-            $job_order = $request->input('job_order_id');
-            if($job_order) {
-                $exp_job_order = explode(":", $job_order);
-                if(sizeof($exp_job_order) !== 2) {
-                    return redirect()->back()->withErrors(['no_referensi' => 'Please input a valid no referensi'])->withInput();
-                }
-                $job_order_id = $exp_job_order[0];
-                $job_order_source = $exp_job_order[1];
-            }
-        }
-
-        $note = $request->input('note_payment');
-        $grand_total = $this->numberToDatabase($request->input('total_display'));
-        $discount_display = $this->numberToDatabase($request->input('discount_display'));
-        $display_dp = $this->numberToDatabase($request->input('display_dp'));
-        $display_dp_order = $this->numberToDatabase($request->input('display_dp_order'));
-
-        $status = "open";
-        if($display_dp === 0.0) {
-            $status = "paid";
-        }
-
-        $data = [
-            'customer_id' => $customer_id,
-            'vendor_id' => $vendor_id,
-            'account_id' => $head_account_id,
-            'currency_id' => $currency_id,
-            'date_payment' => $date_payment,
-            'number' => $number,
-            'description' => $description,
-            'job_order_id' => $job_order_id,
-            'source' => $job_order_source,
-            'note' => $note,
-            'status' => $status,
-        ];
-
-        $diskon_pembelian_id = MasterAccount::where('account_type_id', 16)->first();
-
-        if(!$diskon_pembelian_id) {
-            return redirect()->back()->withErrors(['diskon_pembelian' => 'Please add the account of Sales Discount'])->withInput();
-        }
-        $diskon_pembelian_id = $diskon_pembelian_id->id;
-
-        // $hutang_usaha_id = MasterAccount::where('code', "220100")
-        //                         ->where('account_name', 'Hutang Usaha')
-        //                         ->where('master_currency_id', $currency_id)->first();
-        // if(!$hutang_usaha_id) {
-        //     return redirect()->back()->withErrors(['hutang_usaha' => 'Please add the account of Hutang Usaha with code number is 220100']);
-        // }
-        // $hutang_usaha_id = $hutang_usaha_id->id;
-
-        // $dp_id = MasterAccount::where('code', "550501")
-        //                         ->where('account_name', 'Uang Muka kepada Vendor')
-        //                         ->where('master_currency_id', $currency_id)->first();
-        // if(!$dp_id) {
-        //     return redirect()->back()->withErrors(['dp' => 'Please add the account of Uang Muka kepada Vendor with code number is 550501']);
-        // }
-        // $dp_id = $dp_id->id;
-
-        $paymentDeatils = PaymentDetail::where('head_id', $id)->get();
-        foreach($paymentDeatils as $p) {
-            $payable_id = $p->payable_id;
-            OrderHead::find($payable_id)->update([
-                "status" => "open"
+        DB::beginTransaction();
+        try {
+            $validator = Validator::make($request->all(), [
+                'vendor_id'   => 'required',
+                'head_account_id' => 'required',
+                'date_payment'    => 'required',
+                'currency_head_id' => 'required',
+                'no_transactions' => 'required'
+            ], [
+                "vendor_id.required" => "The vendor field is required.",
+                "head_account_id.required" => "The account name field is required.",
+                "no_transaction.required" => "The transaction number is required.",
+                "date_payment.required" => "The date is required.",
+                "currency_head_id.required" => "The currency field is required."
             ]);
-
-            $payment = PaymentHead::whereHas('details', function($query) use ($payable_id) {
-                $query->where('payable_id', $payable_id);
-            })->get();
-
-            foreach ($payment as $head) {
-                $all_not_paid = PaymentDetail::where('head_id', $head->id)
-                    ->whereHas('payable', function($query) {
-                        $query->where('status', '!=', 'paid');
-                    })
-                    ->exists();
-
-                if ($all_not_paid) {
-                    $head->update(['status' => 'open']);
-                }
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
             }
-            $p->delete();
-        }
 
-        $payment = PaymentHead::find($id);
-        $payment->update($data);
-        $head_id = $payment->id;
-
-        $totBalance = 0;
-        $isDiscount = true;
-        $allDetails = [];
-        $tax_journal = [];
-        $ap_journal = [];
-        $account_charges = []; // Track account charges for journal entries
-        $totalDisc = [];
-        $formData = json_decode($request->input('form_data'), true);
-        foreach ($formData as $idx => $data) {
-            $payable_id = $data["detail_order"] ?? null;
-            $charge_type = $data["charge_type"] ?? 'payable';
-            
-            // Skip if no payable_id and not account charge
-            if(!$payable_id && $charge_type !== 'account') {
-                continue;
+            $vendor_id = $request->input('vendor_id');
+            $customer_id = $request->input('customer_id');
+            if($customer_id === "null") {
+                $customer_id = null;
             }
-            
-            // For payable charges, check if already processed
-            if($charge_type === 'payable' && $payable_id && in_array($payable_id, $allDetails)) {
-                continue;
+            if($customer_id == $vendor_id) {
+                throw new Exception('Please input different customer');
             }
-            $remark = $data['detail_remark'];
-            $discount_type = $data['detail_discount_type'];
-            $discount_nominal = $this->numberToDatabase($data['detail_discount_nominal']);
-            $account_id_detail = $data['account_id'];
+            $head_account_id = $request->input('head_account_id');
+            $date_payment = $request->input('date_payment');
+            $currency_id = $request->input('currency_head_id');
 
-            $amount = $this->numberToDatabase($data['detail_jumlah']);
-            $other_currency = $data['other_currency'];
-            $currency_via_id = null;
-            $amount_via = null;
-            if($other_currency === "1") {
-                $currency_via_id = $data['other_currency_type'];
-                if($currency_via_id) {
-                    $amount = $this->numberToDatabase($data['other_currency_nominal']);
-                    $exchange = ExchangeRate::find($currency_via_id);
-                    $pembagi = $exchange->to_nominal/$exchange->from_nominal;
-                    if($exchange->from_currency_id === $payment->currency_id) {
-                        $pembagi = $exchange->from_nominal/$exchange->to_nominal;
+            $validator = MasterAccount::where('id', $head_account_id)->where('master_currency_id', $currency_id)->get()->first();
+            if(!$validator) {
+                throw new Exception('Please input a valid account');
+            }
+
+            $no_transactions = $request->input('no_transactions');
+            $exp_transaction = explode("-", $no_transactions);
+            $number = $exp_transaction[2];
+
+            $description = $request->input('description');
+            $is_job_order = $request->input('choose_job_order');
+            $job_order_id = null;
+            $job_order_source = null;
+            if($is_job_order === "1") {
+                $job_order = $request->input('job_order_id');
+                if($job_order) {
+                    $exp_job_order = explode(":", $job_order);
+                    if(sizeof($exp_job_order) !== 2) {
+                        throw new Exception('Please input a valid no referensi');
                     }
-                    $amount_via = $amount;
-                    $amount = $amount*$pembagi;
-                } else {
-                    $currency_via_id = null;
+                    $job_order_id = $exp_job_order[0];
+                    $job_order_source = $exp_job_order[1];
                 }
             }
 
-            $totBalance += $amount;
+            $note = $request->input('note_payment');
+            $grand_total = $this->numberToDatabase($request->input('total_display'));
+            $discount_display = $this->numberToDatabase($request->input('discount_display'));
+            $display_dp = $this->numberToDatabase($request->input('display_dp'));
+            $display_dp_order = $this->numberToDatabase($request->input('display_dp_order'));
 
-            $is_dp = $data["dp_desc"];
-            $dp_type = null;
-            $dp_nominal = null;
-            if($idx > 0) {
-                if($is_dp == 1 && $isDiscount === true) {
-                    continue;
-                } else if($is_dp == 0 && $isDiscount === false) {
-                    continue;
-                }
+            $status = "open";
+            if($display_dp === 0.0) {
+                $status = "paid";
             }
 
-            if($is_dp == 1) {
-                if($idx === 0) {
-                    $isDiscount = false;
-                }
-                $dp_type = $data["detail_dp_type"];
-                $dp_nominal = $this->numberToDatabase($data["detail_dp_nominal"]);
-            } else {
-                $order = OrderHead::find($payable_id);
-                $order->update([
-                    "status" => "paid"
+            $data = [
+                'customer_id' => $customer_id,
+                'vendor_id' => $vendor_id,
+                'account_id' => $head_account_id,
+                'currency_id' => $currency_id,
+                'date_payment' => $date_payment,
+                'number' => $number,
+                'description' => $description,
+                'job_order_id' => $job_order_id,
+                'source' => $job_order_source,
+                'note' => $note,
+                'status' => $status,
+            ];
+
+            $diskon_pembelian_id = MasterAccount::where('account_type_id', 16)->first();
+
+            if(!$diskon_pembelian_id) {
+                throw new Exception('Please add the account of Sales Discount');
+            }
+            $diskon_pembelian_id = $diskon_pembelian_id->id;
+
+            $paymentDeatils = PaymentDetail::where('head_id', $id)->get();
+            foreach($paymentDeatils as $p) {
+                $payable_id = $p->payable_id;
+                OrderHead::find($payable_id)->update([
+                    "status" => "open"
                 ]);
 
-                $total_after_discount = 0;
-                $totalWithPPn = 0;
-                // $totalDisc = 0;
-                foreach($order->details as $d) {
-                $fullDisc = 0;
-
-                    $totalFull = ($d->price*$d->quantity);
-                    $discTotal = 0;
-                    if($d->discount_type === "persen") {
-                        $discTotal = ($d->discount_nominal/100)*$totalFull;
-                    }else{
-                        $discTotal = $d->discount_nominal;
-                    }
-                // $fullDisc += $discTotal;
-
-                    $totalFull -= $discTotal;
-                    $discTotal = 0;
-
-                    $pajak = 0;
-                    if(!$d->tax_id) {
-                        $tax_id = null;
-                    }else{
-                        $tax = MasterTax::find($d->tax_id);
-                        $pajak += ($tax->tax_rate/100) * $totalFull;
-                        $totalFull -= $pajak;
-                        if($tax->tax_rate > 0 && !$tax->account_id){
-                            throw new Exception('Add the account to tax if rate more than 0');
-                        }else if($tax->account_id){
-                            $grand_total -= $pajak;
-                            $tax_journal[] = [0, $pajak , $tax->account_id ];
-
-                        }else if($tax->tax_rate == 0 && !$tax->account_id ){
-                            // Skip
-                        }
-                    }
-
-                    if($order->discount_type === "persen") {
-                        $discTotal = ($order->discount_nominal/100)*$totalFull;
-                    }else{
-                        $discTotal = $order->discount_nominal;
-                    }
-                    $totalFull -= $discTotal;
-                    // $fullDisc += $discTotal;
-                    if($order->tax_id){
-                        $totalWithPPn += ($totalFull+ ($totalFull*$order->ppnTax->tax_rate/100));
-                        $totalFull = $totalWithPPn;
-                    }
-                    $discTotal = 0;
-                    if($discount_type === "persen") {
-                        $discTotal = ($discount_nominal/100)*$totalFull;
-                    }else{
-                        $discTotal = $discount_nominal;
-                    }
-                    $fullDisc += $discTotal;
-                    $totalDisc[]= [$fullDisc,$totalFull];
-                    $totalFull -= $discTotal;
-                    $total_after_discount += ($totalFull - $discTotal);
-                    $ap_journal[] = [($totalFull - $fullDisc), 0, $account_id_detail];
-                }
-
-
-
-                Sao::where('order_id', $payable_id)->update([
-                    'isPaid' => true,
-                ]);
-
-                $payments = PaymentHead::whereHas('details', function($query) use ($payable_id) {
+                $payment = PaymentHead::whereHas('details', function($query) use ($payable_id) {
                     $query->where('payable_id', $payable_id);
                 })->get();
 
-                foreach ($payments as $head) {
-                    $all_paid = PaymentDetail::where('head_id', $head->id)
+                foreach ($payment as $head) {
+                    $all_not_paid = PaymentDetail::where('head_id', $head->id)
                         ->whereHas('payable', function($query) {
                             $query->where('status', '!=', 'paid');
                         })
-                        ->doesntExist();
+                        ->exists();
 
-                    if ($all_paid) {
-                        $head->update(['status' => 'paid']);
-                    } else {
+                    if ($all_not_paid) {
                         $head->update(['status' => 'open']);
                     }
                 }
+                $p->delete();
             }
 
-            $detail = [
-                'head_id' => $head_id,
-                'payable_id' => $charge_type === 'payable' ? $payable_id : null,
-                'discount_type' => $discount_type,
-                'discount_nominal' => $discount_nominal,
-                'dp_type' => $dp_type,
-                'dp_nominal' => $dp_nominal,
-                'currency_via_id' => $currency_via_id,
-                'amount_via' => $amount_via,
-                'remark' => $remark,
-                'account_id' => $account_id_detail,
-                'charge_type' => $charge_type,
-                'amount' => $charge_type === 'account' ? $amount : null,
-                'description' => $charge_type === 'account' ? ($data['description'] ?? null) : null,
-            ];
+            $payment = PaymentHead::find($id);
+            $payment->update($data);
+            $head_id = $payment->id;
 
-            // Only add to allDetails if it's a payable charge
-            if($charge_type === 'payable' && $payable_id) {
-                $allDetails[] = $payable_id;
-            }
+            $totBalance = 0;
+            $isDiscount = true;
+            $allDetails = [];
+            $tax_journal = [];
+            $ap_journal = [];
+            $account_charges = []; // Track account charges for journal entries
+            $totalDiscount = 0;
+            $formData = json_decode($request->input('form_data'), true);
+            foreach ($formData as $idx => $data) {
+                $tmpDiscount = 0;
+                $payable_id = $data["detail_order"] ?? null;
+                $charge_type = $data["charge_type"] ?? 'payable';
 
-            PaymentDetail::create($detail);
-            
-            // Collect account charges for journal entries
-            if($charge_type === 'account') {
-                $account_charges[] = [
-                    'amount' => $amount,
+                // Skip if no payable_id and not account charge
+                if(!$payable_id && $charge_type !== 'account') {
+                    continue;
+                }
+
+                // For payable charges, check if already processed
+                if($charge_type === 'payable' && $payable_id && in_array($payable_id, $allDetails)) {
+                    continue;
+                }
+                $remark = $data['detail_remark'];
+                $discount_type = $data['detail_discount_type'];
+                $discount_nominal = $this->numberToDatabase($data['detail_discount_nominal']);
+                $account_id_detail = $data['account_id'];
+
+                $amount = $this->numberToDatabase($data['detail_jumlah']);
+                $other_currency = $data['other_currency'];
+                $currency_via_id = null;
+                $amount_via = null;
+                if($other_currency === "1") {
+                    $currency_via_id = $data['other_currency_type'];
+                    if($currency_via_id) {
+                        $amount = $this->numberToDatabase($data['other_currency_nominal']);
+                        $exchange = ExchangeRate::find($currency_via_id);
+                        $pembagi = $exchange->to_nominal/$exchange->from_nominal;
+                        if($exchange->from_currency_id === $payment->currency_id) {
+                            $pembagi = $exchange->from_nominal/$exchange->to_nominal;
+                        }
+                        $amount_via = $amount;
+                        $amount = $amount*$pembagi;
+                    } else {
+                        $currency_via_id = null;
+                    }
+                }
+
+                $totBalance += $amount;
+
+                $is_dp = $data["dp_desc"];
+                $dp_type = null;
+                $dp_nominal = null;
+                if($idx > 0) {
+                    if($is_dp == 1 && $isDiscount === true) {
+                        continue;
+                    } else if($is_dp == 0 && $isDiscount === false) {
+                        continue;
+                    }
+                }
+
+                if($is_dp == 1) {
+                    if($idx === 0) {
+                        $isDiscount = false;
+                    }
+                    $dp_type = $data["detail_dp_type"];
+                    $dp_nominal = $this->numberToDatabase($data["detail_dp_nominal"]);
+                } else {
+                    if ($charge_type === 'payable' && $payable_id) {
+                        $order = OrderHead::find($payable_id);
+                        $order->update([
+                            "status" => "paid"
+                        ]);
+
+                        $total_after_discount = 0;
+                        foreach($order->details as $d) {
+                            $totalFull = ($d->price*$d->quantity);
+                            $discTotal = 0;
+                            if($d->discount_type === "persen") {
+                                $discTotal = ($d->discount_nominal/100)*$totalFull;
+                            }else{
+                                $discTotal = $d->discount_nominal;
+                            }
+                            $tmpDiscount += $discTotal;
+                            $totalFull -= $discTotal;
+                            $discTotal = 0;
+
+                            $pajak = 0;
+                            if($d->tax_id) {
+                                $tax = MasterTax::find($d->tax_id);
+                                $pajak += ($tax->tax_rate/100) * $totalFull;
+                                $totalFull -= $pajak;
+                                if($tax->tax_rate > 0 && !$tax->account_id){
+                                    throw new Exception('Add the account to tax if rate more than 0');
+                                }else if($tax->account_id){
+                                    $grand_total -= $pajak;
+                                    $tax_journal[] = [$pajak, 0 , $tax->account_id ];
+
+                                }else if($tax->tax_rate == 0 && !$tax->account_id ){
+                                    // Skip
+                                }
+                            }
+
+                            if($order->discount_type === "persen") {
+                                $discTotal = ($order->discount_nominal/100)*$totalFull;
+                            }else{
+                                $discTotal = $order->discount_nominal;
+                            }
+                            $tmpDiscount += $discTotal;
+                            $totalFull -= $discTotal;
+                            $discTotal = 0;
+                            $total_after_discount += ($totalFull - $discTotal);
+                        }
+
+                        $ppn_tax = MasterTax::find($order->tax_id);
+                        $discTotal = 0;
+                        if ($ppn_tax && $ppn_tax->account_id) {
+                            $ppn_amount = $total_after_discount * ($ppn_tax->tax_rate / 100);
+                            if($discount_type === "persen") {
+                                $discTotal = ($discount_nominal/100)*($total_after_discount + $ppn_amount);
+                            }else{
+                                $discTotal = $discount_nominal;
+                            }
+                            $ap_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) ) , $account_id_detail];
+                            $totalDiscount += $discTotal;
+                        }else{
+                            if($discount_type === "persen") {
+                                $discTotal = ($discount_nominal/100)*$total_after_discount;
+                            }else{
+                                $discTotal = $discount_nominal;
+                            }
+                            $ap_journal[] = [ 0,$total_after_discount  - (($discTotal * 2)),$account_id_detail];
+                            $totalDiscount += $discTotal;
+                        }
+
+                        Sao::where('order_id', $payable_id)->update([
+                            'isPaid' => true,
+                        ]);
+
+                        $payments = PaymentHead::whereHas('details', function($query) use ($payable_id) {
+                            $query->where('payable_id', $payable_id);
+                        })->get();
+
+                        foreach ($payments as $head) {
+                            $all_paid = PaymentDetail::where('head_id', $head->id)
+                                ->whereHas('payable', function($query) {
+                                    $query->where('status', '!=', 'paid');
+                                })
+                                ->doesntExist();
+
+                            if ($all_paid) {
+                                $head->update(['status' => 'paid']);
+                            } else {
+                                $head->update(['status' => 'open']);
+                            }
+                        }
+                    }
+                }
+
+                $detail = [
+                    'head_id' => $head_id,
+                    'payable_id' => $charge_type === 'payable' ? $payable_id : null,
+                    'discount_type' => $discount_type,
+                    'discount_nominal' => $discount_nominal,
+                    'dp_type' => $dp_type,
+                    'dp_nominal' => $dp_nominal,
+                    'currency_via_id' => $currency_via_id,
+                    'amount_via' => $amount_via,
+                    'remark' => $remark,
                     'account_id' => $account_id_detail,
-                    'description' => $data['description'] ?? null
+                    'charge_type' => $charge_type,
+                    'amount' => $charge_type === 'account' ? $amount : null,
+                    'description' => $charge_type === 'account' ? ($data['description'] ?? null) : null,
                 ];
+
+                // Only add to allDetails if it's a payable charge
+                if($charge_type === 'payable' && $payable_id) {
+                    $allDetails[] = $payable_id;
+                }
+
+                PaymentDetail::create($detail);
+
+                // Collect account charges for journal entries
+                if($charge_type === 'account') {
+                    $account_charges[] = [
+                        'amount' => $amount,
+                        'account_id' => $account_id_detail,
+                        'description' => $data['description'] ?? null
+                    ];
+                }
             }
-        }
         // DB::rollback();
-        // dd($totalDisc);
+        // dd($totalDiscount);
         if($isDiscount === true) {
             $payment->update([ "status" => "paid" ]);
         }
@@ -860,9 +840,9 @@ class PurchasePaymentController extends Controller
         } else {
             $flow = [
                 //debit, kredit
-                [0, $grand_total , $head_account_id],
+                [$grand_total, 0, $head_account_id],
                 // [0, $display_dp_order, $dp_id],
-                [$discount_display, 0, $diskon_pembelian_id],
+                [0, $totalDiscount, $diskon_pembelian_id],
             ];
         }
 
@@ -875,7 +855,7 @@ class PurchasePaymentController extends Controller
                 $charge['account_id'] // account_id
             ];
         }
-        
+
         $flow = [
             ...$flow,
             ...$ap_journal,
@@ -896,8 +876,13 @@ class PurchasePaymentController extends Controller
             BalanceAccount::create($cashflowData);
         }
 
-        return redirect()->route('finance.payments.purchase-payment.index')->with('success', 'create successfully!');
+        DB::commit();
+        return response()->json(['message' => 'update successfully!'], 200);
+    } catch (Exception $e) {
+        DB::rollBack();
+        return response()->json(['errors' => ['error' => [$e->getMessage()]]], 500);
     }
+}
 
     /**
      * Remove the specified resource from storage.
