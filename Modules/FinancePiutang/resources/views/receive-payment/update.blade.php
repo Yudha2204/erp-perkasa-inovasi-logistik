@@ -1089,6 +1089,7 @@
             resetCurrency(true)
 
             // Fetch AR Accounts and populate dropdowns
+            // Load for invoice charge types (account_type_id: 4)
             $.ajax({
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -1100,15 +1101,55 @@
                 success: function(response) {
                     if(response.data) {
                         $('.coa-ar-select').each(function() {
-                            var selectedValue = $(this).data('selected');
-                            $(this).empty().append('<option label="Choose One" selected disabled></option>');
-                            response.data.forEach(element => {
-                                const newOption = new Option(element.account_name, element.id);
-                                $(this).append(newOption);
-                            });
-                            if (selectedValue) {
-                                $(this).val(selectedValue).trigger('change');
-                                $(this).prop('disabled', true);
+                            const row = $(this).closest('tr');
+                            const chargeType = row.find('.charge-type-select').val();
+                            
+                            // Only populate if charge type is invoice
+                            if (chargeType === 'invoice') {
+                                var selectedValue = $(this).data('selected');
+                                $(this).empty().append('<option label="Choose One" selected disabled></option>');
+                                response.data.forEach(element => {
+                                    const newOption = new Option(element.account_name, element.id);
+                                    $(this).append(newOption);
+                                });
+                                if (selectedValue) {
+                                    $(this).val(selectedValue).trigger('change');
+                                    $(this).prop('disabled', true);
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            
+            // Load for account charge types (account_type_id: [1,2,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23])
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type: 'GET',
+                dataType: 'json',
+                url: '{{ route('finance.master-data.account') }}',
+                data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
+                success: function(response) {
+                    if(response.data) {
+                        $('.coa-ar-select').each(function() {
+                            const row = $(this).closest('tr');
+                            const chargeType = row.find('.charge-type-select').val();
+                            const $select = $(this);
+                            
+                            // Only populate if charge type is account
+                            if (chargeType === 'account') {
+                                var selectedValue = $select.data('selected');
+                                $select.empty().append('<option label="Choose One" selected disabled></option>');
+                                response.data.forEach(element => {
+                                    const newOption = new Option(element.account_name, element.id);
+                                    $select.append(newOption);
+                                });
+                                if (selectedValue) {
+                                    $select.val(selectedValue).trigger('change');
+                                    // Don't disable for account charge type
+                                }
                             }
                         });
                     }
@@ -1343,7 +1384,7 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 'account_type_id' :4 },
+                data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
                 success: function(response) {
                     if(response.data) {
                         response.data.forEach(element => {
@@ -1708,37 +1749,51 @@
                 amountInput.removeAttribute('readonly');
                 dateInput.value = '';
                 dateInput.removeAttribute('readonly');
+                
+                // Load accounts with specific account type filter for charge type account
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '{{ route('finance.master-data.account') }}',
+                    data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
+                    success: function(response) {
+                        if(response.data) {
+                            coaArSelect.empty().append('<option label="Choose One" selected disabled></option>');
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                coaArSelect.append(newOption);
+                            });
+                        }
+                    }
+                });
             } else {
                 invoiceSection.style.display = 'block';
                 accountSection.style.display = 'none';
                 amountInput.setAttribute('readonly', 'readonly');
                 dateInput.setAttribute('readonly', 'readonly');
-            }
-        }
 
-        function populateAccountOptions(currencyId) {
-            const accountSelects = document.querySelectorAll('.coa-ar-select');
-            accountSelects.forEach(function(select) {
-                const $select = $(select);
-                $select.html('<option label="Choose One" selected disabled></option>');
-                
                 $.ajax({
-                    headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
                     type: 'GET',
                     dataType: 'json',
                     url: '{{ route('finance.master-data.account') }}',
-                    data: { 'account_type_id': 4 },
+                    data: { 'account_type_id' : 4 },
                     success: function(response) {
                         if(response.data) {
-                            response.data.forEach(function(account) {
-                                const newOption = new Option(account.account_name, account.id);
-                                $select.append(newOption);
+                            coaArSelect.empty().append('<option label="Choose One" selected disabled></option>');
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                coaArSelect.append(newOption);
                             });
                         }
                     }
                 });
-            });
+            }
         }
-
     </script>
 @endpush

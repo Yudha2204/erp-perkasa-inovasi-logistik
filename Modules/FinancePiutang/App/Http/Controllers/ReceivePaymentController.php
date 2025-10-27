@@ -986,7 +986,7 @@ class ReceivePaymentController extends Controller
         }
 
         BalanceAccount::where('transaction_id', $id)->where('transaction_type_id', 4)->delete();
-        $receive = RecieveDetail::where('head_id', $id)->get();
+        $receive = RecieveDetail::where('head_id', $id)->where('charge_type', '!=', 'account')->get();
         foreach($receive as $re) {
             $invoice_id = $re->invoice_id;
             InvoiceHead::find($invoice_id)->update([

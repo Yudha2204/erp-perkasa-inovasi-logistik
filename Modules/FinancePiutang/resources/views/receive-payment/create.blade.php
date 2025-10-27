@@ -1133,6 +1133,10 @@
                                     ${opsi}
                                 </select>
                             </div>
+                            <div class="account-section" style="display: none;">
+                                <label class="form-label">Description</label>
+                                <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
+                            </div>
                         </td>
                         <td>
                             <input type="date" class="form-control" readonly name="detail_date" />
@@ -1334,6 +1338,10 @@
                         ${opsi}
                     </select>
                 </div>
+                <div class="account-section" style="display: none;">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
+                </div>
             </td>
             <td>
                 <input type="date" class="form-control" readonly name="detail_date" />
@@ -1399,7 +1407,7 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 'account_type_id' :4 },
+                data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
                 success: function(response) {
                     if(response.data) {
                         response.data.forEach(element => {
@@ -1470,20 +1478,62 @@
             const chargeType = element.value;
             const coaArSelect = $(row.querySelector('.coa-ar-select'));
             const invoiceSection = row.querySelector('.invoice-section');
+            const accountSection = row.querySelector('.account-section');
             const amountInput = row.querySelector('input[name="detail_jumlah"]');
             const dateInput = row.querySelector('input[name="detail_date"]');
             
             if (chargeType === 'account') {
                 invoiceSection.style.display = 'none';
+                accountSection.style.display = 'block';
                 coaArSelect.prop('disabled', false);
                 coaArSelect.val('').trigger('change');
                 amountInput.removeAttribute('readonly');
                 dateInput.value = '';
                 dateInput.removeAttribute('readonly');
+                
+                // Load accounts with specific account type filter for charge type account
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '{{ route('finance.master-data.account') }}',
+                    data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
+                    success: function(response) {
+                        if(response.data) {
+                            coaArSelect.empty().append('<option label="Choose One" selected disabled></option>');
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                coaArSelect.append(newOption);
+                            });
+                        }
+                    }
+                });
             } else {
                 invoiceSection.style.display = 'block';
+                accountSection.style.display = 'none';
                 amountInput.setAttribute('readonly', 'readonly');
                 dateInput.setAttribute('readonly', 'readonly');
+
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '{{ route('finance.master-data.account') }}',
+                    data: { 'account_type_id' : 4 },
+                    success: function(response) {
+                        if(response.data) {
+                            coaArSelect.empty().append('<option label="Choose One" selected disabled></option>');
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                coaArSelect.append(newOption);
+                            });
+                        }
+                    }
+                });
             }
         }
 
