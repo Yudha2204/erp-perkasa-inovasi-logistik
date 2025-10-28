@@ -63,10 +63,6 @@ class OrderDetail extends Model
             $total = $total-$discount;
         }
 
-        if($this->tax_id) {
-            $tax = MasterTax::find($this->tax_id);
-            return $total-(($tax->tax_rate/100)*$total);
-        }
         return $total;
     }
 
@@ -90,5 +86,16 @@ class OrderDetail extends Model
         return 0;
     }
 
-    protected $appends = ['discount','total','tax', 'dp'];
+    public function getTotalTaxAttribute()
+    {
+        $totalAfterDiscount = $this->total; // Uses the existing getTotalAttribute()
+
+        if ($this->tax_detail) {
+            return ($this->tax_detail->tax_rate / 100) * $totalAfterDiscount;
+        }
+
+        return 0;
+    }
+
+    protected $appends = ['discount','total','tax', 'dp', 'total_tax'];
 }

@@ -193,6 +193,7 @@ class PurchasePaymentController extends Controller
             $account_charges = []; // Track account charges for journal entries
             $formData = json_decode($request->input('form_data'), true);
             $totalDiscount = 0;
+
             foreach ($formData as $idx => $data) {
                 $tmpDiscount = 0;
                 $payable_id = $data["detail_order"] ?? null;
@@ -270,12 +271,12 @@ class PurchasePaymentController extends Controller
                             if($d->tax_id) {
                                 $tax = MasterTax::find($d->tax_id);
                                 $pajak += ($tax->tax_rate/100) * $totalFull;
-                                $totalFull -= $pajak;
+                                $totalFull -= ($pajak * 2);
                                 if($tax->tax_rate > 0 && !$tax->account_id){
                                     throw new Exception('Add the account to tax if rate more than 0');
                                 }else if($tax->account_id){
-                                    $grand_total -= $pajak;
-                                    $tax_journal[] = [$pajak, 0 , $tax->account_id ];
+                                    // $grand_total -= $pajak;
+                                    // $tax_journal[] = [$pajak, 0 , $tax->account_id ];
 
                                 }else if($tax->tax_rate == 0 && !$tax->account_id ){
                                     // Skip
@@ -372,7 +373,9 @@ class PurchasePaymentController extends Controller
                         'account_id' => $account_id_detail,
                         'description' => $data['description'] ?? null
                     ];
+
                 }
+
             }
 
             if($isDiscount === true) {
@@ -398,11 +401,13 @@ class PurchasePaymentController extends Controller
             $account_charge_flow = [];
             foreach($account_charges as $charge) {
                 $account_charge_flow[] = [
-                    $charge['amount'], // credit
                     0, // debit
+                    abs($charge['amount']), // credit
                     $charge['account_id'] // account_id
                 ];
             }
+            // DB::rollBack();
+            //         return response()->json(['errors' => ['error' => [$account_charge_flow]]], 500);
 
             $flow = [
                 ...$flow,
@@ -724,11 +729,11 @@ class PurchasePaymentController extends Controller
                             if($d->tax_id) {
                                 $tax = MasterTax::find($d->tax_id);
                                 $pajak += ($tax->tax_rate/100) * $totalFull;
-                                $totalFull -= $pajak;
+                                $totalFull -= ($pajak * 2);
                                 if($tax->tax_rate > 0 && !$tax->account_id){
                                     throw new Exception('Add the account to tax if rate more than 0');
                                 }else if($tax->account_id){
-                                    $grand_total -= $pajak;
+                                    // $grand_total -= $pajak;
                                     $tax_journal[] = [$pajak, 0 , $tax->account_id ];
 
                                 }else if($tax->tax_rate == 0 && !$tax->account_id ){
@@ -850,8 +855,8 @@ class PurchasePaymentController extends Controller
         $account_charge_flow = [];
         foreach($account_charges as $charge) {
             $account_charge_flow[] = [
-                $charge['amount'], // credit
                 0, // debit
+                $charge['amount'], // credit
                 $charge['account_id'] // account_id
             ];
         }
@@ -897,24 +902,26 @@ class PurchasePaymentController extends Controller
         BalanceAccount::where('transaction_id', $id)->where('transaction_type_id', 8)->delete();
         $payment = PaymentDetail::where('head_id', $id)->get();
         foreach($payment as $p) {
-            $payable_id = $p->payable_id;
-            OrderHead::find($payable_id)->update([
-                "status" => "open"
-            ]);
+            if ($p->payable_id) {
+                $payable_id = $p->payable_id;
+                OrderHead::find($payable_id)->update([
+                    "status" => "open"
+                ]);
 
-            $payments = PaymentHead::whereHas('details', function($query) use ($payable_id) {
-                $query->where('payable_id', $payable_id);
-            })->get();
+                $payments = PaymentHead::whereHas('details', function($query) use ($payable_id) {
+                    $query->where('payable_id', $payable_id);
+                })->get();
 
-            foreach ($payments as $head) {
-                $all_not_paid = PaymentDetail::where('head_id', $head->id)
-                    ->whereHas('payable', function($query) {
-                        $query->where('status', '!=', 'paid');
-                    })
-                    ->exists();
+                foreach ($payments as $head) {
+                    $all_not_paid = PaymentDetail::where('head_id', $head->id)
+                        ->whereHas('payable', function($query) {
+                            $query->where('status', '!=', 'paid');
+                        })
+                        ->exists();
 
-                if ($all_not_paid) {
-                    $head->update(['status' => 'open']);
+                    if ($all_not_paid) {
+                        $head->update(['status' => 'open']);
+                    }
                 }
             }
 
@@ -942,18 +949,20 @@ class PurchasePaymentController extends Controller
     private function hasLatestPaymentDetail($head) {
         $current = PaymentDetail::where('head_id', $head->id)->get();
         foreach ($current as $detail) {
-            $latestHead = PaymentHead::whereHas('details', function($query) use ($detail) {
-                $query->where('payable_id', $detail->payable_idid);
-            })
-            ->where('number', '>', $head->number)
-            ->pluck('id');
+            if ($detail->payable_id) {
+                $latestHead = PaymentHead::whereHas('details', function($query) use ($detail) {
+                    $query->where('payable_id', $detail->payable_id);
+                })
+                ->where('number', '>', $head->number)
+                ->pluck('id');
 
-            $latest = PaymentDetail::whereIn('head_id', $latestHead)
-                        ->where('payable_id', $detail->payable_id)
-                        ->exists();
+                $latest = PaymentDetail::whereIn('head_id', $latestHead)
+                            ->where('payable_id', $detail->payable_id)
+                            ->exists();
 
-            if ($latest) {
-                return true;
+                if ($latest) {
+                    return true;
+                }
             }
         }
 

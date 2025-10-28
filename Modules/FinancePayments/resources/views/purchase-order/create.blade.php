@@ -1130,10 +1130,9 @@
                 total -= disc
 
                 pajak = (pajak/100)*total
-                grand_pajak += pajak
-                total -= pajak
+        grand_pajak += pajak
 
-                if(price > 0) {
+        if(price > 0) {
                     input[6].value = price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                 }
                 input[8].value = total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

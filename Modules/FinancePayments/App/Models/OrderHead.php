@@ -83,11 +83,7 @@ class OrderHead extends Model
     public function getTotalAttribute()
     {
         $discount = $this->discount_nominal;
-        $detail = OrderDetail::where('head_id', $this->id)->get();
-        $total = 0;
-        foreach($detail as $d) {
-            $total += $d->total;
-        }
+        $total = $this->details->sum('total');
         $total += $this->additional_cost;
 
         if($this->discount_type === "persen") {
@@ -103,14 +99,18 @@ class OrderHead extends Model
         return $total;
     }
 
+    public function getTotalTaxAttribute()
+    {
+        $this->details->load('tax_detail');
+        return $this->details->where('tax_detail.account_id', '!=', null)->groupBy('tax_detail.account_id')->map(function ($group) {
+            return $group->sum('tax');
+        });
+    }
+
     public function getDiscountAttribute()
     {
         $discount = $this->discount_nominal;
-        $detail = OrderDetail::where('head_id', $this->id)->get();
-        $total = 0;
-        foreach($detail as $d) {
-            $total += $d->total;
-        }
+        $total = $this->details->sum('total');
         $total += $this->additional_cost;
 
         if($this->discount_type === "persen") {
@@ -130,14 +130,7 @@ class OrderHead extends Model
 
     public function getDpAttribute()
     {
-        $dp = 0;
-        $detail = OrderDetail::where('head_id', $this->id)->get();
-        foreach($detail as $d) {
-            if($d->dp) {
-                $dp += $d->dp;
-            }
-        }
-        return $dp;
+        return $this->details->sum('dp');
     }
 
     public function getDpPaymentAttribute()
@@ -152,5 +145,5 @@ class OrderHead extends Model
         return $dpFromPayment;
     }
 
-    protected $appends = ['total', 'discount', 'jurnal', 'dp', 'job_order', 'vendor_operation', 'dp_payment'];
+    protected $appends = ['total', 'discount', 'jurnal', 'dp', 'job_order', 'vendor_operation', 'dp_payment', 'total_tax'];
 }

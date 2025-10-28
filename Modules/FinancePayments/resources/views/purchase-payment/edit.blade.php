@@ -170,7 +170,9 @@
                                                 </select>
                                                 <div class="payable-section" style="{{ $data->charge_type === 'account' ? 'display: none;' : '' }}">
                                                     <select class="form-control select2 form-select" data-order-id="{{ $data->payable_id }}" name="detail_order" data-placeholder="Choose One" onchange="getData(this)">
+                                                        @if($data->payable)
                                                         <option value="{{ $data->payable_id }}">{{ $data->payable->transaction }}</option>
+                                                        @endif
                                                         @foreach($purchaseOrder as $i)
                                                             @if($data->payable_id !== $i->id)
                                                             <option value="{{ $i->id }}" {{ $i->id === $data->payable_id ? "selected" : "" }}>{{ $i->transaction }}</option>
@@ -1098,30 +1100,25 @@
             getOrder(true)
             resetCurrency(true)
 
-            // Fetch AP Accounts and populate dropdowns
-            $.ajax({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                type: 'GET',
-                dataType: 'json',
-                url: '{{ route('finance.master-data.account') }}',
-                data: { 'account_type_id' :8 },
-                success: function(response) {
-                    if(response.data) {
-                        $('.coa-ap-select').each(function() {
-                            var selectedValue = $(this).data('selected');
-                            $(this).empty().append('<option label="Choose One" selected disabled></option>');
-                            response.data.forEach(element => {
-                                const newOption = new Option(element.account_name, element.id);
-                                $(this).append(newOption);
-                            });
-                            if (selectedValue) {
-                                $(this).val(selectedValue).trigger('change');
-                            }
-                        });
-                    }
-                }
+            // Initialize select2 for all select elements
+            $('.select2').select2({
+                minimumResultsForSearch: Infinity
+            });
+            var select2Elements = document.querySelectorAll('.select2');
+            select2Elements.forEach(function(element) {
+                element.style.width = '100%';
+            });
+
+            // Iterate through each detail row and initialize account dropdowns
+            $('.form-wrapper').each(function() {
+                const row = $(this);
+                const chargeTypeSelect = row.find('.charge-type-select');
+                const chargeType = chargeTypeSelect.val(); // Get the selected charge type
+                const coaApSelect = row.find('.coa-ap-select');
+                const selectedAccountId = coaApSelect.data('selected'); // Get the pre-selected account ID
+
+                // Call toggleChargeType to populate the account dropdown correctly
+                toggleChargeType(chargeTypeSelect[0], selectedAccountId);
             });
         })
 
@@ -1787,7 +1784,7 @@
             }
         }
 
-        function toggleChargeType(element) {
+        function toggleChargeType(element, selectedAccountId = null) {
             const row = element.closest('tr');
             const chargeType = element.value;
             const coaApSelect = $(row.querySelector('.coa-ap-select'));
@@ -1795,7 +1792,7 @@
             const accountSection = row.querySelector('.account-section');
             const amountInput = row.querySelector('input[name="detail_jumlah"]');
             const dateInput = row.querySelector('input[name="detail_date"]');
-            
+
             if (chargeType === 'account') {
                 payableSection.style.display = 'none';
                 accountSection.style.display = 'block';
@@ -1804,11 +1801,52 @@
                 amountInput.removeAttribute('readonly');
                 dateInput.value = '';
                 dateInput.removeAttribute('readonly');
+
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '{{ route('finance.master-data.account') }}',
+                    data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
+                    success: function(response) {
+                        if(response.data) {
+                            coaApSelect.empty().append('<option label="Choose One" selected disabled></option>');
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                coaApSelect.append(newOption);
+                            });
+                            if (selectedAccountId) {
+                                coaApSelect.val(selectedAccountId).trigger('change');
+                            }
+                        }
+                    }
+                });
             } else {
                 payableSection.style.display = 'block';
                 accountSection.style.display = 'none';
                 amountInput.setAttribute('readonly', 'readonly');
                 dateInput.setAttribute('readonly', 'readonly');
+
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '{{ route('finance.master-data.account') }}',
+                    data: { 'account_type_id' : 8 },
+                    success: function(response) {
+                        if(response.data) {
+                            coaApSelect.empty().append('<option label="Choose One" selected disabled></option>');
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                coaApSelect.append(newOption);
+                            });
+                        }
+                    }
+                });
             }
         }
     </script>

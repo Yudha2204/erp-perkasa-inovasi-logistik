@@ -224,11 +224,11 @@ class PurchaseOrderController extends Controller
                         DB::rollBack();
                         return response()->json(['errors' => ['error' => 'Add the account to tax if rate more than 0']], 422);
                     }else if($tax->account_id){
-                        $tax_journal[] = [$pajak, 0, $tax->account_id];
+                        // $tax_journal[] = [$pajak, 0, $tax->account_id];
                     }
                 }
 
-                $expense_journal[] = [$item_base_total - $pajak, 0, $expense_acc_id];
+                $expense_journal[] = [$item_base_total, 0, $expense_acc_id];
 
                 OrderDetail::create([
                     'head_id' => $head_id,
@@ -538,11 +538,11 @@ class PurchaseOrderController extends Controller
                             DB::rollBack();
                             return response()->json(['errors' => ['error' => 'Add the account to tax if rate more than 0']], 422);
                         } else if ($tax->account_id) {
-                            $tax_journal[] = [$pajak, 0, $tax->account_id];
+                            // $tax_journal[] = [$pajak, 0, $tax->account_id];
                         }
                     }
                 }
-                $expense_journal[] = [$item_base_total - $pajak, 0, $d->account_id];
+                $expense_journal[] = [$item_base_total, 0, $d->account_id];
             }
 
             // Recalculate overall discount value
