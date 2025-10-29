@@ -4,6 +4,6 @@
     :transactionDate="$jurnal->date_recieve"
     :description="$jurnal->description"
     :jurnals="$jurnal->jurnal"
-    :currency="$jurnal->currency->initial"
+    :currency="$jurnal->currency"
     :backUrl="route('generalledger.general-journal.index')"
 />

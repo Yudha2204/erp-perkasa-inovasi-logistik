@@ -128,7 +128,7 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th style="min-width:15rem;">Charge Type / Invoice</th>
+                                            <th style="min-width:15rem;">No Invoice</th>
                                             <th style="min-width:15rem;">Tanggal</th>
                                             <th style="min-width:10rem;">Jumlah</th>
                                             <th style="min-width:10rem;">Diskon/DP</th>
@@ -982,35 +982,6 @@
             getInvoice()
         })
 
-        function populateAccountOptions(currencyId) {
-            // Populate account options for all account selects in form rows
-            $('.account-select').each(function() {
-                const selectElement = this;
-                selectElement.innerHTML = "";
-                const defaultOption = document.createElement("option");
-                defaultOption.label = "Choose One";
-                selectElement.add(defaultOption);
-                
-                $.ajax({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    type: 'GET',
-                    dataType: 'json',
-                    url: '{{ route('finance.master-data.account') }}',
-                    data: { 'currency_id': currencyId, 'account_type_id': [1, 2] },
-                    success: function(response) {
-                        if(response.data) {
-                            response.data.forEach(element => {
-                                const newOption = new Option(element.account_name, element.id);
-                                selectElement.add(newOption);
-                            });
-                        }
-                    }
-                });
-            });
-        }
-
         $('#currency_head_id').on('change', function () {
             getJobOrder()
             getInvoice()
@@ -1040,9 +1011,6 @@
                     }
                 }
             })
-            
-            // Populate account options for form rows
-            populateAccountOptions(currency_id);
         })
 
         $('#job_order_id').on('change', function () {
@@ -1122,27 +1090,18 @@
                         var formTemplate = `
                         <td></td>
                         <td>
-                            <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
-                                <option value="invoice">Invoice</option>
-                                <option value="account">Account</option>
+                            <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
+                                <option label="Choose One" selected disabled></option>
+                                ${opsi}
                             </select>
-                            <div class="invoice-section">
-                                <label class="form-label">Invoice</label>
-                                <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Select Invoice" onchange="getData(this)">
-                                    <option label="Select Invoice" selected disabled></option>
-                                    ${opsi}
-                                </select>
-                            </div>
-                            <div class="account-section" style="display: none;">
-                                <label class="form-label">Description</label>
-                                <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
-                            </div>
+                            <label for="" class="form-label">Remark</label>
+                            <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
                         </td>
                         <td>
                             <input type="date" class="form-control" readonly name="detail_date" />
                         </td>
                         <td>
-                            <input type="text" class="form-control amount-input" name="detail_jumlah" placeholder="Enter amount" onchange="getTotal(this)"/>
+                            <input type="text" class="form-control" readonly name="detail_jumlah"/>
                             <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
                                 <input type="checkbox" class="custom-control-input" name="other_currency" value="0" onchange="changeOpsi(this); getTotal(this)">
                                 <span class="custom-control-label form-label">Mata Uang Lain</span>
@@ -1181,8 +1140,6 @@
                             <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id" >
                                 <option label="Choose One" selected disabled></option>
                             </select>
-                            <label class="form-label">Remark</label>
-                            <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" />
                         </td>
                         <td>
                             <div class="d-flex justify-content-between">
@@ -1327,27 +1284,18 @@
             var formTemplate = `
             <td></td>
             <td>
-                <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
-                    <option value="invoice">Invoice</option>
-                    <option value="account">Account</option>
+                <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
+                    <option label="Choose One" selected disabled></option>
+                    ${opsi}
                 </select>
-                <div class="invoice-section">
-                    <label class="form-label">Invoice</label>
-                    <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Select Invoice" onchange="getData(this)">
-                        <option label="Select Invoice" selected disabled></option>
-                        ${opsi}
-                    </select>
-                </div>
-                <div class="account-section" style="display: none;">
-                    <label class="form-label">Description</label>
-                    <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
-                </div>
+                <label for="" class="form-label">Remark</label>
+                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
             </td>
             <td>
                 <input type="date" class="form-control" readonly name="detail_date" />
             </td>
             <td>
-                <input type="text" class="form-control amount-input" name="detail_jumlah" placeholder="Enter amount" onchange="getTotal(this)"/>
+                <input type="text" class="form-control" readonly name="detail_jumlah"/>
                 <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
                     <input type="checkbox" class="custom-control-input" name="other_currency" value="0" onchange="changeOpsi(this); getTotal(this)">
                     <span class="custom-control-label form-label">Mata Uang Lain</span>
@@ -1386,8 +1334,6 @@
                 <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id" >
                     <option label="Choose One" selected disabled></option>
                 </select>
-                <label class="form-label">Remark</label>
-                <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" />
             </td>
             <td>
                 <div class="d-flex justify-content-between">
@@ -1407,7 +1353,7 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
+                data: { 'account_type_id' :4 },
                 success: function(response) {
                     if(response.data) {
                         response.data.forEach(element => {
@@ -1473,76 +1419,10 @@
             $('#submit-all-form').hide()
         }
 
-        function toggleChargeType(element) {
-            const row = element.closest('tr');
-            const chargeType = element.value;
-            const coaArSelect = $(row.querySelector('.coa-ar-select'));
-            const invoiceSection = row.querySelector('.invoice-section');
-            const accountSection = row.querySelector('.account-section');
-            const amountInput = row.querySelector('input[name="detail_jumlah"]');
-            const dateInput = row.querySelector('input[name="detail_date"]');
-            
-            if (chargeType === 'account') {
-                invoiceSection.style.display = 'none';
-                accountSection.style.display = 'block';
-                coaArSelect.prop('disabled', false);
-                coaArSelect.val('').trigger('change');
-                amountInput.removeAttribute('readonly');
-                dateInput.value = '';
-                dateInput.removeAttribute('readonly');
-                
-                // Load accounts with specific account type filter for charge type account
-                $.ajax({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    type: 'GET',
-                    dataType: 'json',
-                    url: '{{ route('finance.master-data.account') }}',
-                    data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
-                    success: function(response) {
-                        if(response.data) {
-                            coaArSelect.empty().append('<option label="Choose One" selected disabled></option>');
-                            response.data.forEach(element => {
-                                const newOption = new Option(element.account_name, element.id);
-                                coaArSelect.append(newOption);
-                            });
-                        }
-                    }
-                });
-            } else {
-                invoiceSection.style.display = 'block';
-                accountSection.style.display = 'none';
-                amountInput.setAttribute('readonly', 'readonly');
-                dateInput.setAttribute('readonly', 'readonly');
-
-                $.ajax({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    type: 'GET',
-                    dataType: 'json',
-                    url: '{{ route('finance.master-data.account') }}',
-                    data: { 'account_type_id' : 4 },
-                    success: function(response) {
-                        if(response.data) {
-                            coaArSelect.empty().append('<option label="Choose One" selected disabled></option>');
-                            response.data.forEach(element => {
-                                const newOption = new Option(element.account_name, element.id);
-                                coaArSelect.append(newOption);
-                            });
-                        }
-                    }
-                });
-            }
-        }
-
         function getData(element) {
             const invoice = $(element).val()
-            const row = element.closest('tr')
-            const chargeType = row.querySelector('select[name="charge_type"]').value
 
-            $(row.querySelector('.coa-ar-select')).prop('disabled', false);
+            const row = element.closest('tr')
 
             row.querySelector('input[name="detail_date"]').value = ''
             row.querySelector('input[name="detail_jumlah"]').value = ''
@@ -1550,38 +1430,6 @@
             row.querySelector('input[name="detail_total"]').value = ''
             hideButton()
 
-            // Handle account charges differently
-            if (chargeType === 'account') {
-                // For account charges, just clear the fields
-                return;
-            }
-
-            // Check for duplicate invoices
-            if (invoice) {
-                const allRows = document.querySelectorAll('.form-wrapper');
-                let duplicateFound = false;
-                
-                allRows.forEach(function(otherRow) {
-                    if (otherRow !== row) {
-                        const otherInvoiceSelect = otherRow.querySelector('select[name="detail_invoice"]');
-                        const otherChargeType = otherRow.querySelector('select[name="charge_type"]');
-                        
-                        if (otherInvoiceSelect && otherChargeType && otherChargeType.value === 'invoice') {
-                            if (otherInvoiceSelect.value === invoice) {
-                                duplicateFound = true;
-                            }
-                        }
-                    }
-                });
-                
-                if (duplicateFound) {
-                    alert('This invoice has already been selected in another row. Please choose a different invoice.');
-                    element.value = '';
-                    return;
-                }
-            }
-
-            // Handle invoice charges
             $.ajax({
                 headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
                 type: 'GET',
@@ -1603,9 +1451,7 @@
                         row.querySelector('input[name="detail_total"]').value = total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         row.querySelector('input[name="detail_dp_invoice_nominal"]').value = (Number(response.data.dp) + Number(response.data.dp_receive)).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         if (response.data.account_id) {
-                            const coaSelect = $(row.querySelector('.coa-ar-select'));
-                            coaSelect.val(response.data.account_id).trigger('change');
-                            coaSelect.prop('disabled', true);
+                            $(row.querySelector('.coa-ar-select')).val(response.data.account_id).trigger('change');
                         }
                     }
                 }

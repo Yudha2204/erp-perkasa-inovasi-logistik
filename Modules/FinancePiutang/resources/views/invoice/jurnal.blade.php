@@ -4,6 +4,6 @@
     :transactionDate="$jurnal->date_invoice"
     :description="$jurnal->description"
     :jurnals="$jurnal->jurnal"
-    :currency="$jurnal->currency->initial"
+    :currency="$jurnal->currency"
     :backUrl="route('finance.piutang.invoice.index')"
 />

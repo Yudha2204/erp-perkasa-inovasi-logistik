@@ -4,6 +4,6 @@
     :transactionDate="$jurnal->date_kas_in"
     :description="$jurnal->description"
     :jurnals="$jurnal->jurnal"
-    :currency="$jurnal->currency->initial"
+    :currency="$jurnal->currency"
     :backUrl="route('finance.kas.penerimaan.index')"
 />

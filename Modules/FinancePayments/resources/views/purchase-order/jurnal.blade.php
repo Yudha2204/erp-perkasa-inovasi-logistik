@@ -4,7 +4,7 @@
     :transactionDate="$jurnal->date_order"
     :description="$jurnal->description"
     :jurnals="$jurnal->jurnal"
-    :currency="$jurnal->currency->initial"
+    :currency="$jurnal->currency"
     :backUrl="route('finance.payments.account-payable.index')"
     :jurnalsIDR="$jurnal->jurnalIDR"
 />

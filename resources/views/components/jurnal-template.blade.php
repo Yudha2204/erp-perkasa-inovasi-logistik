@@ -46,7 +46,7 @@
                                 <th scope="col"style="text-align: center; font-size: 18px; color: white;">Account Name</th>
                                 <th scope="col"style="text-align: center; font-size: 18px; color: white;">Debit</th>
                                 <th scope="col"style="text-align: center; font-size: 18px; color: white;">Kredit</th>
-                                @if ($jurnal->currency_id != 1)
+                                @if ($currency->id != 1)
                                 <th scope="col"style="text-align: center; font-size: 18px; color: white;">Debit</th>
                                 <th scope="col"style="text-align: center; font-size: 18px; color: white;">Kredit</th>
                                 @endif
@@ -73,7 +73,7 @@
                                    $debit += $j->debit;
                                   @endphp
                                   @if($j->debit > 0)
-                                  {{ $currency }} {{ number_format($j->debit, 2, '.', ','); }}
+                                  {{ $currency->initial }} {{ number_format($j->debit, 2, '.', ','); }}
                                   @else
                                   -
                                   @endif
@@ -83,12 +83,12 @@
                                    $credit += $j->credit;
                                   @endphp
                                   @if($j->credit > 0)
-                                  {{ $currency }} {{ number_format($j->credit, 2, '.', ','); }}
+                                  {{ $currency->initial }} {{ number_format($j->credit, 2, '.', ','); }}
                                   @else
                                   -
                                   @endif
                               </td>
-                              @if ($jurnal->currency_id != 1)
+                              @if ($currency->id != 1)
                               <td style="border: 2px solid #015377; font-size: 18px; color: #015377;">
                                 @php
                                  $debitIDR += $jurnalsIDR[$loop->index]->debit;
@@ -117,12 +117,12 @@
                               <td style="border: 2px solid #015377; text-align: center; font-size: 18px; color: white;">Total</td>
                               <td style="border: 2px solid #015377; font-size: 18px; color: white;"></td>
                               <td style="border: 2px solid #015377; font-size: 18px; color: white;">
-                                  {{ $currency }} {{ number_format($debit, 2, '.', ','); }}
+                                  {{ $currency->initial }} {{ number_format($debit, 2, '.', ','); }}
                               </td>
                               <td style="border: 2px solid #015377; font-size: 18px; color: white;">
-                                  {{ $currency }} {{ number_format($credit, 2, '.', ','); }}
+                                  {{ $currency->initial }} {{ number_format($credit, 2, '.', ','); }}
                               </td>
-                              @if ($jurnal->currency_id != 1)
+                              @if ($currency->id != 1)
                               <td style="border: 2px solid #015377; font-size: 18px; color: white;">
                                 {{ $jurnalsIDR[0]->currency->initial }} {{ number_format($debitIDR, 2, '.', ','); }}
                             </td>
