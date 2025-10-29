@@ -52,14 +52,15 @@ class InvoiceController extends Controller
     {
         $jurnal = InvoiceHead::find($id);
         return view('financepiutang::invoice.jurnal', [
-            'title' => 'Journal Invoice',
-            'transactionNumber' => $jurnal->transaction,
-            'transactionDate' => $jurnal->date_invoice,
-            'description' => $jurnal->description,
-            'jurnals' => $jurnal->jurnal,
-            'currency' => $jurnal->currency->initial,
-            'backUrl' => route('finance.piutang.invoice.index'),
-            'jurnalsIDR' => null,
+            'jurnal' => $jurnal
+            // 'title' => 'Journal Invoice',
+            // 'transactionNumber' => $jurnal->transaction,
+            // 'transactionDate' => $jurnal->date_invoice,
+            // 'description' => $jurnal->description,
+            // 'jurnals' => $jurnal->jurnal,
+            // 'currency' => $jurnal->currency->initial,
+            // 'backUrl' => route('finance.piutang.invoice.index'),
+            // 'jurnalsIDR' => null,
         ]);
     }
 
