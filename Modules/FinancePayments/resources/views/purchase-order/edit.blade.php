@@ -82,6 +82,14 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
+                                        <label for="des_head_order" class="form-label">Description</label>
+                                        <input type="text" class="form-control" name="des_head_order" id="des_head_order" placeholder="Desc" value="{{ $order->description }}" >
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
                                         <label for="coa_ap" class="form-label">Account Name</label>
                                         <select class="form-control select2 form-select" data-placeholder="Choose One" name="coa_ap" id="coa_ap">
                                             @foreach($coa_ap as $account)
@@ -91,11 +99,64 @@
                                     </div>
                                 </div>
                             </div>
-                             <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="des_head_order" class="form-label">Description</label>
-                                        <input type="text" class="form-control" name="des_head_order" id="des_head_order" placeholder="Desc" value="{{ $order->description }}" >
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="custom-control custom-radio">
+                                        <input type="checkbox" id="choose_job_order" name="choose_job_order" class="custom-control-input" value="{{ $order->job_order_id ? '1' : '0' }}" {{ $order->job_order_id ? 'checked' : '' }}>
+                                        <span class="custom-control-label"><b>Choose Job Order</b></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div style="{{ $order->job_order_id ? '' : 'display: none' }}" id="job_order_display">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="job_order_id" class="form-label">Job Order</label>
+                                            <select class="form-control select2 form-select"
+                                                data-placeholder="Choose One" name="job_order_id" id="job_order_id">
+                                                <option label="Choose One"></option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="transit_via" class="form-label">Transit Via</label>
+                                            <select name="transit_via" id="transit_via"
+                                              data-placeholder="Dropdown Operation" class="form-control select2 form-select">
+                                              <option label="Dropdown Operation" disabled></option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="consignee" class="form-label">Consignee</label>
+                                            <input type="text" class="form-control" name="consignee" id="consignee" readonly placeholder="Link">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="transportation" class="form-label">Transportation</label>
+                                            <input type="text" class="form-control" name="transportation" id="transportation" readonly placeholder="Link" >
+                                        </div>
+                                        <label class="custom-control custom-radio" id="transportation_desc" style="display: none;">
+                                            <input type="radio" class="custom-control-input"
+                                                name="transportation_desc" checked>
+                                            <span class="custom-control-label"></span>
+                                        </label>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="shipper" class="form-label">Shipper</label>
+                                            <input type="text" class="form-control" name="shipper" id="shipper" readonly placeholder="Link">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="commodity" class="form-label">Commodity</label>
+                                            <input type="text" class="form-control" name="commodity" id="commodity" readonly placeholder="Link">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -208,6 +269,23 @@
                                             <td>
                                                 <div class="d-flex justify-content-between">
                                                     <div>
+                                                        <label for="" class="form-label">PPh</label>
+                                                    </div>
+                                                    <div style="width: 150px">
+                                                        <select class="form-control select2 form-select" data-placeholder="Tax" id="pph_tax_master">
+                                                            <option label="pph tax"></option>
+                                                            @foreach ($taxs as $tax)
+                                                                <option value="{{ $tax->id }}:{{ $tax->tax_rate }}">{{ $tax->tax_rate }}%</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
                                                         <label for="" class="form-label">PPn</label>
                                                     </div>
                                                     <div style="width: 150px">
@@ -224,7 +302,7 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex justify-content-between">
-                                                    Total Pajak
+                                                    Total PPh
                                                     <input type="text" style="width: 50%" class="form-control" id="display_pajak" name="display_pajak" readonly value="0" />
                                                 </div>
                                             </td>
@@ -276,8 +354,145 @@
 
     <script>
         $(document).ready(function() {
+            if ($('#choose_job_order').prop('checked')) {
+                getJobOrder();
+            }
+
             calculate();
             total();
+
+            $('#pph_tax_master').on('change', function() {
+                var selectedTax = $(this).val();
+                $('.form-wrapper').each(function() {
+                    $(this).find('select[name="pajak_detail"]').val(selectedTax).trigger('change');
+                });
+                calculate();
+            });
+        });
+
+        $('#choose_job_order').on('change', function () {
+            const job_order_display =  $("#job_order_display");
+            if ($('#choose_job_order').prop('checked')) {
+                job_order_display.show();
+                $('#choose_job_order').val("1")
+                getJobOrder();
+            } else {
+                job_order_display.hide();
+                $('#choose_job_order').val("0")
+            }
+        });
+
+        function getJobOrder() {
+            var contact = $('#customer_id').val();
+
+            const selectElement = document.getElementById("job_order_id");
+            selectElement.innerHTML = ""
+            const transitVia = document.getElementById('transit_via');
+            transitVia.innerHTML = ""
+            const consignee = document.getElementById("consignee")
+            consignee.value = "";
+            const transportation = document.getElementById("transportation")
+            transportation.value = "";
+            const transportation_desc = document.getElementById("transportation_desc")
+            transportation_desc.style.display = 'none';
+            const shipper = document.getElementById("shipper")
+            shipper.value = "";
+            const commodity = document.getElementById("commodity")
+            commodity.value = "";
+
+            const defaultOption = document.createElement("option");
+            defaultOption.label = "Choose One";
+            selectElement.add(defaultOption);
+
+            const defaultTransitOption = document.createElement("option")
+            defaultTransitOption.label = "Dropdown Operation";
+            transitVia.add(defaultTransitOption)
+
+            $.ajax({
+                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                type: 'GET',
+                dataType: 'json',
+                data: { 'customer_id': contact },
+                url: '{{ route('finance.payments.job-order') }}',
+                success:function(response)
+                {
+                    if (response?.data) {
+                        let orderJobOrderId = "{{ $order->job_order_id }}";
+                        let jobOrderValueToSelect = null;
+
+                        response.data.forEach(function(item) {
+                            const optionValue = item.id + ":" + item.marketing.source;
+                            const option = document.createElement("option");
+                            option.value = optionValue;
+                            option.text = item.job_order_id + " - " + item.marketing.source;
+                            selectElement.add(option);
+
+                            if (item.id == orderJobOrderId) {
+                                jobOrderValueToSelect = optionValue;
+                            }
+                        });
+
+                        if (jobOrderValueToSelect) {
+                            $('#job_order_id').val(jobOrderValueToSelect).trigger('change');
+                        }
+                    }
+                }
+            });
+        }
+
+        $('#customer_id').on('change', function() {
+            if ($('#choose_job_order').prop('checked')) {
+                getJobOrder()
+            }
+        });
+
+        $('#job_order_id').on('change', function() {
+            var id = $(this).val();
+            const transitVia = document.getElementById('transit_via');
+            transitVia.innerHTML = ""
+            const defaultTransitOption = document.createElement("option")
+            defaultTransitOption.label = "Dropdown Operation";
+            transitVia.add(defaultTransitOption)
+            $.ajax({
+                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                type: 'GET',
+                dataType: 'json',
+                data: { 'id' : id },
+                url: '{{ route('finance.payments.job-order.details') }}',
+                success:function(response)
+                {
+                    hideButton()
+                    $('#consignee').val(response.data.marketing.consignee);
+
+                    if (response.data.marketing.transportation == 1) {
+                        $('#transportation').val("Air Freight");
+                    } else if (response.data.marketing.transportation == 2) {
+                        $('#transportation').val("Sea Freight");
+                    } else if(response.data.marketing.transportation) {
+                        $('#transportation').val("Land Trucking");
+                    }
+
+                    if(response.data.marketing.transportation_desc){
+                        const transportation_desc = document.getElementById("transportation_desc")
+                        transportation_desc.style.display = 'block';
+                        const text_transportation_desc = transportation_desc.querySelector('.custom-control-label')
+                        text_transportation_desc.innerText = response.data.marketing.transportation_desc
+                    }
+
+                    $('#shipper').val(response.data.marketing.shipper);
+                    $('#commodity').val(response.data.marketing.description);
+                    if(response.data.vendors) {
+                        response.data.vendors.forEach(item => {
+                            if(!item.vendor) {
+                                const option = document.createElement("option");
+                                option.value = item.id;
+                                option.text = item.transit;
+                                transitVia.add(option);
+                            }
+                        })
+                    }
+                }
+            });
         });
 
         document.getElementById('add-form').addEventListener('click', function() {
@@ -379,7 +594,6 @@
 
                 pajak = (pajak/100)*total
                 grand_pajak += pajak
-                total -= pajak
 
                 if(price > 0) {
                     input[6].value = price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
