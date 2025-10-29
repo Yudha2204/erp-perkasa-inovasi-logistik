@@ -38,7 +38,7 @@
                             <td style="padding: 10px; font-size: 18px;">{{ $description }}</td>
                         </tr>
                     </table>
-    
+
                     <table class="table">
                         <thead style="border: 2px solid #015377; background-color: #015377;">
                             <tr>
@@ -46,7 +46,7 @@
                                 <th scope="col"style="text-align: center; font-size: 18px; color: white;">Account Name</th>
                                 <th scope="col"style="text-align: center; font-size: 18px; color: white;">Debit</th>
                                 <th scope="col"style="text-align: center; font-size: 18px; color: white;">Kredit</th>
-                                @if ($jurnalsIDR)
+                                @if ($jurnal->currency_id != 1)
                                 <th scope="col"style="text-align: center; font-size: 18px; color: white;">Debit</th>
                                 <th scope="col"style="text-align: center; font-size: 18px; color: white;">Kredit</th>
                                 @endif
@@ -88,7 +88,7 @@
                                   -
                                   @endif
                               </td>
-                              @if ($jurnalsIDR)
+                              @if ($jurnal->currency_id != 1)
                               <td style="border: 2px solid #015377; font-size: 18px; color: #015377;">
                                 @php
                                  $debitIDR += $jurnalsIDR[$loop->index]->debit;
@@ -122,7 +122,7 @@
                               <td style="border: 2px solid #015377; font-size: 18px; color: white;">
                                   {{ $currency }} {{ number_format($credit, 2, '.', ','); }}
                               </td>
-                              @if ($jurnalsIDR)
+                              @if ($jurnal->currency_id != 1)
                               <td style="border: 2px solid #015377; font-size: 18px; color: white;">
                                 {{ $jurnalsIDR[0]->currency->initial }} {{ number_format($debitIDR, 2, '.', ','); }}
                             </td>
