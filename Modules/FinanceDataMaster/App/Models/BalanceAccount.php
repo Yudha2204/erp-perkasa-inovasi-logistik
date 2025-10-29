@@ -20,7 +20,18 @@ use Spatie\Permission\Traits\HasRoles;
 class BalanceAccount extends Model
 {
     use HasFactory, HasRoles, SoftDeletes;
-    
+
+    public function setDebitAttribute(float $value): void
+    {
+        // Mengambil nilai absolut (abs) dari input dan menyimpannya.
+        $this->attributes['debit'] = abs($value);
+    }
+    public function setCreditAttribute(float $value): void
+    {
+        // Mengambil nilai absolut (abs) dari input dan menyimpannya.
+        $this->attributes['credit'] = abs($value);
+    }
+
     protected $table = 'balance_account_data';
     protected $guarded = [];
 
@@ -125,7 +136,7 @@ class BalanceAccount extends Model
             if (!$balanceAccount->currency_id)
                 throw new \Exception('Currency Cant Null');
 
-            
+
             if ($balanceAccount->currency_id != $baseCurrency->id) {
                 // clone balance account
                 // Create a clone for IDR (currency_id = 2)

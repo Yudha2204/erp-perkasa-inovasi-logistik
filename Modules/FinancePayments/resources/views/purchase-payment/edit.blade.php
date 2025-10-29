@@ -52,13 +52,13 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label class="form-label">Customer</label>
+                                        <label class="form-label">Customer </label>
                                         <div class="d-flex d-inline">
                                             <select class="form-control select2 form-select"
                                                 data-placeholder="Choose One" name="customer_id" id="customer_id">
                                                 <option value="null">No Customer</option>
                                                 @foreach ($customers as $c)
-                                                    <option value="{{ $c->id }}" {{ isset($head->customer) && $c->id === $head->customer->id ? "selected" : "" }}>{{ $c->customer_name }}</option>
+                                                    <option value="{{ $c->id }}" {{  $c->id === $customer_id ? "selected" : "" }}>{{ $c->customer_name }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -104,9 +104,6 @@
                                         <select class="form-control select2 form-select"
                                             data-placeholder="Choose One" name="head_account_id" id="account_id">
                                             <option label="Choose One"></option>
-                                            @foreach ($accounts as $account)
-                                                <option value="{{ $account->id }}" {{ $account->id === $head->account->id ? "selected" : "" }}>{{ $account->account_name }}</option>
-                                            @endforeach
                                         </select>
                                         <a data-bs-effect="effect-scale" data-bs-toggle="modal" href="#modaldemo8"><i class="fe fe-plus me-1"></i>Create New Account</a>
                                     </div>
@@ -188,7 +185,9 @@
                                                 @if($data->charge_type === 'payable' && $data->payable)
                                                 <input type="date" class="form-control" readonly name="detail_date" value="{{ $data->payable->date_order }}"/>
                                                 @else
-                                                <input type="date" class="form-control" name="detail_date" value="{{ $data->created_at ? $data->created_at->format('Y-m-d') : '' }}"/>
+                                                <input type="date" class="form-control" readonly name="detail_date" value="{{ $head->date_payment }}"/>
+
+                                                {{-- <input type="date" class="form-control" name="detail_date" value="{{ $data->created_at ? $data->created_at->format('Y-m-d') : '' }}"/> --}}
                                                 @endif
                                             </td>
                                             <td>
@@ -1096,7 +1095,38 @@
             getOrder()
         })
 
+        function loadHeadAccounts(selectedAccountId = null) {
+            const currency_id = $('#currency_head_id').val();
+            const accountSelect = $('#account_id');
+
+            accountSelect.empty().append('<option label="Choose One" selected disabled></option>');
+
+            if (currency_id) {
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '{{ route('finance.master-data.account') }}',
+                    data: { 'currency_id': currency_id, 'account_type_id' :[1 , 2] },
+                    success: function(response) {
+                        if(response.data) {
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                accountSelect.append(newOption);
+                            });
+                            if (selectedAccountId) {
+                                accountSelect.val(selectedAccountId).trigger('change');
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         $(document).ready(function () {
+            loadHeadAccounts('{{ $head->account->id }}');
             getOrder(true)
             resetCurrency(true)
 
@@ -1118,38 +1148,14 @@
                 const selectedAccountId = coaApSelect.data('selected'); // Get the pre-selected account ID
 
                 // Call toggleChargeType to populate the account dropdown correctly
-                toggleChargeType(chargeTypeSelect[0], selectedAccountId);
+                toggleChargeType(chargeTypeSelect[0], selectedAccountId, true);
             });
         })
 
         $('#currency_head_id').on('change', function () {
             getOrder()
             resetCurrency()
-            const currency_id = $(this).val()
-            $('#account_id').text('')
-
-            const selectElement = document.getElementById("account_id");
-            selectElement.innerHTML = ""
-            const defaultOption = document.createElement("option");
-            defaultOption.label = "Choose One";
-            selectElement.add(defaultOption);
-            $.ajax({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                type: 'GET',
-                dataType: 'json',
-                url: '{{ route('finance.master-data.account') }}',
-                data: { 'currency_id': currency_id },
-                success: function(response) {
-                    if(response.data) {
-                        response.data.forEach(element => {
-                            const newOption = new Option(element.account_name, element.id)
-                            $('#account_id').append(newOption)
-                        });
-                    }
-                }
-            })
+            loadHeadAccounts()
         })
 
         $('#job_order_id').on('change', function () {
@@ -1585,7 +1591,7 @@
                 success:function(response)
                 {
                     if(response.data) {
-                        row.querySelector('input[name="detail_date"]').value = response.data.date_order
+                        row.querySelector('input[name="detail_date"]').value = response.data.date_order || $('#date_payment').val()
                         let total = Number(response.data.total)
                         if(response.data.dp) {
                             total -= Number(response.data.dp)
@@ -1600,6 +1606,122 @@
                             const coaSelect = $(row.querySelector('.coa-ap-select'));
                             coaSelect.val(response.data.account_id).trigger('change');
                             coaSelect.prop('disabled', true);
+                        }
+
+                        const total_tax_data = response.data.total_tax;
+                        if (total_tax_data && Object.keys(total_tax_data).length > 0) {
+                            for (const accountId in total_tax_data) {
+                                if (Object.hasOwnProperty.call(total_tax_data, accountId)) {
+                                    const taxAmount = total_tax_data[accountId];
+                                    if (taxAmount > 0) {
+                                        var formContainer = document.getElementById('form-container');
+                                        var newFormWrapper = document.createElement('tr');
+                                        newFormWrapper.classList.add('form-wrapper');
+
+                                        var formTemplate = `
+                                        <td></td>
+                                        <td>
+                                            <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
+                                                <option value="payable">Payable</option>
+                                                <option value="account" selected>Account</option>
+                                            </select>
+                                            <div class="payable-section">
+                                                <label class="form-label">Payable</label>
+                                                <select class="form-control select2 form-select" name="detail_order" data-placeholder="Choose One" onchange="getData(this)">
+                                                    <option label="Choose One" selected disabled></option>
+                                                    ${opsi}
+                                                </select>
+                                            </div>
+                                            <div class="account-section" style="display: none;">
+                                                <label class="form-label">Description</label>
+                                                <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input type="date" class="form-control" readonly name="detail_date" />
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control amount-input" name="detail_jumlah" placeholder="Enter amount" onchange="getTotal(this)"/>
+                                            <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
+                                                <input type="checkbox" class="custom-control-input" name="other_currency" value="0" onchange="changeOpsi(this); getTotal(this)">
+                                                <span class="custom-control-label form-label">Mata Uang Lain</span>
+                                            </label>
+                                            <div class="d-flex justify-content-between gap-2" style="display: none !important;">
+                                                <input type="text" class="form-control" name="other_currency_nominal" onchange="getTotal(this)"/>
+                                                <select class="form-control select2 form-select" data-placeholder="X" name="other_currency_type" onchange="getTotal(this)">
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-between gap-2">
+                                                <input type="text" class="form-control" name="detail_discount_nominal" onchange="getTotal(this)"/>
+                                                <select class="form-control select2 form-select" data-placeholder="Choose one" name="detail_discount_type" onchange="getTotal(this)">
+                                                    <option value="persen">%</option>
+                                                    <option value="nominal">0</option>
+                                                </select>
+                                            </div>
+                                            <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
+                                                <input type="checkbox" class="custom-control-input" name="dp_desc" value="0" onchange="changeDp(this); getTotal(this)">
+                                                <span class="custom-control-label form-label">Bayar DP</span>
+                                            </label>
+                                            <div class="d-flex justify-content-between gap-2" style="display: none !important;">
+                                                <input type="text" class="form-control" name="detail_dp_nominal" onchange="getTotal(this)"/>
+                                                <select class="form-control select2 form-select" data-placeholder="Choose one" name="detail_dp_type" onchange="getTotal(this)">
+                                                    <option value="persen">%</option>
+                                                    <option value="nominal">0</option>
+                                                </select>
+                                                <input type="text" hidden class="form-control" name="detail_dp_order_nominal"/>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control total_input" readonly name="detail_total"/>
+                                        </td>
+                                        <td>
+                                            <select class="form-control select2 form-select coa-ap-select" data-placeholder="Choose One" name="account_id" >
+                                                <option label="Choose One" selected disabled></option>
+                                            </select>
+                                            <label class="form-label">Remark</label>
+                                            <input type="text" class="form-control remark-input" placeholder="Remark" name="detail_remark" />
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-between">
+                                                <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
+                                            </div>
+                                        </td>
+                                        `;
+
+                                        newFormWrapper.innerHTML = formTemplate;
+                                        row.after(newFormWrapper);
+
+                                        getCurrencyVia()
+
+                                        $('.select2').select2({
+                                            minimumResultsForSearch: Infinity
+                                        });
+                                        var select2Elements = document.querySelectorAll('.select2');
+                                        select2Elements.forEach(function(element) {
+                                            element.style.width = '100%';
+                                        });
+
+                                        const chargeTypeSelect = newFormWrapper.querySelector('.charge-type-select');
+                                        chargeTypeSelect.value = 'account';
+                                        toggleChargeType(chargeTypeSelect, accountId);
+
+                                        const newRowDateInput = newFormWrapper.querySelector('input[name="detail_date"]');
+                                        newRowDateInput.value = row.querySelector('input[name="detail_date"]').value;
+                                        newRowDateInput.setAttribute('readonly', 'readonly');
+
+                                        const amountInput = newFormWrapper.querySelector('input[name="detail_jumlah"]');
+                                        amountInput.value = parseFloat(-Math.abs(taxAmount)).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                                        const totalInput = newFormWrapper.querySelector('input[name="detail_total"]');
+                                        totalInput.value = parseFloat(-Math.abs(taxAmount)).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                                        const descriptionInput = newFormWrapper.querySelector('.account-description');
+                                        descriptionInput.value = 'Pajak';
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1784,7 +1906,7 @@
             }
         }
 
-        function toggleChargeType(element, selectedAccountId = null) {
+        function toggleChargeType(element, selectedAccountId = null, isInitialLoad = false) {
             const row = element.closest('tr');
             const chargeType = element.value;
             const coaApSelect = $(row.querySelector('.coa-ap-select'));
@@ -1799,7 +1921,9 @@
                 coaApSelect.prop('disabled', false);
                 coaApSelect.val('').trigger('change');
                 amountInput.removeAttribute('readonly');
-                dateInput.value = '';
+                if (!isInitialLoad) {
+                    dateInput.value = '';
+                }
                 dateInput.removeAttribute('readonly');
 
                 $.ajax({
@@ -1844,6 +1968,9 @@
                                 const newOption = new Option(element.account_name, element.id);
                                 coaApSelect.append(newOption);
                             });
+                            if (selectedAccountId) {
+                                coaApSelect.val(selectedAccountId).trigger('change');
+                            }
                         }
                     }
                 });

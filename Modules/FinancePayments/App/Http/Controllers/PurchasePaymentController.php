@@ -271,7 +271,7 @@ class PurchasePaymentController extends Controller
                             if($d->tax_id) {
                                 $tax = MasterTax::find($d->tax_id);
                                 $pajak += ($tax->tax_rate/100) * $totalFull;
-                                $totalFull -= ($pajak * 2);
+                                // $totalFull -= ($pajak * 2);
                                 if($tax->tax_rate > 0 && !$tax->account_id){
                                     throw new Exception('Add the account to tax if rate more than 0');
                                 }else if($tax->account_id){
@@ -303,7 +303,7 @@ class PurchasePaymentController extends Controller
                             }else{
                                 $discTotal = $discount_nominal;
                             }
-                            $ap_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) ) , $account_id_detail];
+                            $ap_journal[] = [($total_after_discount + $ppn_amount) - (($discTotal * 2) ) ,0, $account_id_detail];
                             $totalDiscount += $discTotal;
                         }else{
                             if($discount_type === "persen") {
@@ -311,7 +311,7 @@ class PurchasePaymentController extends Controller
                             }else{
                                 $discTotal = $discount_nominal;
                             }
-                            $ap_journal[] = [ 0,$total_after_discount  - (($discTotal * 2)),$account_id_detail];
+                            $ap_journal[] = [ $total_after_discount  - (($discTotal * 2)),0,$account_id_detail];
                             $totalDiscount += $discTotal;
                         }
 
@@ -391,7 +391,7 @@ class PurchasePaymentController extends Controller
             } else {
                 $flow = [
                     //debit, kredit
-                    [$grand_total, 0, $head_account_id],
+                    [0, $grand_total, $head_account_id],
                     // [0, $display_dp_order, $dp_id],
                     [0, $totalDiscount, $diskon_pembelian_id],
                 ];
@@ -402,7 +402,7 @@ class PurchasePaymentController extends Controller
             foreach($account_charges as $charge) {
                 $account_charge_flow[] = [
                     0, // debit
-                    abs($charge['amount']), // credit
+                    $charge['amount'], // credit
                     $charge['account_id'] // account_id
                 ];
             }
@@ -513,8 +513,8 @@ class PurchasePaymentController extends Controller
                         ->with(['from_currency','to_currency'])
                         ->get();
         $exchange = $exchangeFrom->concat($exchangeTo);
-
-        return view('financepayments::purchase-payment.edit', compact('vendors', 'customers', 'terms', 'currencies', 'accounts', 'accountTypes', 'head','operation','purchaseOrder','exchange'));
+        // dd($head);
+        return view('financepayments::purchase-payment.edit', compact('vendors', 'customers','customer_id', 'terms', 'currencies', 'accounts', 'accountTypes', 'head','operation','purchaseOrder','exchange'));
     }
 
     /**
@@ -613,23 +613,25 @@ class PurchasePaymentController extends Controller
             $paymentDeatils = PaymentDetail::where('head_id', $id)->get();
             foreach($paymentDeatils as $p) {
                 $payable_id = $p->payable_id;
-                OrderHead::find($payable_id)->update([
-                    "status" => "open"
-                ]);
+                if ($payable_id) {
+                    OrderHead::find($payable_id)->update([
+                        "status" => "open"
+                    ]);
 
-                $payment = PaymentHead::whereHas('details', function($query) use ($payable_id) {
-                    $query->where('payable_id', $payable_id);
-                })->get();
+                    $payment = PaymentHead::whereHas('details', function($query) use ($payable_id) {
+                        $query->where('payable_id', $payable_id);
+                    })->get();
 
-                foreach ($payment as $head) {
-                    $all_not_paid = PaymentDetail::where('head_id', $head->id)
-                        ->whereHas('payable', function($query) {
-                            $query->where('status', '!=', 'paid');
-                        })
-                        ->exists();
+                    foreach ($payment as $head) {
+                        $all_not_paid = PaymentDetail::where('head_id', $head->id)
+                            ->whereHas('payable', function($query) {
+                                $query->where('status', '!=', 'paid');
+                            })
+                            ->exists();
 
-                    if ($all_not_paid) {
-                        $head->update(['status' => 'open']);
+                        if ($all_not_paid) {
+                            $head->update(['status' => 'open']);
+                        }
                     }
                 }
                 $p->delete();
@@ -664,7 +666,7 @@ class PurchasePaymentController extends Controller
                 $remark = $data['detail_remark'];
                 $discount_type = $data['detail_discount_type'];
                 $discount_nominal = $this->numberToDatabase($data['detail_discount_nominal']);
-                $account_id_detail = $data['account_id'];
+                $account_id_detail = (int) $data['account_id'];
 
                 $amount = $this->numberToDatabase($data['detail_jumlah']);
                 $other_currency = $data['other_currency'];
@@ -729,12 +731,12 @@ class PurchasePaymentController extends Controller
                             if($d->tax_id) {
                                 $tax = MasterTax::find($d->tax_id);
                                 $pajak += ($tax->tax_rate/100) * $totalFull;
-                                $totalFull -= ($pajak * 2);
+                                // $totalFull -= ($pajak * 2);
                                 if($tax->tax_rate > 0 && !$tax->account_id){
                                     throw new Exception('Add the account to tax if rate more than 0');
                                 }else if($tax->account_id){
                                     // $grand_total -= $pajak;
-                                    $tax_journal[] = [$pajak, 0 , $tax->account_id ];
+                                    // $tax_journal[] = [$pajak, 0 , $tax->account_id ];
 
                                 }else if($tax->tax_rate == 0 && !$tax->account_id ){
                                     // Skip
@@ -761,7 +763,7 @@ class PurchasePaymentController extends Controller
                             }else{
                                 $discTotal = $discount_nominal;
                             }
-                            $ap_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) ) , $account_id_detail];
+                            $ap_journal[] = [($total_after_discount + $ppn_amount) - (($discTotal * 2) ), 0, $account_id_detail];
                             $totalDiscount += $discTotal;
                         }else{
                             if($discount_type === "persen") {
@@ -769,7 +771,7 @@ class PurchasePaymentController extends Controller
                             }else{
                                 $discTotal = $discount_nominal;
                             }
-                            $ap_journal[] = [ 0,$total_after_discount  - (($discTotal * 2)),$account_id_detail];
+                            $ap_journal[] = [$total_after_discount  - (($discTotal * 2)), 0,$account_id_detail];
                             $totalDiscount += $discTotal;
                         }
 
@@ -807,7 +809,7 @@ class PurchasePaymentController extends Controller
                     'currency_via_id' => $currency_via_id,
                     'amount_via' => $amount_via,
                     'remark' => $remark,
-                    'account_id' => $account_id_detail,
+                    'account_id' => (int) $account_id_detail,
                     'charge_type' => $charge_type,
                     'amount' => $charge_type === 'account' ? $amount : null,
                     'description' => $charge_type === 'account' ? ($data['description'] ?? null) : null,
@@ -845,7 +847,7 @@ class PurchasePaymentController extends Controller
         } else {
             $flow = [
                 //debit, kredit
-                [$grand_total, 0, $head_account_id],
+                [0, $grand_total, $head_account_id],
                 // [0, $display_dp_order, $dp_id],
                 [0, $totalDiscount, $diskon_pembelian_id],
             ];
@@ -867,11 +869,13 @@ class PurchasePaymentController extends Controller
             ...$tax_journal,
             ...$account_charge_flow,
         ];
+        // DB::rollBack();
+        // return response()->json(['errors' => ['error' => [$flow]]], 500);
 
         foreach ($flow as $item) {
             $cashflowData = [
                 'transaction_id' => $head_id,
-                'master_account_id' => $item[2],
+                'master_account_id' => (int) $item[2],
                 'transaction_type_id' => 8,
                 "date" => $date_payment,
                 "currency_id" => $currency_id,

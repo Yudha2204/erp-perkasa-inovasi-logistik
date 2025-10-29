@@ -108,5 +108,5 @@ class PaymentHead extends Model
         return $dp;
     }
 
-    protected $appends = ['transaction','jurnal','job_order','discount', 'dp'];
+    protected $appends = ['transaction','jurnal','job_order','discount'];
 }
