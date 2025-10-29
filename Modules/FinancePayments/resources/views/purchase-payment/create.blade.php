@@ -1009,7 +1009,7 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: {  },
+                data: { 'currency_id': currency_id,  'account_type_id' :[1 , 2]  },
                 success: function(response) {
                     if(response.data) {
                         response.data.forEach(element => {
@@ -1778,7 +1778,7 @@
                     type: 'GET',
                     dataType: 'json',
                     url: '{{ route('finance.master-data.account') }}',
-                    data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
+                    data: {},
                     success: function(response) {
                         if(response.data) {
                             coaApSelect.empty().append('<option label="Choose One" selected disabled></option>');
