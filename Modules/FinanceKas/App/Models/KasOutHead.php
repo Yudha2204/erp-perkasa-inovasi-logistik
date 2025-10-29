@@ -78,5 +78,14 @@ class KasOutHead extends Model
         return $jurnal;
     }
 
-    protected $appends = ['transaction', 'total', 'job_order'];
+    public function getJurnalIDRAttribute()
+    {
+        $jurnal = BalanceAccount::where('transaction_type_id', 5)
+                    ->where('transaction_id', $this->id)
+                    ->where('currency_id', 1)
+                    ->get();
+        return $jurnal;
+    }
+
+    protected $appends = ['transaction', 'total', 'job_order', 'jurnalIDR'];
 }

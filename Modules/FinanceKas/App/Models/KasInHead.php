@@ -78,5 +78,15 @@ class KasInHead extends Model
         return $jurnal;
     }
 
-    protected $appends = ['transaction', 'total', 'job_order'];
+    public function getJurnalIDRAttribute()
+    {
+        $jurnal = BalanceAccount::where('transaction_type_id', 6)
+                    ->where('transaction_id', $this->id)
+                    ->where('currency_id', 1)
+                    ->orderByDesc('debit')
+                    ->get();
+        return $jurnal;
+    }
+
+    protected $appends = ['transaction', 'total', 'job_order', 'jurnalIDR'];
 }

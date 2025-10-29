@@ -38,4 +38,15 @@ class GeneralJournalHead extends Model
                     ->get();
         return $jurnal;
     }
+
+    public function getJurnalIDRAttribute()
+    {
+        $jurnal = BalanceAccount::where('transaction_type_id', 9)
+                    ->where('transaction_id', $this->id)
+                    ->where('currency_id', 1)
+                    ->get();
+        return $jurnal;
+    }
+
+    protected $appends = ['jurnal', 'jurnalIDR'];
 }

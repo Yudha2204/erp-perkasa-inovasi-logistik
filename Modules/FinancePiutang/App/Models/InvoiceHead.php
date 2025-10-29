@@ -121,6 +121,15 @@ class InvoiceHead extends Model
         return $jurnal;
     }
 
+    public function getJurnalIDRAttribute()
+    {
+        $jurnal = BalanceAccount::where('transaction_type_id', 3)
+                    ->where('transaction_id', $this->id)
+                    ->where('currency_id', 1)
+                    ->get();
+        return $jurnal;
+    }
+
     public function getDueDateAttribute()
     {
         $term = MasterTermOfPayment::find($this->term_payment)->pay_days;
@@ -207,5 +216,5 @@ class InvoiceHead extends Model
         $this->save();
     }
 
-    protected $appends = ['transaction', 'total', 'discount', 'jurnal', 'due_date', 'dp', 'dp_receive'];
+    protected $appends = ['transaction', 'total', 'discount', 'jurnal', 'jurnalIDR', 'due_date', 'dp', 'dp_receive'];
 }

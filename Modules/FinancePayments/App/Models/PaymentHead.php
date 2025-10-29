@@ -84,6 +84,15 @@ class PaymentHead extends Model
         return $jurnal;
     }
 
+    public function getJurnalIDRAttribute()
+    {
+        $jurnal = BalanceAccount::where('transaction_type_id', 8)
+                    ->where('transaction_id', $this->id)
+                    ->where('currency_id', 1)
+                    ->get();
+        return $jurnal;
+    }
+
     public function getJobOrderAttribute()
     {
         if ($this->job_order_id) {
@@ -108,5 +117,5 @@ class PaymentHead extends Model
         return $dp;
     }
 
-    protected $appends = ['transaction','jurnal','job_order','discount'];
+    protected $appends = ['transaction','jurnal','jurnalIDR','job_order','discount'];
 }
