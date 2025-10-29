@@ -356,7 +356,7 @@ class PurchaseOrderController extends Controller
         $job_order = $export->concat($import);
 
         $coa_ap = MasterAccount::where('account_type_id', 8)->where('master_currency_id', $order->currency_id)->get();
-        $coa_expense = MasterAccount::whereIn('account_type_id', [17, 18])->where('master_currency_id', $order->currency_id)->get();
+        $coa_expense = MasterAccount::whereIn('account_type_id', [17, 18])->get();
 
         return view('financepayments::purchase-order.edit', compact('vendor', 'customer', 'terms', 'taxs', 'ppn_tax','order', 'job_order', 'currencies', 'coa_ap', 'coa_expense'));
     }
