@@ -15,11 +15,25 @@ use Modules\FinancePiutang\App\Models\RecieveHead;
 use Modules\FinancePiutang\App\Models\SalesOrderHead;
 use Modules\ExchangeRate\App\Models\ExchangeRate;
 use Modules\GeneralLedger\App\Models\GeneralJournalHead;
+use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\Traits\HasRoles;
 
 class BalanceAccount extends Model
 {
     use HasFactory, HasRoles, SoftDeletes;
+    // protected static function booted(): void
+    // {
+    //     // Secara anonim menambahkan Global Scope untuk pengurutan.
+    //     // Scope ini otomatis diterapkan ke semua query.
+    //     static::addGlobalScope('debit_priority', function (Builder $builder) {
+
+    //         // Logika pengurutan: Prioritaskan Debit (nilai > 0)
+    //         $builder->orderByDesc('debit')
+
+    //                 // Kemudian, urutkan berdasarkan Kredit
+    //                 ->orderByDesc('kredit');
+    //     });
+    // }
 
     public function setDebitAttribute(float $value): void
     {
@@ -154,6 +168,14 @@ class BalanceAccount extends Model
                     'currency_id' => $baseCurrency->id, // IDR
                 ]);
             }
+        });
+            static::addGlobalScope('debit_priority', function (Builder $builder) {
+
+            // Logika pengurutan: Prioritaskan Debit (nilai > 0)
+            $builder->orderByDesc('debit')
+
+                    // Kemudian, urutkan berdasarkan Kredit
+                    ->orderByDesc('credit');
         });
     }
 }

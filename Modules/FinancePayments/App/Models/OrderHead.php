@@ -127,6 +127,14 @@ class OrderHead extends Model
                     ->get();
         return $jurnal;
     }
+    public function getJurnalIDRAttribute()
+    {
+        $jurnal = BalanceAccount::where('transaction_type_id', 7)
+                    ->where('transaction_id', $this->id)
+                    ->where('currency_id', 1)
+                    ->get();
+        return $jurnal;
+    }
 
     public function getDpAttribute()
     {
@@ -145,5 +153,5 @@ class OrderHead extends Model
         return $dpFromPayment;
     }
 
-    protected $appends = ['total', 'discount', 'jurnal', 'dp', 'job_order', 'vendor_operation', 'dp_payment', 'total_tax'];
+    protected $appends = ['total', 'discount', 'jurnal','jurnalIDR', 'dp', 'job_order', 'vendor_operation', 'dp_payment', 'total_tax'];
 }

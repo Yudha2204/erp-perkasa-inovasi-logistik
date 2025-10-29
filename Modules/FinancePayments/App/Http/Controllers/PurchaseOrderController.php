@@ -311,6 +311,7 @@ class PurchaseOrderController extends Controller
             return response()->json(['message' => 'create successfully!'], 200);
         } catch (Exception $e) {
             DB::rollBack();
+            // return response()->json(['error' => $e->getMessage()], 500);
             return response()->json(['error' => 'Error On App Please Contact IT Support'], 500);
         }
     }
@@ -629,6 +630,7 @@ class PurchaseOrderController extends Controller
     public function getJurnal($id)
     {
         $jurnal = OrderHead::find($id);
+
         return view('financepayments::purchase-order.jurnal', compact('jurnal'));
     }
 
