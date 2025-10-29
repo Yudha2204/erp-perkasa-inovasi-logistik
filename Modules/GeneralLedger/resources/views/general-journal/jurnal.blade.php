@@ -5,5 +5,6 @@
     :description="$jurnal->description"
     :jurnals="$jurnal->jurnal"
     :currency="$jurnal->currency"
+    :jurnalsIDR="$jurnal->jurnalIDR"
     :backUrl="route('generalledger.general-journal.index')"
 />

@@ -5,6 +5,7 @@
     :description="$jurnal->description"
     :jurnals="$jurnal->jurnal"
     :currency="$jurnal->currency"
+    :jurnalsIDR="$jurnal->jurnalIDR"
     :backUrl="route('finance.payments.account-payable.index')"
     :jurnalsIDR="$jurnal->jurnalIDR"
 />
