@@ -1009,7 +1009,7 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 'currency_id': currency_id,  'account_type_id' :[1 , 2]  },
+                data: {  },
                 success: function(response) {
                     if(response.data) {
                         response.data.forEach(element => {
