@@ -47,7 +47,7 @@ class GeneralJournalController extends Controller
         }
 
         $journals = $query->orderBy('date', 'desc')->get();
-        
+
         return view('generalledger::general-journal.index', compact('journals'));
     }
 
@@ -58,7 +58,7 @@ class GeneralJournalController extends Controller
     {
         $currencies = MasterCurrency::all();
         $accounts = MasterAccount::with('currency')->get();
-        
+
         // Get latest journal number for current year
         $current_year = \Carbon\Carbon::now()->year;
         $latest_journal = GeneralJournalHead::whereYear('date', $current_year)
@@ -97,7 +97,7 @@ class GeneralJournalController extends Controller
         }
 
         $formData = json_decode($request->input('form_data'), true);
-        
+
         if (empty($formData)) {
             toast('Please add at least one journal entry!', 'error');
             return redirect()->back()->withInput();
@@ -244,7 +244,7 @@ class GeneralJournalController extends Controller
         }
 
         $formData = json_decode($request->input('form_data'), true);
-        
+
         if (empty($formData)) {
             toast('Please add at least one journal entry!', 'error');
             return redirect()->back()->withInput();
@@ -397,7 +397,7 @@ class GeneralJournalController extends Controller
         $date = $request->get('date');
         $year = \Carbon\Carbon::parse($date)->year;
         $month = \Carbon\Carbon::parse($date)->month;
-        
+
         $latest_journal = GeneralJournalHead::whereYear('date', $year)
                     ->whereMonth('date', $month)
                     ->latest()
@@ -426,7 +426,17 @@ class GeneralJournalController extends Controller
 
     public function getJurnal($id)
     {
-        $data = GeneralJournalHead::find($id);
-        return view('generalledger::general-journal.jurnal', compact('data'));
+        $jurnal = GeneralJournalHead::find($id);
+        return view('generalledger::general-journal.jurnal', [
+            'jurnal' => $jurnal
+            // 'title' => 'General Journal',
+            // 'transactionNumber' => $data->journal_number,
+            // 'transactionDate' => $data->date,
+            // 'description' => $data->description,
+            // 'jurnals' => $data->jurnal,
+            // 'currency' => $data->currency->initial,
+            // 'backUrl' => route('generalledger.general-journal.index'),
+            // 'jurnalsIDR' => null,
+        ]);
     }
 }

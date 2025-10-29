@@ -66,7 +66,7 @@ class PembayaranController extends Controller
             'account_head_id' => 'required',
             'currency_id'    => 'required',
             'date' => 'required',
-            'no_transactions' => 'required' 
+            'no_transactions' => 'required'
         ]);
 
         if ($validator->fails()) {
@@ -74,7 +74,7 @@ class PembayaranController extends Controller
             return redirect()->back()
                         ->withErrors($validator);
         }
-        
+
         // $contact_id = $request->input('customer_id');
         $contact_id = null;
         $account_id = $request->input('account_head_id');
@@ -148,7 +148,7 @@ class PembayaranController extends Controller
                 $errorInvalid++;
                 continue;
             }
-            
+
             $total_detail = $this->numberToDatabase($total_detail);
 
             $total += $total_detail;
@@ -206,7 +206,7 @@ class PembayaranController extends Controller
         $head = KasOutHead::find($id);
         return view('financekas::pembayaran.show', compact('head'));
     }
-    
+
     /**
      * Show the form for editing the specified resource.
      */
@@ -219,7 +219,7 @@ class PembayaranController extends Controller
         $no_transactions = NoTransactionsKasOut::all();
         $accountTypes = AccountType::all();
         $currencies = MasterCurrency::all();
-        
+
         $currency_id = $head->currency_id;
         $export = MarketingExport::with('quotation')
                 ->where('status', 2)
@@ -246,7 +246,7 @@ class PembayaranController extends Controller
             'account_head_id' => 'required',
             'currency_id'    => 'required',
             'date' => 'required',
-            'no_transactions' => 'required' 
+            'no_transactions' => 'required'
         ]);
 
         if ($validator->fails()) {
@@ -254,7 +254,7 @@ class PembayaranController extends Controller
             return redirect()->back()
                         ->withErrors($validator);
         }
-        
+
         // $contact_id = $request->input('customer_id');
         $contact_id = null;
         $account_id = $request->input('account_head_id');
@@ -413,8 +413,18 @@ class PembayaranController extends Controller
 
     public function getJurnal($id)
     {
-        $kas = KasOutHead::find($id);
-        return view('financekas::pembayaran.jurnal', compact('kas'));
+        $jurnal = KasOutHead::find($id);
+        return view('financekas::pembayaran.jurnal', [
+            'jurnal' => $jurnal
+            // 'title' => 'Journal Cash & Bank Out',
+            // 'transactionNumber' => $kas->transaction,
+            // 'transactionDate' => $kas->date_kas_out,
+            // 'description' => $kas->description,
+            // 'jurnals' => $kas->jurnal,
+            // 'currency' => $kas->currency->initial,
+            // 'backUrl' => route('finance.kas.pembayaran.index'),
+            // 'jurnalsIDR' => null,
+        ]);
     }
 
     private function numberToDatabase($string)

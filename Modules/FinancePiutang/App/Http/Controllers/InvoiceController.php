@@ -50,8 +50,8 @@ class InvoiceController extends Controller
 
     public function getJurnal($id)
     {
-        $data = InvoiceHead::find($id);
-        return view('financepiutang::invoice.jurnal', compact('data'));
+        $jurnal = InvoiceHead::find($id);
+        return view('financepiutang::invoice.jurnal', compact('jurnal'));
     }
 
     public function getPdf(Request $request){

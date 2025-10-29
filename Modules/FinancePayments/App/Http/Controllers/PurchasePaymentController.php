@@ -940,8 +940,18 @@ class PurchasePaymentController extends Controller
 
     public function getJurnal($id)
     {
-        $data = PaymentHead::find($id);
-        return view("financepayments::purchase-payment.jurnal", compact('data'));
+        $jurnal = PaymentHead::find($id);
+        return view("financepayments::purchase-payment.jurnal", [
+            'jurnal' => $jurnal
+            // 'title' => 'Journal Payment',
+            // 'transactionNumber' => $data->transaction,
+            // 'transactionDate' => $data->date_payment,
+            // 'description' => $data->description,
+            // 'jurnals' => $data->jurnal,
+            // 'currency' => $data->currency->initial,
+            // 'backUrl' => route('finance.payments.purchase-payment.index'),
+            // 'jurnalsIDR' => null,
+        ]);
     }
 
     private function numberToDatabase($string)

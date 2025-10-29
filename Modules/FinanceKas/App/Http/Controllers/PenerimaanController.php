@@ -65,7 +65,7 @@ class PenerimaanController extends Controller
             'account_head_id' => 'required',
             'currency_id'    => 'required',
             'date' => 'required',
-            'no_transactions' => 'required' 
+            'no_transactions' => 'required'
         ]);
 
         if ($validator->fails()) {
@@ -73,7 +73,7 @@ class PenerimaanController extends Controller
             return redirect()->back()
                         ->withErrors($validator);
         }
-        
+
         $contact_id = $request->input('customer_id');
         $account_id = $request->input('account_head_id');
         $currency_id = $request->input('currency_id');
@@ -243,7 +243,7 @@ class PenerimaanController extends Controller
             'account_head_id' => 'required',
             'currency_id'    => 'required',
             'date' => 'required',
-            'no_transactions' => 'required' 
+            'no_transactions' => 'required'
         ]);
 
         if ($validator->fails()) {
@@ -251,7 +251,7 @@ class PenerimaanController extends Controller
             return redirect()->back()
                         ->withErrors($validator);
         }
-        
+
         $contact_id = $request->input('customer_id');
         $account_id = $request->input('account_head_id');
         $currency_id = $request->input('currency_id');
@@ -314,7 +314,7 @@ class PenerimaanController extends Controller
                 $errorInvalid++;
                 continue;
             }
-            
+
             $total_detail = $this->numberToDatabase($total_detail);
 
             $operator = $data['operator'];
@@ -409,8 +409,18 @@ class PenerimaanController extends Controller
 
     public function getJurnal($id)
     {
-        $kas = KasInHead::find($id);
-        return view('financekas::penerimaan.jurnal', compact('kas'));
+        $jurnal = KasInHead::find($id);
+        return view('financekas::penerimaan.jurnal', [
+            'jurnal' => $jurnal
+            // 'title' => 'Journal Cash & Bank In',
+            // 'transactionNumber' => $kas->transaction,
+            // 'transactionDate' => $kas->date_kas_in,
+            // 'description' => $kas->description,
+            // 'jurnals' => $kas->jurnal,
+            // 'currency' => $kas->currency->initial,
+            // 'backUrl' => route('finance.kas.penerimaan.index'),
+            // 'jurnalsIDR' => null,
+        ]);
     }
 
     private function numberToDatabase($string)

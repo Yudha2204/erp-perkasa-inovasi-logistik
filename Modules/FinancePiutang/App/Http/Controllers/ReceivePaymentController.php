@@ -971,8 +971,18 @@ class ReceivePaymentController extends Controller
 
     public function getJurnal($id)
     {
-        $data = RecieveHead::find($id);
-        return view('financepiutang::receive-payment.jurnal', compact('data'));
+        $jurnal = RecieveHead::find($id);
+        return view('financepiutang::receive-payment.jurnal', [
+            'jurnal' => $jurnal
+            // 'title' => 'Journal Receive Payment',
+            // 'transactionNumber' => $data->transaction,
+            // 'transactionDate' => $data->date_recieve,
+            // 'description' => $data->description,
+            // 'jurnals' => $data->jurnal,
+            // 'currency' => $data->currency->initial,
+            // 'backUrl' => route('finance.piutang.receive-payment.index'),
+            // 'jurnalsIDR' => null,
+        ]);
     }
 
     /**

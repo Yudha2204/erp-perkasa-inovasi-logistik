@@ -631,7 +631,17 @@ class PurchaseOrderController extends Controller
     {
         $jurnal = OrderHead::find($id);
 
-        return view('financepayments::purchase-order.jurnal', compact('jurnal'));
+        return view('financepayments::purchase-order.jurnal', [
+            'jurnal' => $jurnal
+            // 'title' => 'Journal Account Payable',
+            // 'transactionNumber' => $jurnal->transaction,
+            // 'transactionDate' => $jurnal->date_order,
+            // 'description' => $jurnal->description,
+            // 'jurnals' => $jurnal->jurnal,
+            // 'currency' => $jurnal->currency->initial,
+            // 'backUrl' => route('finance.payments.account-payable.index'),
+            // 'jurnalsIDR' => $jurnal->jurnalIDR,
+        ]);
     }
 
     private function numberToDatabase($string)
