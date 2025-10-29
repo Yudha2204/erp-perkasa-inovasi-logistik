@@ -61,7 +61,7 @@ class PenerimaanController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            'customer_id'   => 'required',
+            // 'customer_id'   => 'required',
             'account_head_id' => 'required',
             'currency_id'    => 'required',
             'date' => 'required',
