@@ -1103,7 +1103,7 @@
                         $('.coa-ar-select').each(function() {
                             const row = $(this).closest('tr');
                             const chargeType = row.find('.charge-type-select').val();
-                            
+
                             // Only populate if charge type is invoice
                             if (chargeType === 'invoice') {
                                 var selectedValue = $(this).data('selected');
@@ -1121,7 +1121,7 @@
                     }
                 }
             });
-            
+
             // Load for account charge types (account_type_id: [1,2,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23])
             $.ajax({
                 headers: {
@@ -1130,14 +1130,14 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
+                // data: { 'account_type_id' : [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
                 success: function(response) {
                     if(response.data) {
                         $('.coa-ar-select').each(function() {
                             const row = $(this).closest('tr');
                             const chargeType = row.find('.charge-type-select').val();
                             const $select = $(this);
-                            
+
                             // Only populate if charge type is account
                             if (chargeType === 'account') {
                                 var selectedValue = $select.data('selected');
@@ -1500,12 +1500,12 @@
             if (invoice) {
                 const allRows = document.querySelectorAll('.form-wrapper');
                 let duplicateFound = false;
-                
+
                 allRows.forEach(function(otherRow) {
                     if (otherRow !== row) {
                         const otherInvoiceSelect = otherRow.querySelector('select[name="detail_invoice"]');
                         const otherChargeType = otherRow.querySelector('select[name="charge_type"]');
-                        
+
                         if (otherInvoiceSelect && otherChargeType && otherChargeType.value === 'invoice') {
                             if (otherInvoiceSelect.value === invoice) {
                                 duplicateFound = true;
@@ -1513,7 +1513,7 @@
                         }
                     }
                 });
-                
+
                 if (duplicateFound) {
                     alert('This invoice has already been selected in another row. Please choose a different invoice.');
                     element.value = '';
@@ -1740,7 +1740,7 @@
             const accountSection = row.querySelector('.account-section');
             const amountInput = row.querySelector('input[name="detail_jumlah"]');
             const dateInput = row.querySelector('input[name="detail_date"]');
-            
+
             if (chargeType === 'account') {
                 invoiceSection.style.display = 'none';
                 accountSection.style.display = 'block';
@@ -1749,7 +1749,7 @@
                 amountInput.removeAttribute('readonly');
                 dateInput.value = '';
                 dateInput.removeAttribute('readonly');
-                
+
                 // Load accounts with specific account type filter for charge type account
                 $.ajax({
                     headers: {

@@ -112,6 +112,14 @@ class InvoiceHead extends Model
         return $discount;
     }
 
+    public function getTotalTaxAttribute()
+    {
+        $this->details->load('tax_detail');
+        return $this->details->where('tax_detail.account_id', '!=', null)->groupBy('tax_detail.account_id')->map(function ($group) {
+            return $group->sum('tax');
+        });
+    }
+
     public function getJurnalAttribute()
     {
         $jurnal = BalanceAccount::where('transaction_type_id', 3)
@@ -216,5 +224,5 @@ class InvoiceHead extends Model
         $this->save();
     }
 
-    protected $appends = ['transaction', 'total', 'discount', 'jurnal', 'jurnalIDR', 'due_date', 'dp', 'dp_receive'];
+    protected $appends = ['transaction', 'total', 'discount', 'jurnal', 'jurnalIDR', 'due_date', 'dp', 'dp_receive', 'total_tax'];
 }

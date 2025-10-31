@@ -128,12 +128,12 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th style="min-width:15rem;">No Invoice</th>
+                                            <th style="min-width:15rem;">Charge Type / Receivable</th>
                                             <th style="min-width:15rem;">Tanggal</th>
                                             <th style="min-width:10rem;">Jumlah</th>
                                             <th style="min-width:10rem;">Diskon/DP</th>
                                             <th style="min-width:10rem;">Total</th>
-                                            <th style="min-width:10rem;">Account Name</th>
+                                            <th style="min-width:15rem;">Account Name</th>
                                             <th>#</th>
                                         </tr>
                                     </thead>
@@ -1090,12 +1090,21 @@
                         var formTemplate = `
                         <td></td>
                         <td>
-                            <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
-                                <option label="Choose One" selected disabled></option>
-                                ${opsi}
+                            <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
+                                <option value="invoice">Invoice</option>
+                                <option value="account">Account</option>
                             </select>
-                            <label for="" class="form-label">Remark</label>
-                            <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
+                            <div class="receivable-section">
+                                <label class="form-label">No Invoice</label>
+                                <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
+                                    <option label="Choose One" selected disabled></option>
+                                    ${opsi}
+                                </select>
+                            </div>
+                            <div class="account-section" style="display: none;">
+                                <label class="form-label">Description</label>
+                                <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
+                            </div>
                         </td>
                         <td>
                             <input type="date" class="form-control" readonly name="detail_date" />
@@ -1140,6 +1149,8 @@
                             <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id" >
                                 <option label="Choose One" selected disabled></option>
                             </select>
+                            <label for="" class="form-label">Remark</label>
+                            <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
                         </td>
                         <td>
                             <div class="d-flex justify-content-between">
@@ -1284,12 +1295,21 @@
             var formTemplate = `
             <td></td>
             <td>
-                <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
-                    <option label="Choose One" selected disabled></option>
-                    ${opsi}
+                <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
+                    <option value="invoice">Receivable</option>
+                    <option value="account">Account</option>
                 </select>
-                <label for="" class="form-label">Remark</label>
-                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
+                <div class="receivable-section">
+                    <label class="form-label">No Invoice</label>
+                    <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
+                        <option label="Choose One" selected disabled></option>
+                        ${opsi}
+                    </select>
+                </div>
+                <div class="account-section" style="display: none;">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
+                </div>
             </td>
             <td>
                 <input type="date" class="form-control" readonly name="detail_date" />
@@ -1334,6 +1354,8 @@
                 <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id" >
                     <option label="Choose One" selected disabled></option>
                 </select>
+                <label for="" class="form-label">Remark</label>
+                <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
             </td>
             <td>
                 <div class="d-flex justify-content-between">
@@ -1424,6 +1446,8 @@
 
             const row = element.closest('tr')
 
+            $(row.querySelector('.coa-ar-select')).prop('disabled', false);
+
             row.querySelector('input[name="detail_date"]').value = ''
             row.querySelector('input[name="detail_jumlah"]').value = ''
             row.querySelector('input[name="detail_discount_nominal"]').value = 0
@@ -1451,7 +1475,125 @@
                         row.querySelector('input[name="detail_total"]').value = total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         row.querySelector('input[name="detail_dp_invoice_nominal"]').value = (Number(response.data.dp) + Number(response.data.dp_receive)).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         if (response.data.account_id) {
-                            $(row.querySelector('.coa-ar-select')).val(response.data.account_id).trigger('change');
+                            const coaSelect = $(row.querySelector('.coa-ar-select'));
+                            coaSelect.val(response.data.account_id).trigger('change');
+                            coaSelect.prop('disabled', true);
+                        }
+
+                        const total_tax_data = response.data.total_tax;
+                        if (total_tax_data && Object.keys(total_tax_data).length > 0) {
+                            for (const accountId in total_tax_data) {
+                                if (Object.hasOwnProperty.call(total_tax_data, accountId)) {
+                                    const taxAmount = total_tax_data[accountId];
+                                    if (taxAmount > 0) {
+                                        var formContainer = document.getElementById('form-container');
+                                        var newFormWrapper = document.createElement('tr');
+                                        newFormWrapper.classList.add('form-wrapper');
+
+                                        var formTemplate = `
+                                        <td></td>
+                                        <td>
+                                            <select class="form-control select2 form-select charge-type-select" name="charge_type" data-placeholder="Select Charge Type" onchange="toggleChargeType(this)">
+                                                <option value="invoice">Invoice</option>
+                                                <option value="account">Account</option>
+                                            </select>
+                                            <div class="receivable-section">
+                                                <label class="form-label">No Invoice</label>
+                                                <select class="form-control select2 form-select" name="detail_invoice" data-placeholder="Choose One" onchange="getData(this)">
+                                                    <option label="Choose One" selected disabled></option>
+                                                    ${opsi}
+                                                </select>
+                                            </div>
+                                            <div class="account-section" style="display: none;">
+                                                <label class="form-label">Description</label>
+                                                <input type="text" class="form-control account-description" name="description" placeholder="Enter description"/>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input type="date" class="form-control" readonly name="detail_date" />
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control" readonly name="detail_jumlah"/>
+                                            <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
+                                                <input type="checkbox" class="custom-control-input" name="other_currency" value="0" onchange="changeOpsi(this); getTotal(this)">
+                                                <span class="custom-control-label form-label">Mata Uang Lain</span>
+                                            </label>
+                                            <div class="d-flex justify-content-between gap-2" style="display: none !important;">
+                                                <input type="text" class="form-control" name="other_currency_nominal" onchange="getTotal(this)"/>
+                                                <select class="form-control select2 form-select" data-placeholder="X" name="other_currency_type" onchange="getTotal(this)">
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-between gap-2">
+                                                <input type="text" class="form-control" name="detail_discount_nominal" onchange="getTotal(this)"/>
+                                                <select class="form-control select2 form-select" data-placeholder="Choose one" name="detail_discount_type" onchange="getTotal(this)">
+                                                    <option value="persen">%</option>
+                                                    <option value="nominal">0</option>
+                                                </select>
+                                            </div>
+                                            <label class="custom-control custom-radio" style="margin-bottom: 0.375rem;">
+                                                <input type="checkbox" class="custom-control-input" name="dp_desc" value="0" onchange="changeDp(this); getTotal(this)">
+                                                <span class="custom-control-label form-label">Bayar DP</span>
+                                            </label>
+                                            <div class="d-flex justify-content-between gap-2" style="display: none !important;">
+                                                <input type="text" class="form-control" name="detail_dp_nominal" onchange="getTotal(this)"/>
+                                                <select class="form-control select2 form-select" data-placeholder="Choose one" name="detail_dp_type" onchange="getTotal(this)">
+                                                    <option value="persen">%</option>
+                                                    <option value="nominal">0</option>
+                                                </select>
+                                                <input type="text" hidden class="form-control" name="detail_dp_invoice_nominal"/>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control total_input" readonly name="detail_total"/>
+                                        </td>
+                                        <td>
+                                            <select class="form-control select2 form-select coa-ar-select" data-placeholder="Choose One" name="account_id" >
+                                                <option label="Choose One" selected disabled></option>
+                                            </select>
+                                            <label for="" class="form-label">Remark</label>
+                                            <input type="text" class="form-control remark-input" placeholder="Text.." name="detail_remark" />
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-between">
+                                                <button type="button" class="btn delete-row" onclick="deleteList(this)"><i class="fa fa-trash text-danger delete-form"></i></button>
+                                            </div>
+                                        </td>
+                                        `;
+
+                                        newFormWrapper.innerHTML = formTemplate;
+                                        row.after(newFormWrapper);
+
+                                        getCurrencyVia()
+
+                                        $('.select2').select2({
+                                            minimumResultsForSearch: Infinity
+                                        });
+                                        var select2Elements = document.querySelectorAll('.select2');
+                                        select2Elements.forEach(function(element) {
+                                            element.style.width = '100%';
+                                        });
+
+                                        const chargeTypeSelect = newFormWrapper.querySelector('.charge-type-select');
+                                        chargeTypeSelect.value = 'account';
+                                        toggleChargeType(chargeTypeSelect, accountId);
+
+                                        const newRowDateInput = newFormWrapper.querySelector('input[name="detail_date"]');
+                                        newRowDateInput.value = row.querySelector('input[name="detail_date"]').value;
+                                        newRowDateInput.setAttribute('readonly', 'readonly');
+
+                                        const amountInput = newFormWrapper.querySelector('input[name="detail_jumlah"]');
+                                        amountInput.value = parseFloat(-Math.abs(taxAmount)).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                                        const totalInput = newFormWrapper.querySelector('input[name="detail_total"]');
+                                        totalInput.value = parseFloat(-Math.abs(taxAmount)).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                                        const descriptionInput = newFormWrapper.querySelector('.account-description');
+                                        descriptionInput.value = 'Pajak';
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1600,6 +1742,72 @@
                         }
                     }
                 })
+            }
+        }
+
+        function toggleChargeType(element, selectedAccountId = null) {
+            const row = element.closest('tr');
+            const chargeType = element.value;
+            const coaArSelect = $(row.querySelector('.coa-ar-select'));
+            const receivableSection = row.querySelector('.receivable-section');
+            const accountSection = row.querySelector('.account-section');
+            const amountInput = row.querySelector('input[name="detail_jumlah"]');
+            const dateInput = row.querySelector('input[name="detail_date"]');
+
+            if (chargeType === 'account') {
+                receivableSection.style.display = 'none';
+                accountSection.style.display = 'block';
+                coaArSelect.prop('disabled', false);
+                coaArSelect.val('').trigger('change');
+                amountInput.removeAttribute('readonly');
+                dateInput.value = '';
+                dateInput.removeAttribute('readonly');
+
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '{{ route('finance.master-data.account') }}',
+                    data: {},
+                    success: function(response) {
+                        if(response.data) {
+                            coaArSelect.empty().append('<option label="Choose One" selected disabled></option>');
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                coaArSelect.append(newOption);
+                            });
+                            if (selectedAccountId) {
+                                coaArSelect.val(selectedAccountId).trigger('change');
+                            }
+                        }
+                    }
+                });
+            } else { // 'receivable'
+                receivableSection.style.display = 'block';
+                accountSection.style.display = 'none';
+                amountInput.setAttribute('readonly', 'readonly');
+                dateInput.setAttribute('readonly', 'readonly');
+
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '{{ route('finance.master-data.account') }}',
+                    data: { 'account_type_id' : 4 }, // Account Receivable
+                    success: function(response) {
+                        if(response.data) {
+                            coaArSelect.empty().append('<option label="Choose One" selected disabled></option>');
+                            response.data.forEach(element => {
+                                const newOption = new Option(element.account_name, element.id);
+                                coaArSelect.append(newOption);
+                            });
+                        }
+                    }
+                });
             }
         }
     </script>
