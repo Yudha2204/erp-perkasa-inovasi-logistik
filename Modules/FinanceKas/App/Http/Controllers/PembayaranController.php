@@ -163,6 +163,7 @@ class PembayaranController extends Controller
             BalanceAccount::create([
                 "master_account_id" => $account_id_detail,
                 "transaction_type_id" => 5,
+                "currency_id" => $currency_id,
                 "transaction_id" => $head_id,
                 "date" => $date_kas_out,
                 "debit" => $total_detail,
@@ -189,6 +190,7 @@ class PembayaranController extends Controller
         BalanceAccount::create([
             "master_account_id" => $account_id,
             "transaction_type_id" => 5,
+            "currency_id" => $currency_id,
             "transaction_id" => $head_id,
             "date" => $date_kas_out,
             "debit" => 0,
@@ -351,6 +353,7 @@ class PembayaranController extends Controller
             BalanceAccount::create([
                 "master_account_id" => $account_id_detail,
                 "transaction_type_id" => 5,
+                "currency_id" => $currency_id,
                 "transaction_id" => $id,
                 "date" => $date_kas_out,
                 "debit" => 0,
@@ -387,6 +390,7 @@ class PembayaranController extends Controller
         BalanceAccount::create([
             "master_account_id" => $account_id,
             "transaction_type_id" => 5,
+            "currency_id" => $currency_id,
             "transaction_id" => $id,
             "date" => $date_kas_out,
             "debit" => $total,

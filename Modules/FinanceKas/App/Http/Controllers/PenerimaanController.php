@@ -45,14 +45,13 @@ class PenerimaanController extends Controller
      */
     public function create()
     {
-        $contact = MasterContact::whereJsonContains('type','1')->get();
         $terms = MasterTermOfPayment::all();
         $classifications = ClassificationAccountType::all();
         $no_transactions = NoTransactionsKasIn::all();
         $accountTypes = AccountType::all();
         $currencies = MasterCurrency::all();
 
-        return view('financekas::penerimaan.create', compact('contact', 'terms', 'classifications', 'no_transactions', 'accountTypes', 'currencies'));
+        return view('financekas::penerimaan.create', compact('terms', 'classifications', 'no_transactions', 'accountTypes', 'currencies'));
     }
 
     /**
@@ -61,7 +60,6 @@ class PenerimaanController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            // 'customer_id'   => 'required',
             'account_head_id' => 'required',
             'currency_id'    => 'required',
             'date' => 'required',
@@ -74,7 +72,6 @@ class PenerimaanController extends Controller
                         ->withErrors($validator);
         }
 
-        $contact_id = $request->input('customer_id');
         $account_id = $request->input('account_head_id');
         $currency_id = $request->input('currency_id');
 
@@ -113,7 +110,6 @@ class PenerimaanController extends Controller
         }
 
         KasInHead::create([
-            'contact_id' => $contact_id,
             'account_id' => $account_id,
             'currency_id' => $currency_id,
             'job_order_id' => $job_order_id,
@@ -160,6 +156,7 @@ class PenerimaanController extends Controller
             BalanceAccount::create([
                 "master_account_id" => $account_id_detail,
                 "transaction_type_id" => 6,
+                "currency_id" => $currency_id,
                 "transaction_id" => $head_id,
                 "date" => $date_kas_in,
                 "debit" => 0,
@@ -186,6 +183,7 @@ class PenerimaanController extends Controller
         BalanceAccount::create([
             "master_account_id" => $account_id,
             "transaction_type_id" => 6,
+            "currency_id" => $currency_id,
             "transaction_id" => $head_id,
             "date" => $date_kas_in,
             "debit" => $total,
@@ -210,7 +208,6 @@ class PenerimaanController extends Controller
     public function edit($id)
     {
         $head = KasInHead::find($id);
-        $contact = MasterContact::whereJsonContains('type','1')->get();
         $terms = MasterTermOfPayment::all();
         $classifications = ClassificationAccountType::all();
         $no_transactions = NoTransactionsKasIn::all();
@@ -220,17 +217,17 @@ class PenerimaanController extends Controller
         $currency_id = $head->currency_id;
         $export = MarketingExport::with('quotation')
                 ->where('status', 2)
-                ->where('contact_id', $head->contact_id)
+                // ->where('contact_id', $head->contact_id)
                 ->get();
         $import = MarketingImport::with('quotation')
                 ->where('status', 2)
-                ->where('contact_id', $head->contact_id)
+                // ->where('contact_id', $head->contact_id)
                 ->get();
         $marketing = $export->concat($import);
 
         $accounts = MasterAccount::where('master_currency_id', $head->currency_id)->get();
 
-        return view('financekas::penerimaan.edit', compact('head', 'contact', 'terms', 'classifications', 'no_transactions', 'accountTypes','currencies', 'marketing', 'accounts'));
+        return view('financekas::penerimaan.edit', compact('head', 'terms', 'classifications', 'no_transactions', 'accountTypes','currencies', 'marketing', 'accounts'));
     }
 
     /**
@@ -239,7 +236,6 @@ class PenerimaanController extends Controller
     public function update(Request $request, $id): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            'customer_id'   => 'required',
             'account_head_id' => 'required',
             'currency_id'    => 'required',
             'date' => 'required',
@@ -252,7 +248,6 @@ class PenerimaanController extends Controller
                         ->withErrors($validator);
         }
 
-        $contact_id = $request->input('customer_id');
         $account_id = $request->input('account_head_id');
         $currency_id = $request->input('currency_id');
 
@@ -347,6 +342,7 @@ class PenerimaanController extends Controller
             BalanceAccount::create([
                 "master_account_id" => $account_id_detail,
                 "transaction_type_id" => 6,
+                "currency_id" => $currency_id,
                 "transaction_id" => $id,
                 "date" => $date_kas_in,
                 "debit" => 0,
@@ -369,7 +365,6 @@ class PenerimaanController extends Controller
             $c_balance->delete();
         }
         $kas->update([
-            'contact_id' => $contact_id,
             'account_id' => $account_id,
             'currency_id' => $currency_id,
             'job_order_id' => $job_order_id,
@@ -383,6 +378,7 @@ class PenerimaanController extends Controller
         BalanceAccount::create([
             "master_account_id" => $account_id,
             "transaction_type_id" => 6,
+            "currency_id" => $currency_id,
             "transaction_id" => $id,
             "date" => $date_kas_in,
             "debit" => $total,
