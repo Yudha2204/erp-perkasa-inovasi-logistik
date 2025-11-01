@@ -177,7 +177,7 @@ class ReportFinanceController extends Controller
 
     public function JurnalUmum(Request $request)
     {
-        $currency = $request->currency;
+        // $currency = $request->currency;
         $start_picker = $request->start_date_jurnal;
         $end_picker = $request->end_date_jurnal;
 
@@ -195,23 +195,36 @@ class ReportFinanceController extends Controller
 
         $query->whereBetween('date', [$startDate, $endDate]);
 
-        if ($currency) {
-            $query->whereHas('master_account', function ($query) use ($currency) {
-                $query->where('master_currency_id', $currency);
-            });
-        }
+        // if ($currency) {
+        //     $query->whereHas('master_account', function ($query) use ($currency) {
+        //         $query->where('master_currency_id', $currency);
+        //     });
+        // }
 
-        $balanceAccountData = $query->get();
+        $balanceAccountData = $query->orderBy('date', 'asc')->orderBy('id', 'asc')->get();
+
+        $groupedByTransaction = $balanceAccountData->groupBy(function($item) {
+            return $item->transaction_type_id . '-' . $item->transaction_id;
+        });
 
         $groupedData = [];
+        $idrCurrencyId = MasterCurrency::where('initial', 'IDR')->first()->id ?? 1;
 
-        foreach ($balanceAccountData as $data) {
-            $groupedData[$data->transaction_type_id][$data->transaction_id] = $data->getTransaction();
+        foreach($groupedByTransaction as $key => $entries) {
+            // dd($groupedByTransaction);
+            $head = $entries->first()->getTransaction();
+            if ($head) {
+                $headCurrencyId = $head->currency_id ?? $entries->first()->currency_id;
+
+                $groupedData[explode('-',$key)[0]][] = [
+                    'head' => $head,
+                    'jurnal' => $entries->where('currency_id', $headCurrencyId)->values(),
+                    'jurnalIDR' => $entries->where('currency_id', $idrCurrencyId)->values(),
+                ];
+            }
         }
-
-        $currency = MasterCurrency::find($currency);
-
-        return view('reportfinance::jurnal-umum.index', compact('groupedData','startDate','endDate','currency'));
+        // dd($groupedData);
+        return view('reportfinance::jurnal-umum.index', compact('groupedData','startDate','endDate'));
     }
 
     public function JurnalUmumYear(Request $request)

@@ -19,10 +19,7 @@
                             <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #467FF7;">Jurnal Umum</p>
                             <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #B14F4B;">{{ \Carbon\Carbon::parse($startDate)->format('j F, Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('j F, Y') }}</p>
                             <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #B14F4B;">
-                                Currency: 
-                                @if(isset($currency))
-                                    {{ $currency->initial }}
-                                @endif
+
                             </p>
                        </div>
                        <div class="w-full d-flex justify-content-end align-items-center">
@@ -47,6 +44,8 @@
                                     <th style="color: white;">DESKRIPSI</th>
                                     <th style="color: white;">DEBIT</th>
                                     <th style="color: white;">KREDIT</th>
+                                    <th style="color: white;">DEBIT IDR</th>
+                                    <th style="color: white;">KREDIT IDR</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -67,10 +66,19 @@
                                         $module_name = "Account Payable";
                                     } else if($module_id === 8) {
                                         $module_name = "Payment";
+                                    } else if($module_id === 9) {
+                                        $module_name = "General Journal";
                                     }
                                     @endphp
-                                    @foreach($data as $account)
-                                        @if($loop->iteration === 1)
+                                    @foreach($data as $transactionData)
+                                    @php
+                                        $account = $transactionData['head'];
+                                        $jurnal = $transactionData['jurnal'];
+                                        $jurnalIDR = $transactionData['jurnalIDR'];
+                                        $isForeignCurrency = $jurnalIDR->isNotEmpty() && $jurnal->isNotEmpty() && $jurnal->first()->currency_id != $jurnalIDR->first()->currency_id;
+                                    @endphp
+                                    {{-- @dd($data) --}}
+                                        {{-- Transaction Header Row --}}
                                         <tr>
                                             <td><b>{{ $module_name }}</b></td>
                                             @php
@@ -90,20 +98,23 @@
                                                 } else if($module_id === 8) {
                                                     $date = $account->date_order;
                                                 } else if($module_id === 9) {
-                                                    $date = $account->date_payment;
+                                                    $date = $account->date_journal;
                                                 }
                                             @endphp
                                             <td><b>{{ \Carbon\Carbon::parse($date)->format('j F, Y') }}</b></td>
                                             <td><b>{{ $account->description }}</b></td>
                                             <td></td>
                                             <td></td>
+                                            <td></td>
+                                            <td></td>
                                         </tr>
-                                        @endif
-                                        @php
-                                            $sortedJurnal = $account->jurnal->sortByDesc('debit');
-                                        @endphp
-                                        @foreach ($sortedJurnal as $jurnal)
-                                            @if($jurnal->debit > 0 || $jurnal->credit > 0)
+
+                                        {{-- Journal Entries --}}
+                                        @for ($i = 0; $i < $jurnal->count(); $i++)
+                                            @php
+                                                $jurnal_entry = $jurnal[$i];
+                                            @endphp
+                                            @if($jurnal_entry->debit > 0 || $jurnal_entry->credit > 0)
                                             <tr>
                                                 <td></td>
                                                 @php
@@ -126,27 +137,54 @@
                                                         $link = route('finance.payments.account-payable.show', $account->id);
                                                     } else if($module_name === "Payment") {
                                                         $link = route('finance.payments.purchase-payment.show', $account->id);
+                                                    } else if($module_name === "General Journal") {
+                                                        $link = route('finance.general-ledger.jurnal-umum.show', $account->id);
                                                     }
                                                 @endphp
                                                 <td><a href="{{ $link }}">{{ $account->transaction }}</a></td>
-                                                <td>{{ $jurnal->master_account->account_name }}</td>
+                                                <td>{{ $jurnal_entry->master_account->account_name }}</td>
                                                 <td>
-                                                    @if($jurnal->debit > 0)
-                                                    {{ number_format($jurnal->debit,2,'.',',') }}
+                                                    @if($jurnal_entry->debit > 0)
+                                                    {{ $account->currency->initial }} {{ number_format($jurnal_entry->debit,2,'.',',') }}
                                                     @else
                                                     -
                                                     @endif
                                                 </td>
                                                 <td>
-                                                    @if($jurnal->credit > 0)
-                                                    {{ number_format($jurnal->credit,2,'.',',') }}
+                                                    @if($jurnal_entry->credit > 0)
+                                                    {{ $account->currency->initial }} {{ number_format($jurnal_entry->credit,2,'.',',') }}
                                                     @else
                                                     -
                                                     @endif
                                                 </td>
-                                            </tr>
+                                            {{-- </tr> --}}
                                             @endif
-                                        @endforeach
+
+                                            {{-- IDR Journal Entry --}}
+                                            {{-- @if($isForeignCurrency) --}}
+                                                @php
+                                                    $jurnal_idr_entry = $jurnalIDR->get($i);
+                                                @endphp
+                                                @if($jurnal_idr_entry && ($jurnal_idr_entry->debit > 0 || $jurnal_idr_entry->credit > 0))
+                                                {{-- <tr style="font-style: italic; color: #555;"> --}}
+                                                    <td>
+                                                        @if($jurnal_idr_entry->debit > 0)
+                                                        IDR {{ number_format($jurnal_idr_entry->debit,2,'.',',') }}
+                                                        @else
+                                                        -
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @if($jurnal_idr_entry->credit > 0)
+                                                        IDR {{ number_format($jurnal_idr_entry->credit,2,'.',',') }}
+                                                        @else
+                                                        -
+                                                        @endif
+                                                    </td>
+                                                    @endif
+                                                </tr>
+                                            {{-- @endif --}}
+                                        @endfor
                                     @endforeach
                                 @endforeach
                             </tbody>
@@ -183,44 +221,44 @@
                 var tableTd = document.querySelectorAll(".tableTd");
 
                 if (printButton.style.display === "none") {
-                    printButton.style.display = "block"; 
+                    printButton.style.display = "block";
                 } else {
-                    printButton.style.display = "none"; 
+                    printButton.style.display = "none";
                 }
                 if (printTitle.style.display === "none") {
-                    printTitle.style.display = "block"; 
+                    printTitle.style.display = "block";
                 } else {
-                    printTitle.style.display = "none"; 
+                    printTitle.style.display = "none";
                 }
                 if (printIcon.style.display === "none") {
-                    printIcon.style.display = "block"; 
+                    printIcon.style.display = "block";
                 } else {
-                    printIcon.style.display = "none"; 
+                    printIcon.style.display = "none";
                 }
                 if (titleTop.style.display === "none") {
-                    titleTop.style.display = "block"; 
+                    titleTop.style.display = "block";
                 } else {
                     titleTop.style.display = "none";
                 }
                 if (tableTh.style.display === "none") {
-                    tableTh.style.display = "block"; 
+                    tableTh.style.display = "block";
                 } else {
                     tableTh.style.display = "none";
                 }
                 tableTd.forEach(function(td) {
                     if (td.style.display === "none") {
-                        td.style.display = "block"; 
+                        td.style.display = "block";
                     } else {
                         td.style.display = "none";
                     }
                 });
             });
-            
+
             document.getElementById("print").addEventListener("click", function() {
                 var printContent = document.getElementById("onPrint");
                 var originalContents = document.body.innerHTML;
                 var exportButton = document.getElementById("print");
-                exportButton.style.display = 'none'; 
+                exportButton.style.display = 'none';
                 var backBtn = document.getElementById("back-btn");
                 backBtn.style.display = 'none';
                 document.body.innerHTML = printContent.innerHTML;

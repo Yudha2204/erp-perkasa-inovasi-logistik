@@ -161,15 +161,15 @@
                             <button class="btn yearBtn" style="padding: 0px 10px;" onclick="toggleForm('year', this)">Year</button>
                         </div>
                         <form class="standardForm" action="{{ route('finance.report-finance.general-ledger') }}" method="GET" enctype="multipart/form-data">
-                            
+
                             <div class="row d-flex justify-content-center align-items-center flex-column">
-                                <label for="">Currency:</label>
+                                {{-- <label for="">Currency:</label>
                                 <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
                                     <option label="Choose one" selected disabled></option>
                                     @foreach($currency as $data)
                                         <option value="{{$data->id}}">{{$data->initial}}</option>
                                     @endforeach
-                                </select>
+                                </select> --}}
                                 <label for="">Pick date:</label>
                                 <div class="d-flex justify-content-around align-items-center">
                                     <input type="text" id="start_datepicker_jurnal" name="start_date_jurnal" style="width: 200px; text-align: center; border: 1px solid #D8D8DC;">
@@ -184,15 +184,15 @@
                             </div>
                         </form>
                         <form class="yearForm" style="display: none;" action="{{ route('finance.report-finance.year-general-ledger') }}" method="GET" enctype="multipart/form-data">
-                            
+
                             <div class="row d-flex justify-content-center align-items-center flex-column">
-                                <label for="">Currency:</label>
+                                {{-- <label for="">Currency:</label>
                                 <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
                                     <option label="Choose one" selected disabled></option>
                                     @foreach($currency as $data)
                                         <option value="{{$data->id}}">{{$data->initial}}</option>
                                     @endforeach
-                                </select>
+                                </select> --}}
                                 <label>Year</label>
                                 <div class="d-flex justify-content-around align-items-center">
                                     <div class="form-group">
@@ -230,7 +230,7 @@
                             <button class="btn yearBtn" style="padding: 0px 10px;" onclick="toggleForm('year', this)">Year</button>
                         </div>
                         <form class="standardForm" action="{{ route('finance.report-finance.data-ledger') }}" method="GET" enctype="multipart/form-data">
-                            
+
                             <div class="row d-flex justify-content-center align-items-center flex-column">
                                 <label for="">Currency:</label>
                                 <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
@@ -253,7 +253,7 @@
                             </div>
                         </form>
                         <form class="yearForm" style="display: none;" action="{{ route('finance.report-finance.year-data-ledger') }}" method="GET" enctype="multipart/form-data">
-                            
+
                             <div class="row d-flex justify-content-center align-items-center flex-column">
                                 <label for="">Currency:</label>
                                 <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
@@ -299,7 +299,7 @@
                             <button class="btn yearBtn" style="padding: 0px 10px;" onclick="toggleForm('year', this)">Year</button>
                         </div>
                         <form class="standardForm" action="{{ route('finance.report-finance.cash-flow') }}" method="GET" enctype="multipart/form-data">
-                            
+
                             <div class="row d-flex justify-content-center align-items-center flex-column">
                                 <label for="">Currency:</label>
                                 <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
@@ -322,7 +322,7 @@
                             </div>
                         </form>
                         <form class="yearForm" style="display: none;" action="{{ route('finance.report-finance.year-cash-flow') }}" method="GET" enctype="multipart/form-data">
-                            
+
                             <div class="row d-flex justify-content-center align-items-center flex-column">
                                 <label for="">Currency:</label>
                                 <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
@@ -369,7 +369,7 @@
                         </div>
                         <!-- stadard -->
                         <form class="standardForm" action="{{ route('finance.report-finance.trial-balance') }}" method="GET" enctype="multipart/form-data">
-                            
+
                             <div class="row d-flex justify-content-center align-items-center flex-column">
                                 <label for="">Currency:</label>
                                 <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
@@ -393,7 +393,7 @@
                         </form>
                         <!-- year -->
                         <form class="yearForm" style="display: none;" action="{{ route('finance.report-finance.year-trial-balancer') }}" method="GET" enctype="multipart/form-data">
-                            
+
                             <div class="row d-flex justify-content-center align-items-center flex-column">
                                 <label for="">Currency:</label>
                                 <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
@@ -439,7 +439,7 @@
                             <button class="btn yearBtn" style="padding: 0px 10px;" onclick="toggleForm('year', this)">Year</button>
                         </div>
                         <form class="standardForm" action="{{ route('finance.report-finance.profit-loss') }}" method="GET" enctype="multipart/form-data">
-                            
+
                             <div class="row d-flex justify-content-center align-items-center flex-column">
                                 <label for="">Currency:</label>
                                 <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
@@ -462,7 +462,7 @@
                             </div>
                         </form>
                         <form class="yearForm" style="display: none;" action="{{ route('finance.report-finance.year-profit-loss') }}" method="GET" enctype="multipart/form-data">
-                            
+
                             <div class="row d-flex justify-content-center align-items-center flex-column">
                                 <label for="">Currency:</label>
                                 <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
@@ -554,7 +554,7 @@
 
         $("#start_datepicker_neraca").datepicker();
         $("#end_datepicker_neraca").datepicker();
-        
+
         $("#start_datepicker_profit_loss").datepicker();
         $("#end_datepicker_profit_loss").datepicker();
 
