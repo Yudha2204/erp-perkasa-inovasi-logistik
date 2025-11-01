@@ -138,7 +138,7 @@
                                                     } else if($module_name === "Payment") {
                                                         $link = route('finance.payments.purchase-payment.show', $account->id);
                                                     }else if($module_name === "General Journal") {
-                                                        $link = route('finance.general-ledger.jurnal', $account->id);
+                                                        $link = route('generalledger.general-journal.jurnal', $account->id);
                                                     }
                                                 @endphp
                                                 <td><a href="{{ $link }}">{{ $account->transaction }}</a></td>
