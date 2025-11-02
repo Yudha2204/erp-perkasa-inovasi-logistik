@@ -90,7 +90,7 @@ class FinancePaymentsController extends Controller
     {
         $selected = $request->id;
         list($job_order_id, $job_order_source) = explode(":", $selected);
-        
+
         if($job_order_source === "import") {
             $job_order = OperationImport::with(['marketing','vendors'])->find($job_order_id);
         } else if($job_order_source === "export") {
@@ -102,7 +102,7 @@ class FinancePaymentsController extends Controller
             "data" => $job_order
         ]);
     }
-    
+
     public function getOrder(Request $request)
     {
         $vendor = $request->vendor;
@@ -113,8 +113,8 @@ class FinancePaymentsController extends Controller
         $purchaseOrder = [];
         if($currency && $vendor) {
             $query = OrderHead::where('vendor_id', $vendor)
-                ->where('currency_id', $currency)
-                ->where('status', '!=', 'paid');
+            ->where('currency_id', $currency)
+            ->where('status', '!=', 'paid');
 
             if ($customer && $customer != 'null') {
                 $query->where('customer_id', $customer);
@@ -125,17 +125,18 @@ class FinancePaymentsController extends Controller
                 $job_order_id = $exp_jo[0];
                 $job_order_source = $exp_jo[1];
                 $query->where('operation_id', $job_order_id)
-                      ->where('source', $job_order_source);
+                ->where('source', $job_order_source);
             } else {
                 $query->whereNull('operation_id');
             }
             $purchaseOrder = $query->get();
         }
+        // dd($purchaseOrder);
 
         return response()->json([
             'message' => 'Success',
-            'data' => $purchaseOrder
-        ]);
+            'data' => $purchaseOrder->toArray() // Ubah ke Array
+        ],200);
     }
 
     public function getOrderDetails(Request $request)

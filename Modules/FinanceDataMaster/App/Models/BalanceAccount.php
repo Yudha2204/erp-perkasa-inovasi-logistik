@@ -49,7 +49,7 @@ class BalanceAccount extends Model
     protected $table = 'balance_account_data';
     protected $guarded = [];
 
-    protected $appends = ['jurnalIDR'];
+    // protected $appends = ['jurnalIDR'];
 
     public function master_account()
     {
@@ -91,14 +91,14 @@ class BalanceAccount extends Model
         return $transaksi;
     }
 
-    public function getJurnalIDRAttribute()
-    {
-        $jurnal = BalanceAccount::where('transaction_type_id', $this->transaction_type_id)
-                    ->where('transaction_id', $this->transaction_id)
-                    ->where('currency_id', 1)
-                    ->get();
-        return $jurnal;
-    }
+    // public function getJurnalIDRAttribute()
+    // {
+    //     $jurnal = BalanceAccount::where('transaction_type_id', $this->transaction_type_id)
+    //                 ->where('transaction_id', $this->transaction_id)
+    //                 ->where('currency_id', 1)
+    //                 ->get();
+    //     return $jurnal->toArray();
+    // }
 
     private function getBaseCurrAmount(float $amount, $date, int $fromCurrencyId, int $toCurrencyId): float
     {

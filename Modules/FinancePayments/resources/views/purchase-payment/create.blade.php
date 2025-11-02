@@ -1069,7 +1069,7 @@
             var currency = $('#currency_head_id').val()
             var choose = $('#choose_job_order').val()
             var vendor = $('#vendor_id').val()
-            var job_order = "null"
+            var job_order = null
             if(choose === "1") {
                 if($('#job_order_id').val()) {
                     job_order = $('#job_order_id').val()
