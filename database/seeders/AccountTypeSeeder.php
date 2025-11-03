@@ -91,6 +91,8 @@ class AccountTypeSeeder extends Seeder
             ["9", "9-0001", "Rounding Difference", "0", "0", "credit", "PL"], // 21
             ["9", "9-0002", "Exchange Profit/Loss", "0", "0", "credit", "PL"], // 22
             ["9", "9-9999", "Profit Loss Summary", "0", "0", "debit", "NONE"], // 23
+
+            ["5", "5-0001", "Purchase Discount", "0", "0", "credit", "PL"], // 24
         ];
 
         $length = count($array_simple);
