@@ -457,13 +457,20 @@ class ReceivePaymentController extends Controller
             // Add account charges to flow
             $account_charge_flow = [];
             foreach($account_charges as $charge) {
+                // Get the account with its account_type to check normal_side
+                $account = MasterAccount::with('account_type')->find($charge['account_id']);
+                $normalSide = $account->account_type->normal_side ?? 'debit';
+                
+                // Determine debit/credit based on normal_side
+                $debit = $normalSide === 'debit' ? $charge['amount'] : 0;
+                $credit = $normalSide === 'credit' ? $charge['amount'] : 0;
+                
                 $account_charge_flow[] = [
-                    0, // debit
-                    $charge['amount'], // credit
-                    (int) $charge['account_id'] // account_id
+                    $debit, // debit
+                    $credit, // credit
+                    $charge['account_id'] // account_id
                 ];
             }
-
 
             $flow = [
                 ...$flow,
@@ -934,9 +941,17 @@ class ReceivePaymentController extends Controller
             // Add account charges to flow
             $account_charge_flow = [];
             foreach($account_charges as $charge) {
+                // Get the account with its account_type to check normal_side
+                $account = MasterAccount::with('account_type')->find($charge['account_id']);
+                $normalSide = $account->account_type->normal_side ?? 'debit';
+                
+                // Determine debit/credit based on normal_side
+                $debit = $normalSide === 'debit' ? $charge['amount'] : 0;
+                $credit = $normalSide === 'credit' ? $charge['amount'] : 0;
+                
                 $account_charge_flow[] = [
-                    0, // debit
-                    $charge['amount'], // credit
+                    $debit, // debit
+                    $credit, // credit
                     $charge['account_id'] // account_id
                 ];
             }
