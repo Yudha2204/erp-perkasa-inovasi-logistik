@@ -48,6 +48,7 @@ class ReportFinanceController extends Controller
             ->with([
                 'balance_accounts' => function ($q) use ($startDate, $endDate) {
                     $q->whereBetween('date', [$startDate, $endDate])
+                    ->where('currency_id', $currency)
                     ->orderBy('date', 'asc')
                     ->orderBy('id', 'asc');
                 },
@@ -78,6 +79,7 @@ class ReportFinanceController extends Controller
         // 3) Opening balance (sebelum periode)
         $opening = $acc->balance_accounts()
             ->where('date', '<', $startDate)
+            ->where('currency_id', $currency)
             ->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')
             ->first();
 

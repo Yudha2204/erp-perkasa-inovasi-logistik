@@ -48,6 +48,8 @@ class AccountTypeSeeder extends Seeder
             ['code'=>'9-0001','classification'=>'Rounding Difference','normal_side'=>'credit','report_type'=>'PL'],
             ['code'=>'9-0002','classification'=>'Exchange Profit/Loss','normal_side'=>'Credit','report_type'=>'PL'],
             ['code'=>'9-9999','classification'=>'Profit Loss Summary','normal_side'=>'debit','report_type'=>'NONE'],
+
+            ['code'=>'5-0001','classification'=>'Purchase Discount','normal_side'=>'credit','report_type'=>'PL'],
         ];
 
         $rows = array_map(fn($r) => array_merge($r, ['created_at'=>$now,'updated_at'=>$now]), $rows);

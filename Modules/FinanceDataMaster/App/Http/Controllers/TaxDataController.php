@@ -46,7 +46,7 @@ class TaxDataController extends Controller
         }
         
         // Get accounts for dropdown
-        $accounts = \Modules\FinanceDataMaster\App\Models\MasterAccount::orderBy('code', 'ASC')->get();
+        $accounts = \Modules\FinanceDataMaster\App\Models\MasterAccount::orderBy('code', 'ASC')->where('type', 'detail')->get();
         
         return view('financedatamaster::tax.index', compact('taxes', 'accounts'));
     }
@@ -71,7 +71,7 @@ class TaxDataController extends Controller
                 'name'   => 'required',
                 'type'   => 'required|in:PPN,PPH',
                 'tax_rate'   => 'required',
-                'account_id' => 'nullable|exists:master_account,id',
+                'account_id' => 'nullable|exists:master_account,id|where:type,detail',
             ]);
     
             if ($validator->fails()) {
@@ -87,7 +87,7 @@ class TaxDataController extends Controller
                 'name'   => 'required',
                 'type'   => 'required|in:PPN,PPH',
                 'tax_rate'   => 'required',
-                'account_id' => 'nullable|exists:master_account,id',
+                'account_id' => 'nullable|exists:master_account,id|where:type,detail',
                ],
                [
                  'code.unique'=> 'The code '.$request->code.' has already been taken', // custom message 

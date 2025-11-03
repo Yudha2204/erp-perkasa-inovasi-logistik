@@ -163,10 +163,10 @@ class PurchaseOrderController extends Controller
             ];
             // DB::rollBack();
             // dd($data);
-            $diskon_pembelian_id = MasterAccount::where('account_type_id', 16)->first();
+            $diskon_pembelian_id = MasterAccount::where('account_type_id', 24)->where('type', 'detail')->first();
             if(!$diskon_pembelian_id) {
                 DB::rollBack();
-                return response()->json(['errors' => ['diskon_pembelian' => 'Please add the account of Sales Discount']], 422);
+                return response()->json(['errors' => ['diskon_pembelian' => 'Please add the account of Purchase Discount']], 422);
             }
             $diskon_pembelian_id = $diskon_pembelian_id->id;
 
@@ -513,10 +513,10 @@ class PurchaseOrderController extends Controller
             $expense_journal = [];
             $calculated_subtotal_after_item_discounts = 0;
             $calculated_total_item_discount = 0;
-            $diskon_pembelian_id = MasterAccount::where('account_type_id', 16)->first();
+            $diskon_pembelian_id = MasterAccount::where('account_type_id', 24)->where('type', 'detail')->first();
             if(!$diskon_pembelian_id) {
                 DB::rollBack();
-                return response()->json(['errors' => ['diskon_pembelian' => 'Please add the account of Sales Discount']], 422);
+                return response()->json(['errors' => ['diskon_pembelian' => 'Please add the account of Purchase Discount']], 422);
             }
             $diskon_pembelian_id = $diskon_pembelian_id->id;
 
