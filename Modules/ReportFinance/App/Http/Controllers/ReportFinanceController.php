@@ -46,7 +46,7 @@ class ReportFinanceController extends Controller
 
             // Eager load relasi (biar akses di Blade gampang & tanpa N+1)
             ->with([
-                'balance_accounts' => function ($q) use ($startDate, $endDate) {
+                'balance_accounts' => function ($q) use ($startDate, $endDate, $currency) {
                     $q->whereBetween('date', [$startDate, $endDate])
                     ->where('currency_id', $currency)
                     ->orderBy('date', 'asc')
