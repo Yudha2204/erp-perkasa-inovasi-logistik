@@ -356,22 +356,22 @@ class ReceivePaymentController extends Controller
                     if ($ppn_tax && $ppn_tax->account_id) {
                         $ppn_amount = $total_after_discount * ($ppn_tax->tax_rate / 100);
                         if($discount_type === "persen") {
-                            $discTotal = ($discount_nominal/100)*($total_after_discount + $ppn_amount);
-                            $ar_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) )  ,$account_id_detail];
+                            $discTotal = ($discount_nominal/100)*($amount);
+                            $ar_journal[] = [0, $amount - $discTotal  ,$account_id_detail];
                         }else{
                             $discTotal = $discount_nominal;
-                            $ar_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) )  ,$account_id_detail];
+                            $ar_journal[] = [0, $amount - $discTotal  ,$account_id_detail];
                         }
                         $totalDiscount += $discTotal;
                         $grand_total -= $ppn_amount;
                         $tax_journal[] = [$ppn_amount, 0, $ppn_tax->account_id, $ppn_tax->id];
                     }else{
                         if($discount_type === "persen") {
-                            $discTotal = ($discount_nominal/100)*$total_after_discount;
-                            $ar_journal[] = [0,$total_after_discount  - (($discTotal * 2))  ,$account_id_detail];
+                            $discTotal = ($discount_nominal/100)*$amount;
+                            $ar_journal[] = [0, $amount - $discTotal  ,$account_id_detail];
                         }else{
                             $discTotal = $discount_nominal;
-                            $ar_journal[] = [0,$total_after_discount  - (($discTotal * 2))  ,$account_id_detail];
+                            $ar_journal[] = [0, $amount - $discTotal  ,$account_id_detail];
                         }
                         $totalDiscount += $discTotal;
                     }
@@ -836,11 +836,11 @@ class ReceivePaymentController extends Controller
                     if ($ppn_tax && $ppn_tax->account_id) {
                         $ppn_amount = $total_after_discount * ($ppn_tax->tax_rate / 100);
                         if($discount_type === "persen") {
-                            $discTotal = ($discount_nominal/100)*($total_after_discount + $ppn_amount);
-                            $ar_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) )  ,$account_id_detail];
+                            $discTotal = ($discount_nominal/100)*($amount);
+                            $ar_journal[] = [0, $amount - $discTotal  ,$account_id_detail];
                         }else{
                             $discTotal = $discount_nominal;
-                            $ar_journal[] = [0,($total_after_discount + $ppn_amount) - (($discTotal * 2) )  ,$account_id_detail];
+                            $ar_journal[] = [0, $amount - $discTotal  ,$account_id_detail];
                         }
                         $totalDiscount += $discTotal;
                         // DB::rollBack();
@@ -850,11 +850,11 @@ class ReceivePaymentController extends Controller
                         $tax_journal[] = [$ppn_amount, 0, $ppn_tax->account_id, $ppn_tax->id];
                     }else{
                         if($discount_type === "persen") {
-                            $discTotal = ($discount_nominal/100)*$total_after_discount;
-                            $ar_journal[] = [0,$total_after_discount  - (($discTotal * 2) )  ,$account_id_detail];
+                            $discTotal = ($discount_nominal/100)*$amount;
+                            $ar_journal[] = [0, $amount - $discTotal  ,$account_id_detail];
                         }else{
                             $discTotal = $discount_nominal;
-                            $ar_journal[] = [0,$total_after_discount  - (($discTotal * 2) )  ,$account_id_detail];
+                            $ar_journal[] = [0, $amount - $discTotal  ,$account_id_detail];
                         }
                         $totalDiscount += $discTotal;
                     }
