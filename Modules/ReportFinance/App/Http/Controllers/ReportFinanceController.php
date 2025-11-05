@@ -213,7 +213,10 @@ class ReportFinanceController extends Controller
         $idrCurrencyId = MasterCurrency::where('initial', 'IDR')->first()->id ?? 1;
 
         foreach($groupedByTransaction as $key => $entries) {
-            // dd($groupedByTransaction);
+            // dd(explode('-',$key)[0]);
+            if(in_array(explode('-',$key)[0],[3,7])){
+                continue;
+            }
             $head = $entries->first()->getTransaction();
             if ($head) {
                 $headCurrencyId = $head->currency_id ?? $entries->first()->currency_id;

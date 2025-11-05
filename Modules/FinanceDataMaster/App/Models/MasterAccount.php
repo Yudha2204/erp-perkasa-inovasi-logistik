@@ -53,7 +53,7 @@ class MasterAccount extends Model
     {
         // Always get beginning balance from balance_account_data with transaction_type_id = 1
         $balance = BalanceAccount::where('master_account_id', $this->id)->where('transaction_type_id', 1)->get();
-        
+
         $debit = 0;
         $kredit = 0;
         foreach($balance as $ba) {
@@ -92,6 +92,9 @@ class MasterAccount extends Model
             } else {
                 $query->where('account_type_id', $filters['account_type_id']);
             }
+        }
+        if (!empty($filters['type'])) {
+            $query->where('type', $filters['type']);
         }
 
         // tambahkan filter lain sesuai kebutuhan
