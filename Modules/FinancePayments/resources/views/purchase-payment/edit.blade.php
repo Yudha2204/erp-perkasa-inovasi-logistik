@@ -1933,7 +1933,7 @@
                     type: 'GET',
                     dataType: 'json',
                     url: '{{ route('finance.master-data.account') }}',
-                    data: { },
+                    data: { type :'detail' },
                     success: function(response) {
                         if(response.data) {
                             coaApSelect.empty().append('<option label="Choose One" selected disabled></option>');

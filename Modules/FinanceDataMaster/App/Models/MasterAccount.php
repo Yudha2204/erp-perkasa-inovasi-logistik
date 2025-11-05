@@ -39,7 +39,7 @@ class MasterAccount extends Model
         if ($currencyId !== null) {
             $balance->where('currency_id', $currencyId);
         }
-        
+
         $balance = $balance->get();
         
         $debit = 0;
@@ -105,6 +105,9 @@ class MasterAccount extends Model
             } else {
                 $query->where('account_type_id', $filters['account_type_id']);
             }
+        }
+        if (!empty($filters['type'])) {
+            $query->where('type', $filters['type']);
         }
 
         // tambahkan filter lain sesuai kebutuhan
