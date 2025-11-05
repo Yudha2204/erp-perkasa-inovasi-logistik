@@ -77,9 +77,6 @@
                                     </tr>
 
                                     @php
-                                        // RESET saldo per akun
-                                        $runningSaldoAkun = 0;
-
                                         // tentukan normal side akun
                                         $normalDebit = in_array(strtolower($type['master_account']->account_type->normal_side ?? 'debit'), ['debit']);
 
@@ -100,9 +97,8 @@
                                             $debitAkun  += $debit;  $grandDebit  += $debit;
                                             $kreditAkun += $kredit; $grandKredit += $kredit;
 
-                                            // DELTA saldo sesuai normal side
-                                            $delta = $normalDebit ? ($debit - $kredit) : ($kredit - $debit);
-                                            $runningSaldoAkun += $delta;
+                                            // Gunakan saldo yang sudah dihitung di controller (sudah include opening balance)
+                                            $runningSaldoAkun = (float)($data['saldo'] ?? 0);
                                         @endphp
                                         <tr style="background-color:#FBFEFF;" class="detail">
                                             <td></td>
@@ -130,12 +126,15 @@
                                             <td>{{ number_format($debit, 2, '.', ',') }}</td>
                                             <td>{{ number_format($kredit, 2, '.', ',') }}</td>
 
-                                            {{-- saldo berjalan per akun, tanpa manipulasi tanda di kredit --}}
+                                            {{-- saldo berjalan per akun, menggunakan saldo yang sudah dihitung di controller --}}
                                             <td>
-                                                {{ round($runningSaldoAkun,2) == 0 ? '0.00'
-                                                    : ($runningSaldoAkun < 0
-                                                        ? '('.number_format(abs($runningSaldoAkun),2,'.',',').')'
-                                                        : number_format($runningSaldoAkun,2,'.',',')
+                                                @php
+                                                    $saldo = $data['saldo'] ?? 0;
+                                                @endphp
+                                                {{ round($saldo, 2) == 0 ? '0.00'
+                                                    : ($saldo < 0
+                                                        ? '('.number_format(abs($saldo), 2, '.', ',').')'
+                                                        : number_format($saldo, 2, '.', ',')
                                                       )
                                                 }}
                                             </td>
