@@ -21,7 +21,10 @@
                             <p id="date-range" style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #B14F4B;">{{ $year }}</p>
                             <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #B14F4B;">
                                 Currency: 
-                                    <span style="color: #B14F4B;">{{ $currency->initial }}</span>
+                                    <span style="color: #B14F4B;">{{ $idrCurrency->initial }}</span>
+                                @if($foreign_currency)
+                                    <span style="color: #B14F4B;"> (with Foreign Currency)</span>
+                                @endif
                             </p>
                        </div>
                        <div class="w-full d-flex justify-content-end align-items-center">
@@ -44,12 +47,14 @@
                                     <th style="color: white;">Month</th>
                                     <th style="color: white;">Kode Akun</th>
                                     <th style="color: white;">Account Name</th>
+                                    <th style="color: white;">Currency</th>
                                     <th colspan="2" style="color: white;">Saldo Awal</th>
                                     <th colspan="2" style="color: white;">Mutasi</th>
                                     <th style="color: white;">Net Mutation</th>
                                     <th colspan="2" style="color: white;">Saldo Akhir</th>
                                 </tr>
                                 <tr style="background-color: #597FB3; border-top: 2px solid #597FB3;">
+                                    <th></th>
                                     <th></th>
                                     <th></th>
                                     <th></th>
@@ -80,21 +85,23 @@
                                                 $startDate = \Carbon\Carbon::createFromFormat('F Y', $month . ' ' . $year)->startOfMonth();    
                                                 $endDate = \Carbon\Carbon::createFromFormat('F Y', $month . ' ' . $year)->endOfMonth();    
                                                 
-                                                $data = $ma->getDebitKreditAll($startDate, $endDate);
+                                                $data = $ma->getDebitKreditAll($startDate, $endDate, $idrCurrency->id);
                                                 if($data["debit"] == 0 && $data["kredit"] == 0) {
                                                     continue;
                                                 }
                                                 $debitData = '(' . $data["debit"] . ')';
                                                 $kreditData = $data["kredit"];
                                             @endphp
+                                            {{-- IDR Row --}}
                                             <tr>
                                                 <td>{{ $month }}</td>
                                                 <td>{{ $ma->code }}</td>
                                                 <td>{{ $ma->account_name }}</td>
+                                                <td>{{ $idrCurrency->initial }}</td>
 
                                                 {{-- Saldo Awal --}}
                                                 @php
-                                                    $saldoAwal = $ma->getDebitKreditSaldoAwal();
+                                                    $saldoAwal = $ma->getDebitKreditSaldoAwal($idrCurrency->id);
                                                     $debitSaldoAwal = '(' . $saldoAwal["debit"] . ')';
                                                     $kreditSaldoAwal = $saldoAwal["kredit"];
                                                 @endphp
@@ -107,7 +114,7 @@
                                                 
                                                 {{-- Net Mutation --}}
                                                 @php
-                                                    $netMutation = $ma->getNetMutation($startDate, $endDate);
+                                                    $netMutation = $ma->getNetMutation($startDate, $endDate, $idrCurrency->id);
                                                     if ($netMutation < 0) {
                                                         $hasil = '(' . abs($netMutation) . ')';
                                                     } else {
@@ -130,6 +137,39 @@
                                                 <td>{{ $debitSaldoAkhir }}</td>
                                                 <td>{{ $kreditSaldoAkhir }}</td>
                                             </tr>
+                                            {{-- Foreign Currency Row (if checked and account is not IDR) --}}
+                                            @if($foreign_currency && isset($ma->foreign_currency_data))
+                                                @php
+                                                    $fcData = $ma->foreign_currency_data;
+                                                    $fcDebitData = '(' . $fcData['data']["debit"] . ')';
+                                                    $fcKreditData = $fcData['data']["kredit"];
+                                                    $fcDebitSaldoAwal = '(' . $fcData['saldoAwal']["debit"] . ')';
+                                                    $fcKreditSaldoAwal = $fcData['saldoAwal']["kredit"];
+                                                    $fcNetMutation = $fcData['netMutation'];
+                                                    if ($fcNetMutation < 0) {
+                                                        $fcHasil = '(' . abs($fcNetMutation) . ')';
+                                                        $fcDebitSaldoAkhir = '(' . abs($fcNetMutation) . ')';
+                                                        $fcKreditSaldoAkhir = "0";
+                                                    } else {
+                                                        $fcHasil = $fcNetMutation;
+                                                        $fcDebitSaldoAkhir = "(0)";
+                                                        $fcKreditSaldoAkhir = $fcNetMutation;
+                                                    }
+                                                @endphp
+                                                <tr style="background-color: #f0f0f0;">
+                                                    <td>{{ $month }}</td>
+                                                    <td></td>
+                                                    <td style="padding-left: 30px;">{{ $ma->account_name }} (Original)</td>
+                                                    <td>{{ $fcData['currency']->initial }}</td>
+                                                    <td>{{ $fcDebitSaldoAwal }}</td>
+                                                    <td>{{ $fcKreditSaldoAwal }}</td>
+                                                    <td>{{ $fcDebitData }}</td>
+                                                    <td>{{ $fcKreditData }}</td>
+                                                    <td>{{ $fcHasil }}</td>
+                                                    <td>{{ $fcDebitSaldoAkhir }}</td>
+                                                    <td>{{ $fcKreditSaldoAkhir }}</td>
+                                                </tr>
+                                            @endif
                                             @endforeach
 
                                         @php
@@ -143,6 +183,7 @@
                                         @endphp
                                         <tr id="footer" style="background-color: #597FB3;">
                                             <th style="color: white;">Total Month</th>
+                                            <th style="color: white;"></th>
                                             <th style="color: white;"></th>
                                             <th style="color: white;"></th>
                                             <th style="color: white;">({{ $yearTrialBalance['total'][$index]['saldoAwalDebit'] }})</th>
@@ -165,6 +206,7 @@
                                 
                                 <tr id="footer" style="background-color: #597FB3;">
                                     <th style="color: white;">Total</th>
+                                    <th style="color: white;"></th>
                                     <th style="color: white;"></th>
                                     <th style="color: white;"></th>
                                     <th style="color: white;">({{$footerSaldoAwalDebit}})</th>

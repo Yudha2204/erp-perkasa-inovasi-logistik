@@ -371,18 +371,17 @@
                         <form class="standardForm" action="{{ route('finance.report-finance.trial-balance') }}" method="GET" enctype="multipart/form-data">
 
                             <div class="row d-flex justify-content-center align-items-center flex-column">
-                                <label for="">Currency:</label>
-                                <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
-                                    <option label="Choose one" selected disabled></option>
-                                    @foreach($currency as $data)
-                                        <option value="{{$data->id}}">{{$data->initial}}</option>
-                                    @endforeach
-                                </select>
                                 <label for="">Pick date:</label>
                                 <div class="d-flex justify-content-around align-items-center">
                                     <input type="text" id="start_datepicker_neraca" name="start_date_neraca" style="width: 200px; text-align: center; border: 1px solid #D8D8DC;">
                                     <div style="margin-top: 2px;">-</div>
                                     <input type="text" id="end_datepicker_neraca" name="end_date_neraca" style="width: 200px; text-align: center; border: 1px solid #D8D8DC;">
+                                </div>
+                                <div class="form-check mt-3">
+                                    <input class="form-check-input" type="checkbox" name="foreign_currency" id="foreign_currency" value="1">
+                                    <label class="form-check-label" for="foreign_currency">
+                                        Foreign Currency
+                                    </label>
                                 </div>
                             </div>
                             <br><br>
@@ -395,18 +394,17 @@
                         <form class="yearForm" style="display: none;" action="{{ route('finance.report-finance.year-trial-balancer') }}" method="GET" enctype="multipart/form-data">
 
                             <div class="row d-flex justify-content-center align-items-center flex-column">
-                                <label for="">Currency:</label>
-                                <select name="currency" id="currency" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
-                                    <option label="Choose one" selected disabled></option>
-                                    @foreach($currency as $data)
-                                        <option value="{{$data->id}}">{{$data->initial}}</option>
-                                    @endforeach
-                                </select>
                                 <label>Year</label>
                                 <div class="d-flex justify-content-around align-items-center">
                                     <div class="form-group">
                                         <input type="number" value="{{ \Carbon\Carbon::now()->year }}" style="width: 450px; text-align: center; border: 1px solid #D8D8DC;" name="year"></input>
                                     </div>
+                                </div>
+                                <div class="form-check mt-3">
+                                    <input class="form-check-input" type="checkbox" name="foreign_currency" id="foreign_currency_year" value="1">
+                                    <label class="form-check-label" for="foreign_currency_year">
+                                        Foreign Currency
+                                    </label>
                                 </div>
                             </div>
                             <div class="mt-3" style="text-align: right">

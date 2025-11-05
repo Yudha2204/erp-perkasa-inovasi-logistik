@@ -75,7 +75,7 @@ class ReportFinanceController extends Controller
         })->values();
         };
 
-        $groupedData = $masterAccounts->map(function ($acc) use ($startDate, $calcRunning) {
+        $groupedData = $masterAccounts->map(function ($acc) use ($startDate, $calcRunning, $currency) {
         // 3) Opening balance (sebelum periode)
         $opening = $acc->balance_accounts()
             ->where('date', '<', $startDate)
@@ -425,7 +425,7 @@ class ReportFinanceController extends Controller
 
     public function NeracaSaldo(Request $request)
     {
-        $currency_id = $request->currency;
+        $foreign_currency = $request->has('foreign_currency') && $request->foreign_currency == '1';
         $start_datepicker = $request->start_date_neraca;
         $end_datepicker = $request->end_date_neraca;
         $startDate = Carbon::now()->subYear()->startOfDay();
@@ -437,23 +437,30 @@ class ReportFinanceController extends Controller
             $endDate = date('Y-m-d', strtotime($end_datepicker));
         }
 
-        $filter = $this->NeracaSaldoFilter($startDate, $endDate, $currency_id);
+        // Always use IDR currency
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        if (!$idrCurrency) {
+            throw new \Exception('IDR currency not found');
+        }
+
+        $filter = $this->NeracaSaldoFilter($startDate, $endDate, $idrCurrency->id, $foreign_currency);
         $masterAccounts = $filter["masterAccounts"];
         $footer = $filter["footer"];
-        $currency = MasterCurrency::find($currency_id);
 
-        return view('reportfinance::neraca-saldo.spesific', compact('startDate', 'endDate','currency','masterAccounts', 'footer'));
+        return view('reportfinance::neraca-saldo.spesific', compact('startDate', 'endDate','masterAccounts', 'footer', 'foreign_currency', 'idrCurrency'));
     }
 
-    private function NeracaSaldoFilter($startDate, $endDate, $currency)
+    private function NeracaSaldoFilter($startDate, $endDate, $currency, $foreign_currency = false)
     {
-        $masterAccounts = MasterAccount::whereHas('balance_accounts', function ($query) use ($startDate, $endDate) {
-            $query->whereBetween('date', [$startDate, $endDate]);
+        // Get all accounts that have balance_accounts in IDR (currency passed is IDR)
+        $masterAccounts = MasterAccount::whereHas('balance_accounts', function ($query) use ($startDate, $endDate, $currency) {
+            $query->whereBetween('date', [$startDate, $endDate])
+                  ->where('currency_id', $currency);
         })
-        ->with(['balance_accounts' => function ($query) use ($startDate, $endDate) {
-            $query->whereBetween('date', [$startDate, $endDate]);
-        }])
-        ->where('master_currency_id', $currency)
+        ->with(['balance_accounts' => function ($query) use ($startDate, $endDate, $currency) {
+            $query->whereBetween('date', [$startDate, $endDate])
+                  ->where('currency_id', $currency);
+        }, 'currency'])
         ->get();
 
         $footer = [
@@ -465,23 +472,48 @@ class ReportFinanceController extends Controller
             'saldoAkhirDebit' => 0,
             'saldoAkhirKredit' => 0,
         ];
+
+        // Get IDR currency for comparison
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+
         foreach ($masterAccounts as $ma ) {
-            $saldoAwal = $ma->getDebitKreditSaldoAwal();
+            // Get IDR data
+            $saldoAwal = $ma->getDebitKreditSaldoAwal($currency);
             $footer['saldoAwalDebit'] += $saldoAwal["debit"];
             $footer['saldoAwalKredit'] += $saldoAwal["kredit"];
 
-            $data = $ma->getDebitKreditAll($startDate, $endDate);
+            $data = $ma->getDebitKreditAll($startDate, $endDate, $currency);
             $footer['mutasDebit'] += $data["debit"];
             $footer['mutasKredit'] += $data["kredit"];
 
-            $netMutation = $ma->getNetMutation($startDate, $endDate);
+            $netMutation = $ma->getNetMutation($startDate, $endDate, $currency);
             $footer['netMutasi'] += $netMutation;
 
             if ($netMutation < 0) {
                 $footer['saldoAkhirDebit'] += $netMutation;
-
             } else {
                 $footer['saldoAkhirKredit'] += $netMutation;
+            }
+
+            // If foreign currency is checked and account is not IDR, get foreign currency data
+            if ($foreign_currency && $ma->master_currency_id != $idrCurrency->id) {
+                // Check if account has balance_accounts in foreign currency
+                $hasForeignCurrencyData = BalanceAccount::where('master_account_id', $ma->id)
+                    ->where('currency_id', $ma->master_currency_id)
+                    ->where(function($q) use ($startDate, $endDate) {
+                        $q->whereBetween('date', [$startDate, $endDate])
+                          ->orWhere('transaction_type_id', 1); // Include opening balance
+                    })
+                    ->exists();
+                
+                if ($hasForeignCurrencyData) {
+                    $ma->foreign_currency_data = [
+                        'currency' => $ma->currency,
+                        'saldoAwal' => $ma->getDebitKreditSaldoAwal($ma->master_currency_id),
+                        'data' => $ma->getDebitKreditAll($startDate, $endDate, $ma->master_currency_id),
+                        'netMutation' => $ma->getNetMutation($startDate, $endDate, $ma->master_currency_id),
+                    ];
+                }
             }
         }
 
@@ -490,22 +522,27 @@ class ReportFinanceController extends Controller
 
     public function NeracaSaldoYear(Request $request)
     {
-        $currency_id = $request->currency;
+        $foreign_currency = $request->has('foreign_currency') && $request->foreign_currency == '1';
         $year = $request->year;
+        
+        // Always use IDR currency
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        if (!$idrCurrency) {
+            throw new \Exception('IDR currency not found');
+        }
+
         $yearTrialBalance=[];
         for ($month = 1; $month <= 12; $month++) {
             $startDate = Carbon::create($year, $month, 1)->startOfMonth();
             $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-            $monthTrialBalance = $this->NeracaSaldoFilter($startDate, $endDate, $currency_id);
+            $monthTrialBalance = $this->NeracaSaldoFilter($startDate, $endDate, $idrCurrency->id, $foreign_currency);
             $yearTrialBalance["month_name"][] = $startDate->format('F');
             $yearTrialBalance["data"][] = $monthTrialBalance["masterAccounts"];
             $yearTrialBalance["total"][] = $monthTrialBalance["footer"];
         }
 
-        $currency = MasterCurrency::find($currency_id);
-
-        return view('reportfinance::neraca-saldo.year', compact('currency', 'yearTrialBalance', 'year'));
+        return view('reportfinance::neraca-saldo.year', compact('idrCurrency', 'yearTrialBalance', 'year', 'foreign_currency'));
     }
 
     public function LaporanKeuangan(Request $request)

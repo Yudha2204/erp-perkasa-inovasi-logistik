@@ -30,29 +30,17 @@ class MasterAccount extends Model
         return $this->hasMany(BalanceAccount::class, 'master_account_id', 'id');
     }
 
-    public function getDebitKreditAll($startDate, $endDate)
+    public function getDebitKreditAll($startDate, $endDate, $currencyId = null)
     {
         $balance = BalanceAccount::where('master_account_id', $this->id)
                     ->whereNot('transaction_type_id', 1)
-                    ->whereBetween('date', [$startDate, $endDate])
-                    ->get();
-        $debit = 0;
-        $kredit = 0;
-        foreach($balance as $ba) {
-            $debit += $ba->debit;
-            $kredit += $ba->credit;
+                    ->whereBetween('date', [$startDate, $endDate]);
+        
+        if ($currencyId !== null) {
+            $balance->where('currency_id', $currencyId);
         }
-
-        return [
-            "debit" => $debit,
-            "kredit" => $kredit
-        ];
-    }
-
-    public function getDebitKreditSaldoAwal()
-    {
-        // Always get beginning balance from balance_account_data with transaction_type_id = 1
-        $balance = BalanceAccount::where('master_account_id', $this->id)->where('transaction_type_id', 1)->get();
+        
+        $balance = $balance->get();
         
         $debit = 0;
         $kredit = 0;
@@ -67,10 +55,35 @@ class MasterAccount extends Model
         ];
     }
 
-    public function getNetMutation($startDate, $endDate)
+    public function getDebitKreditSaldoAwal($currencyId = null)
     {
-        $data = $this->getDebitKreditAll($startDate, $endDate);
-        $saldoAwal = $this->getDebitKreditSaldoAwal();
+        // Always get beginning balance from balance_account_data with transaction_type_id = 1
+        $balance = BalanceAccount::where('master_account_id', $this->id)
+                    ->where('transaction_type_id', 1);
+        
+        if ($currencyId !== null) {
+            $balance->where('currency_id', $currencyId);
+        }
+        
+        $balance = $balance->get();
+        
+        $debit = 0;
+        $kredit = 0;
+        foreach($balance as $ba) {
+            $debit += $ba->debit;
+            $kredit += $ba->credit;
+        }
+
+        return [
+            "debit" => $debit,
+            "kredit" => $kredit
+        ];
+    }
+
+    public function getNetMutation($startDate, $endDate, $currencyId = null)
+    {
+        $data = $this->getDebitKreditAll($startDate, $endDate, $currencyId);
+        $saldoAwal = $this->getDebitKreditSaldoAwal($currencyId);
 
         $debitNet = $data['debit'] - $saldoAwal['debit'];
         $kreditNet = $data['kredit'] - $saldoAwal['kredit'];
