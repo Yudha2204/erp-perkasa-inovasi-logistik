@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use App\Models\Setup;
+use Modules\FinanceDataMaster\App\Models\FiscalPeriod;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -56,6 +57,43 @@ class CheckTransactionDate
                     ])
                     ->withInput();
             }
+
+            // Check if fiscal period exists and is open
+            if (class_exists(FiscalPeriod::class)) {
+                $period = Carbon::parse($value)->format('Y-m');
+                
+                // First check if period exists
+                if (!FiscalPeriod::periodExists($value)) {
+                    if ($is_ajax) {
+                        return response()->json([
+                            'errors' => [
+                                $field => ["Cannot create transaction: Fiscal period {$period} does not exist. Please create the fiscal period first."]
+                            ]
+                        ], 422);
+                    }
+                    return redirect()->back()
+                        ->withErrors([
+                            $field => "Cannot create transaction: Fiscal period {$period} does not exist. Please create the fiscal period first."
+                        ])
+                        ->withInput();
+                }
+                
+                // Then check if period is open
+                if (!$this->isFiscalPeriodOpen($value)) {
+                    if ($is_ajax) {
+                        return response()->json([
+                            'errors' => [
+                                $field => ["Cannot create transaction: Fiscal period {$period} is closed. Please open the period first."]
+                            ]
+                        ], 422);
+                    }
+                    return redirect()->back()
+                        ->withErrors([
+                            $field => "Cannot create transaction: Fiscal period {$period} is closed. Please open the period first."
+                        ])
+                        ->withInput();
+                }
+            }
         }
 
         return $next($request);
@@ -99,6 +137,20 @@ class CheckTransactionDate
             // If date parsing fails, allow the request to continue
             // The form validation will catch invalid dates
             return false;
+        }
+    }
+
+    /**
+     * Check if fiscal period is open for the given date (strict mode - period must exist)
+     */
+    private function isFiscalPeriodOpen(string $date): bool
+    {
+        try {
+            return FiscalPeriod::isDateInOpenPeriodStrict($date);
+        } catch (\Exception $e) {
+            // If fiscal period check fails, allow the request to continue
+            // The model validation will catch it
+            return true;
         }
     }
 }

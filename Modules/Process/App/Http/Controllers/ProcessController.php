@@ -10,6 +10,8 @@ use Illuminate\Http\JsonResponse;
 use Modules\Process\App\Services\ExchangeRevaluationService;
 use Modules\Process\App\Services\ProfitLossClosingService;
 use Modules\Process\App\Services\AnnualProfitLossClosingService;
+use Modules\FinanceDataMaster\App\Services\FiscalPeriodService;
+use Modules\FinanceDataMaster\App\Models\FiscalPeriod;
 use Carbon\Carbon;
 
 class ProcessController extends Controller
@@ -17,15 +19,18 @@ class ProcessController extends Controller
     protected $exchangeRevaluationService;
     protected $profitLossClosingService;
     protected $annualProfitLossClosingService;
+    protected $fiscalPeriodService;
 
     public function __construct(
         ExchangeRevaluationService $exchangeRevaluationService,
         ProfitLossClosingService $profitLossClosingService,
-        AnnualProfitLossClosingService $annualProfitLossClosingService
+        AnnualProfitLossClosingService $annualProfitLossClosingService,
+        FiscalPeriodService $fiscalPeriodService
     ) {
         $this->exchangeRevaluationService = $exchangeRevaluationService;
         $this->profitLossClosingService = $profitLossClosingService;
         $this->annualProfitLossClosingService = $annualProfitLossClosingService;
+        $this->fiscalPeriodService = $fiscalPeriodService;
 
         $this->middleware('auth');
         $this->middleware('permission:view-revaluation@process', ['only' => ['index', 'getAvailablePeriods', 'getAvailableYears']]);
@@ -47,8 +52,8 @@ class ProcessController extends Controller
     {
         $request->validate([
             'processes' => 'required|array|min:1',
-            'processes.*' => 'required|string|in:exchange_revaluation,profit_loss_closing,annual_profit_loss_closing',
-            'period' => 'required_if:processes,exchange_revaluation,profit_loss_closing|date_format:Y-m',
+            'processes.*' => 'required|string|in:exchange_revaluation,profit_loss_closing,annual_profit_loss_closing,fiscal_period_open,fiscal_period_close',
+            'period' => 'required_if:processes,exchange_revaluation,profit_loss_closing,fiscal_period_open,fiscal_period_close|date_format:Y-m',
             'year' => 'required_if:processes,annual_profit_loss_closing|date_format:Y',
             'force' => 'in:true,false,1,0,on,off'
         ]);
@@ -120,6 +125,36 @@ class ProcessController extends Controller
                             'data' => $result
                         ];
                         break;
+
+                    case 'fiscal_period_open':
+                        if (!$period) {
+                            $errors[] = "Period is required for fiscal period open.";
+                            continue 2;
+                        }
+
+                        $result = $this->fiscalPeriodService->openPeriod($period);
+                        $results[] = [
+                            'process' => 'Fiscal Period Open',
+                            'success' => (bool)($result['success'] ?? false),
+                            'message' => $result['message'] ?? 'Fiscal period opened.',
+                            'data' => $result
+                        ];
+                        break;
+
+                    case 'fiscal_period_close':
+                        if (!$period) {
+                            $errors[] = "Period is required for fiscal period close.";
+                            continue 2;
+                        }
+
+                        $result = $this->fiscalPeriodService->closePeriod($period, auth()->id());
+                        $results[] = [
+                            'process' => 'Fiscal Period Close',
+                            'success' => (bool)($result['success'] ?? false),
+                            'message' => $result['message'] ?? 'Fiscal period closed.',
+                            'data' => $result
+                        ];
+                        break;
                 }
             } catch (\Exception $e) {
                 $errors[] = "Error in {$process}: " . $e->getMessage();
@@ -144,18 +179,35 @@ class ProcessController extends Controller
 
     /**
      * Get available periods for monthly processes
+     * Fetches periods from fiscal_periods table
      */
     public function getAvailablePeriods(): JsonResponse
     {
+        // Fetch periods from fiscal_periods table, ordered by period descending
+        $fiscalPeriods = \Modules\FinanceDataMaster\App\Models\FiscalPeriod::orderBy('period', 'desc')
+            ->limit(24) // Limit to last 24 periods
+            ->get();
+
         $periods = [];
-        
-        // Generate last 12 months
-        for ($i = 0; $i < 12; $i++) {
-            $date = Carbon::now()->subMonths($i);
-            $periods[] = [
-                'value' => $date->format('Y-m'),
-                'label' => $date->format('F Y')
-            ];
+
+        if ($fiscalPeriods->isEmpty()) {
+            // If no fiscal periods exist, generate last 12 months as fallback
+            for ($i = 0; $i < 12; $i++) {
+                $date = Carbon::now()->subMonths($i);
+                $periods[] = [
+                    'value' => $date->format('Y-m'),
+                    'label' => $date->format('F Y')
+                ];
+            }
+        } else {
+            // Format fiscal periods for dropdown
+            foreach ($fiscalPeriods as $fiscalPeriod) {
+                $date = Carbon::createFromFormat('Y-m', $fiscalPeriod->period);
+                $periods[] = [
+                    'value' => $fiscalPeriod->period,
+                    'label' => $date->format('F Y') . ($fiscalPeriod->status === 'closed' ? ' (Closed)' : '')
+                ];
+            }
         }
 
         return response()->json($periods);
@@ -177,8 +229,8 @@ class ProcessController extends Controller
     {
         $request->validate([
             'processes' => 'required|array|min:1',
-            'processes.*' => 'required|string|in:exchange_revaluation,profit_loss_closing,annual_profit_loss_closing',
-            'period' => 'required_if:processes,exchange_revaluation,profit_loss_closing|date_format:Y-m',
+            'processes.*' => 'required|string|in:exchange_revaluation,profit_loss_closing,annual_profit_loss_closing,fiscal_period_open,fiscal_period_close',
+            'period' => 'required_if:processes,exchange_revaluation,profit_loss_closing,fiscal_period_open,fiscal_period_close|date_format:Y-m',
             'year' => 'required_if:processes,annual_profit_loss_closing|date_format:Y'
         ]);
 
@@ -214,6 +266,26 @@ class ProcessController extends Controller
                             'process' => 'Annual Profit & Loss Closing',
                             'is_done' => $isDone,
                             'year' => $year
+                        ];
+                        break;
+
+                    case 'fiscal_period_open':
+                    case 'fiscal_period_close':
+                        if (!$period) {
+                            $statuses[] = [
+                                'process' => ucfirst(str_replace('_', ' ', $process)),
+                                'error' => 'Period is required'
+                            ];
+                            break;
+                        }
+                        $periodStatus = $this->fiscalPeriodService->getPeriodStatus($period);
+                        $isClosed = $periodStatus['status'] === 'closed';
+                        $statuses[] = [
+                            'process' => ucfirst(str_replace('_', ' ', $process)),
+                            'period' => $period,
+                            'status' => $periodStatus['status'],
+                            'is_closed' => $isClosed,
+                            'is_open' => !$isClosed
                         ];
                         break;
                 }

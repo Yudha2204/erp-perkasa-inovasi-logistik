@@ -22,6 +22,7 @@
     <link href="{{ url('assets/css/style.css') }}" rel="stylesheet" />
     <link href="{{ url('assets/css/transparent-style.css') }}" rel="stylesheet">
     <link href="{{ url('assets/css/skin-modes.css') }}" rel="stylesheet" />
+    <link href="{{ url('assets/css/datepicker-fix.css') }}" rel="stylesheet" />
 
     <!--- FONT-ICONS CSS -->
     <link href="{{ url('assets/css/icons.css') }}" rel="stylesheet" />

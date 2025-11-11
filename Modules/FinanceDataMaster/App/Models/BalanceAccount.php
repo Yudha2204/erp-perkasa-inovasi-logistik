@@ -155,6 +155,21 @@ class BalanceAccount extends Model
                 throw new \Exception("Transaction date cannot be before the start entry period ({$startEntryPeriod->format('d/m/Y')})");
             }
 
+            // Check if fiscal period exists and is open for the transaction date
+            if (class_exists(\Modules\FinanceDataMaster\App\Models\FiscalPeriod::class) && $balanceAccount->transaction_type_id != 1) {
+                $period = \Carbon\Carbon::parse($balanceAccount->date)->format('Y-m');
+                
+                // First check if period exists
+                if (!\Modules\FinanceDataMaster\App\Models\FiscalPeriod::periodExists($balanceAccount->date)) {
+                    throw new \Exception("Cannot create transaction: Fiscal period {$period} does not exist. Please create the fiscal period first.");
+                }
+                
+                // Then check if period is open
+                if (!\Modules\FinanceDataMaster\App\Models\FiscalPeriod::isDateInOpenPeriodStrict($balanceAccount->date)) {
+                    throw new \Exception("Cannot create transaction: Fiscal period {$period} is closed. Please open the period first.");
+                }
+            }
+
             //check if currency is not idr create another balance account for idr
             $baseCurrency = MasterCurrency::where('initial', 'IDR')->first();
 

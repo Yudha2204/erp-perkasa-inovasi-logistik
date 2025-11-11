@@ -87,18 +87,36 @@ class ProfitLossClosingController extends Controller
     }
 
     /**
-     * Get available periods for closing (last 12 months)
+     * Get available periods for closing
+     * Fetches periods from fiscal_periods table
      */
     public function getAvailablePeriods(): JsonResponse
     {
+        // Fetch periods from fiscal_periods table, ordered by period descending
+        $fiscalPeriods = \Modules\FinanceDataMaster\App\Models\FiscalPeriod::orderBy('period', 'desc')
+            ->limit(24) // Limit to last 24 periods
+            ->get();
+
         $periods = [];
 
-        for ($i = 0; $i < 12; $i++) {
-            $date = Carbon::now()->subMonths($i);
-            $periods[] = [
-                'value' => $date->format('Y-m'),
-                'label' => $date->format('F Y')
-            ];
+        if ($fiscalPeriods->isEmpty()) {
+            // If no fiscal periods exist, generate last 12 months as fallback
+            for ($i = 0; $i < 12; $i++) {
+                $date = Carbon::now()->subMonths($i);
+                $periods[] = [
+                    'value' => $date->format('Y-m'),
+                    'label' => $date->format('F Y')
+                ];
+            }
+        } else {
+            // Format fiscal periods for dropdown
+            foreach ($fiscalPeriods as $fiscalPeriod) {
+                $date = Carbon::createFromFormat('Y-m', $fiscalPeriod->period);
+                $periods[] = [
+                    'value' => $fiscalPeriod->period,
+                    'label' => $date->format('F Y') . ($fiscalPeriod->status === 'closed' ? ' (Closed)' : '')
+                ];
+            }
         }
 
         return response()->json($periods);

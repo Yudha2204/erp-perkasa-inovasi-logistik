@@ -97,6 +97,9 @@
                         @canany(['view-buku_besar@finance','view-jurnal_umum@finance','view-neraca_saldo@finance','view-arus_kas@finance','view-laba_rugi@finance'])
                         <li><a href="{{ route('finance.report-finance.index') }}" class="slide-item {{ request()->is('finance/report-finance') || request()->is('finance/report-finance/*') ?'text-primary' : 'text-white' }}"> Report</a></li>
                         @endcanany
+                        @canany(['view-fiscal-period@finance','manage-fiscal-period@finance'])
+                        <li><a href="{{ route('finance.master-data.fiscal-period.index') }}" class="slide-item {{ request()->is('finance/master-data/fiscal-period') || request()->is('finance/master-data/fiscal-period/*') ?'text-primary' : 'text-white' }}"> Fiscal Period</a></li>
+                        @endcanany
                     </ul>
                     @endcanany
                 </li>

@@ -83,6 +83,26 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="row mt-3">
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="processes[]" value="fiscal_period_open" id="fiscal_period_open" disabled>
+                                                    <label class="form-check-label" for="fiscal_period_open">
+                                                        <strong>Fiscal Period Open</strong>
+                                                        <br><small class="text-muted">Open fiscal period (create if not exist)</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="processes[]" value="fiscal_period_close" id="fiscal_period_close" disabled>
+                                                    <label class="form-check-label" for="fiscal_period_close">
+                                                        <strong>Fiscal Period Close</strong>
+                                                        <br><small class="text-muted">Close fiscal period (create if not exist)</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -202,6 +222,9 @@ $(document).ready(function() {
             $('#processSection').show();
             // Enable monthly processes
             $('#exchange_revaluation, #profit_loss_closing').prop('disabled', false);
+            
+            // Enable fiscal period processes
+            $('#fiscal_period_open, #fiscal_period_close').prop('disabled', false);
             
             // Enable/disable annual process based on January selection
             const annualCheckbox = $('#annual_profit_loss_closing');
@@ -352,9 +375,26 @@ $(document).ready(function() {
         html += '<thead><tr><th>Process</th><th>Status</th><th>Period/Year</th></tr></thead><tbody>';
         
         statuses.forEach(function(status) {
-            const statusClass = status.is_done ? 'success' : 'warning';
-            const statusText = status.is_done ? 'Completed' : 'Not Completed';
-            const period = status.period || status.year || 'N/A';
+            let statusClass, statusText, period;
+            
+            if (status.error) {
+                statusClass = 'danger';
+                statusText = 'Error';
+                period = status.period || status.year || 'N/A';
+            } else if (status.is_done !== undefined) {
+                statusClass = status.is_done ? 'success' : 'warning';
+                statusText = status.is_done ? 'Completed' : 'Not Completed';
+                period = status.period || status.year || 'N/A';
+            } else if (status.status !== undefined) {
+                // Fiscal period status
+                statusClass = status.status === 'closed' ? 'danger' : 'success';
+                statusText = status.status === 'closed' ? 'Closed' : 'Open';
+                period = status.period || 'N/A';
+            } else {
+                statusClass = 'secondary';
+                statusText = 'Unknown';
+                period = status.period || status.year || 'N/A';
+            }
             
             html += `<tr>
                 <td>${status.process}</td>

@@ -77,9 +77,9 @@
                                     </tr>
 
                                     @php
-                                        // tentukan normal side akun
-                                        $normalDebit = in_array(strtolower($type['master_account']->account_type->normal_side ?? 'debit'), ['debit']);
-
+                                        // tentukan normal side akun dari account_type saja
+                                        $normalSide = $type['master_account']->account_type?->normal_side ?? 'debit';
+                                        $normalDebit = strtolower($normalSide) === 'debit';
                                         // pastikan data diurutkan juga di view (jaga-jaga)
                                         $rows = $filteredData->sortBy('created_at');
 

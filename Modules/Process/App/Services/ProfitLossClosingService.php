@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Modules\FinanceDataMaster\App\Models\AccountType;
 use Modules\FinanceDataMaster\App\Models\BalanceAccount;
 use Modules\FinanceDataMaster\App\Models\MasterAccount;
+use Modules\FinanceDataMaster\App\Models\MasterCurrency;
 
 class ProfitLossClosingService
 {
@@ -98,6 +99,12 @@ class ProfitLossClosingService
             throw new \Exception('MasterAccount for Profit Loss Summary or Current Earning not found');
         }
 
+        // Get IDR currency ID (P&L closing amounts are in IDR)
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        if (!$idrCurrency) {
+            throw new \Exception('IDR currency not found');
+        }
+
         // Define a transaction type ID for P&L closing (reserved custom id)
         $transactionTypeId = 100; // Profit/Loss Closing
 
@@ -109,6 +116,7 @@ class ProfitLossClosingService
             BalanceAccount::create([
                 'master_account_id' => $plsAccount->id,
                 'transaction_type_id' => $transactionTypeId,
+                'currency_id' => $idrCurrency->id,
                 'debit' => $amount,
                 'credit' => 0,
                 'date' => $postingDate,
@@ -117,6 +125,7 @@ class ProfitLossClosingService
             BalanceAccount::create([
                 'master_account_id' => $ceAccount->id,
                 'transaction_type_id' => $transactionTypeId,
+                'currency_id' => $idrCurrency->id,
                 'debit' => 0,
                 'credit' => $amount,
                 'date' => $postingDate,
@@ -126,6 +135,7 @@ class ProfitLossClosingService
             BalanceAccount::create([
                 'master_account_id' => $ceAccount->id,
                 'transaction_type_id' => $transactionTypeId,
+                'currency_id' => $idrCurrency->id,
                 'debit' => $amount,
                 'credit' => 0,
                 'date' => $postingDate,
@@ -134,6 +144,7 @@ class ProfitLossClosingService
             BalanceAccount::create([
                 'master_account_id' => $plsAccount->id,
                 'transaction_type_id' => $transactionTypeId,
+                'currency_id' => $idrCurrency->id,
                 'debit' => 0,
                 'credit' => $amount,
                 'date' => $postingDate,

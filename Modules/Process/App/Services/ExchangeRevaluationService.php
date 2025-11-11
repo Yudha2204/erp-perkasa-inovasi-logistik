@@ -248,6 +248,12 @@ class ExchangeRevaluationService
         // Determine transaction type ID for revaluation (you may need to create this)
         $transactionTypeId = 99; // Assuming 99 is for revaluation transactions
         
+        // Get IDR currency ID (revaluation amounts are in IDR)
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        if (!$idrCurrency) {
+            throw new \Exception('IDR currency not found');
+        }
+        
         if ($revaluationAmount > 0) {
             // Positive revaluation - debit the account, credit Exchange P/L
             if ($account->account_type->normal_side === 'debit') {
@@ -255,6 +261,7 @@ class ExchangeRevaluationService
                 BalanceAccount::create([
                     'master_account_id' => $account->id,
                     'transaction_type_id' => $transactionTypeId,
+                    'currency_id' => $idrCurrency->id,
                     'debit' => $revaluationAmount,
                     'credit' => 0,
                     'date' => $date->format('Y-m-d'),
@@ -264,6 +271,7 @@ class ExchangeRevaluationService
                 BalanceAccount::create([
                     'master_account_id' => $account->id,
                     'transaction_type_id' => $transactionTypeId,
+                    'currency_id' => $idrCurrency->id,
                     'debit' => 0,
                     'credit' => $revaluationAmount,
                     'date' => $date->format('Y-m-d'),
@@ -274,6 +282,7 @@ class ExchangeRevaluationService
             BalanceAccount::create([
                 'master_account_id' => $exchangePLAccount->id,
                 'transaction_type_id' => $transactionTypeId,
+                'currency_id' => $idrCurrency->id,
                 'debit' => 0,
                 'credit' => $revaluationAmount,
                 'date' => $date->format('Y-m-d'),
@@ -288,6 +297,7 @@ class ExchangeRevaluationService
                 BalanceAccount::create([
                     'master_account_id' => $account->id,
                     'transaction_type_id' => $transactionTypeId,
+                    'currency_id' => $idrCurrency->id,
                     'debit' => 0,
                     'credit' => $absAmount,
                     'date' => $date->format('Y-m-d'),
@@ -297,6 +307,7 @@ class ExchangeRevaluationService
                 BalanceAccount::create([
                     'master_account_id' => $account->id,
                     'transaction_type_id' => $transactionTypeId,
+                    'currency_id' => $idrCurrency->id,
                     'debit' => $absAmount,
                     'credit' => 0,
                     'date' => $date->format('Y-m-d'),
@@ -307,6 +318,7 @@ class ExchangeRevaluationService
             BalanceAccount::create([
                 'master_account_id' => $exchangePLAccount->id,
                 'transaction_type_id' => $transactionTypeId,
+                'currency_id' => $idrCurrency->id,
                 'debit' => $absAmount,
                 'credit' => 0,
                 'date' => $date->format('Y-m-d'),

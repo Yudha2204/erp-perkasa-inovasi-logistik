@@ -83,7 +83,12 @@ class ReportFinanceController extends Controller
             ->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')
             ->first();
 
-        $normalDebit = in_array(strtolower($acc->normal_side ?? 'debit'), ['debit']);
+        // Get normal_side from account_type only, default to 'debit'
+        $normalSide = $acc->account_type?->normal_side ?? 'debit';
+        
+        // If normal_side is 'credit', calculate as credit - debit
+        // If normal_side is 'debit', calculate as debit - credit
+        $normalDebit = strtolower($normalSide) === 'debit';
         $openingVal = $normalDebit
             ? (($opening->d ?? 0) - ($opening->c ?? 0))
             : (($opening->c ?? 0) - ($opening->d ?? 0));
