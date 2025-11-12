@@ -24,13 +24,17 @@ class ProfitLossClosingService
         $startDate = Carbon::createFromFormat('Y-m', $period)->startOfMonth();
         $endDate = Carbon::createFromFormat('Y-m', $period)->endOfMonth();
 
-        if ($this->isClosingDone($period)) {
-            return [
-                'success' => false,
-                'message' => "P&L closing for period {$period} has already been posted.",
-                'already_done' => true
-            ];
-        }
+        // if ($this->isClosingDone($period)) {
+        //     return [
+        //         'success' => false,
+        //         'message' => "P&L closing for period {$period} has already been posted.",
+        //         'already_done' => true
+        //     ];
+        // }
+
+        BalanceAccount::where('transaction_type_id', 100)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->forceDelete();
 
         // Calculate net P&L for the month (credit - debit for all PL accounts)
         $netPL = $this->calculateNetPL($startDate->format('Y-m-d'), $endDate->format('Y-m-d'));
@@ -68,11 +72,14 @@ class ProfitLossClosingService
      */
     private function calculateNetPL(string $startDate, string $endDate): float
     {
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
         // Sum over all PL accounts within the month
-        $totals = BalanceAccount::whereBetween('date', [$startDate, $endDate])
+        $totals = BalanceAccount::withoutGlobalScope('debit_priority')
+            ->whereBetween('date', [$startDate, $endDate])
             ->whereHas('master_account.account_type', function ($q) {
                 $q->where('report_type', 'PL');
             })
+            ->where('currency_id', $idrCurrency->id)
             ->selectRaw('COALESCE(SUM(credit),0) as total_credit, COALESCE(SUM(debit),0) as total_debit')
             ->first();
 

@@ -64,7 +64,7 @@ class ExchangeRevaluationService
             try {
                 BalanceAccount::where('transaction_type_id', 99) // Asumsi 99 adalah Tipe Transaksi Revaluasi
                 ->where('date', $endDate->format('Y-m-d'))
-                ->delete();
+                ->forceDelete();
 
             foreach ($bsAccounts as $account) {
                 $revaluationResult = $this->revaluateAccount($account, $endDate, $exchangePLAccount);
@@ -124,7 +124,7 @@ class ExchangeRevaluationService
         }
         
         // Calculate revaluation amount
-        $revaluationAmount = $this->calculateRevaluationAmount($account, $balance, $exchangeRate);
+        $revaluationAmount = $this->calculateRevaluationAmount($account, $balance, $exchangeRate, $endDate);
         
         if (abs($revaluationAmount) < 0.01) { // Ignore very small amounts
             return [
@@ -232,13 +232,13 @@ class ExchangeRevaluationService
      * @param float $exchangeRate
      * @return float
      */
-    private function calculateRevaluationAmount(MasterAccount $account, float $balance, float $exchangeRate): float
+    private function calculateRevaluationAmount(MasterAccount $account, float $balance, float $exchangeRate, Carbon $endDate): float
     {
         // Convert foreign currency balance to IDR
         $balanceInIDR = $balance * $exchangeRate;
         
         // Get current IDR balance from previous revaluations
-        $currentIDRBalance = $this->getCurrentIDRBalance($account);
+        $currentIDRBalance = $this->getCurrentIDRBalance($account, $endDate);
         
         // Calculate revaluation amount
         $revaluationAmount = $balanceInIDR - $currentIDRBalance;
@@ -252,7 +252,7 @@ class ExchangeRevaluationService
      * @param MasterAccount $account
      * @return float
      */
-    private function getCurrentIDRBalance(MasterAccount $account): float
+    private function getCurrentIDRBalance(MasterAccount $account, Carbon $endDate): float
     {
         $idrCurrencyId = $this->getIdrCurrencyId();
 
@@ -261,6 +261,7 @@ class ExchangeRevaluationService
         $balanceData = BalanceAccount::withoutGlobalScope('debit_priority')
             ->where('master_account_id', $account->id)
             ->where('currency_id', $idrCurrencyId) 
+            ->where('date', '<=', $endDate->format('Y-m-d'))
             ->selectRaw('SUM(debit) as total_debit, SUM(credit) as total_credit')
             ->first();
         
