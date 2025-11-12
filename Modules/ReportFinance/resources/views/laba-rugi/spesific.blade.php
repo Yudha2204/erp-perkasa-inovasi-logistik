@@ -15,305 +15,361 @@
 
                 <div class="row" style="background-color: white; padding-top: 50px; padding-bottom: 50px;" id="headerPrint">
                     <div class="col-xl-12">
-                        <!-- if pay -->
-                        <div class="w-full" style="margin-bottom: 50px;">
-                            <div class="w-full d-flex justify-content-center align-items-center flex-column mb-5">
-                                    <p style="font-size: 18px; font-weight: 500;">PT Perkasa Inovasi Logistik</p>
-                                    <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #467FF7;">Laba Rugi</p>
-                                    <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #B14F4B;">{{ \Carbon\Carbon::parse($startDate)->format('j F, Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('j F, Y') }}</p>
-                                    <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #B14F4B;">
-                                        Currency: 
-                                        {{ $currency->initial }}
-                                    </p>
-                            </div>
-                            <div class="w-full d-flex justify-content-end align-items-center">
-                                <div id="showExport" style="background-color: #FCEBDA; height: 55px; width: 150px; border-radius: 10px; display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px; cursor: pointer; position: relative;">
-                                    <div style="height: 24px; width: 24px; display: flex; justify-content: center; align-items: center;" id="printIcon">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M12 4V20M20 12H4" stroke="#F1977B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </div>
-                                    <h1 style="color: #F1977B; font-size: 18px; font-weight: 500; margin-top: 12px;" id="printTitle">Export</h1>
-    
-                                    <button id="print" style="position: absolute; top: 100%; background-color: #367EA3;height: 55px; width: 150px; color: white; border: 1px solid white; display: none; font-size: 16px; font-weight: bold;">Export PDF</button>
+                       <div class="w-full d-flex justify-content-center align-items-center flex-column">
+                            <p style="font-size: 18px; font-weight: 500;">PT Perkasa Inovasi Logistik</p>
+                            <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #467FF7;">Laba Rugi</p>
+                            <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #B14F4B;">{{ \Carbon\Carbon::parse($startDate)->format('j F, Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('j F, Y') }}</p>
+                            <p style="font-size: 18px; margin-top: -10px; font-weight: 500; color: #B14F4B;">
+                                Currency:
+                                {{ $currency->initial }}
+                            </p>
+                       </div>
+                       <div class="w-full d-flex justify-content-end align-items-center">
+                            <div id="showExport" style="background-color: #FCEBDA; height: 55px; width: 150px; border-radius: 10px; display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px; cursor: pointer; position: relative;">
+                                <div style="height: 24px; width: 24px; display: flex; justify-content: center; align-items: center;" id="printIcon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 4V20M20 12H4" stroke="#F1977B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
                                 </div>
-                           </div>
-                            <div style="font-size: 16px; font-weight: 400;" class="prints">Semua Departemen</div>
-                            <div style="width: 100%; margin-bottom: 10px; margin-top: 10px; height: 1px; background-color: black;" class="prints"></div>
-                            <div style="font-size: 16px; font-weight: 400; width: 100%; text-align: end; margin-bottom: 40px; color: #B14F4B;" class="prints">Saldo</div>
+                                <h1 style="color: #F1977B; font-size: 18px; font-weight: 500; margin-top: 12px;" id="printTitle">Export</h1>
+
+                                <button id="print" style="position: absolute; top: 100%; background-color: #367EA3;height: 55px; width: 150px; color: white; border: 1px solid white; display: none; font-size: 16px; font-weight: bold;">Export PDF</button>
+                            </div>
+                       </div>
+
+                        <div class="w-full d-flex justify-content-between align-items-center">
+                            <div style="font-size: 16px; font-weight: 400;" class="prints">Account</div>
+                            <div style="font-size: 16px; font-weight: 400; width: 100%; text-align: end; color: #B14F4B;" class="prints">Saldo</div>
                         </div>
+                        <div style="width: 100%; margin-bottom: 10px; margin-top: 10px; height: 1px; background-color: black;" class="prints"></div>
                         
-                        <!-- Pendapatan -->
+                        @php
+                            // Helper to calculate category total
+                            $calcTotal = function($category) {
+                                $total = 0;
+                                foreach ($category as $accountType) {
+                                    foreach ($accountType->master_accounts as $ma) {
+                                        foreach ($ma->balance_accounts as $maba) {
+                                            $total += $maba->credit - $maba->debit;
+                                        }
+                                    }
+                                }
+                                return $total;
+                            };
+
+                            // Calculate totals for each category
+                            $total_income = $calcTotal($labaRugi["income"]);
+                            $total_sales_discount = $calcTotal($labaRugi["sales_discount"]);
+                            $total_cost_of_sale = $calcTotal($labaRugi["cost_of_sale"]);
+                            $total_purchase_discount = $calcTotal($labaRugi["purchase_discount"]);
+                            $total_expense = $calcTotal($labaRugi["expense"]);
+                            $total_other_income = $calcTotal($labaRugi["other_income"]);
+                            $total_other_expense = $calcTotal($labaRugi["other_expense"]);
+                            $total_rounding_difference = $calcTotal($labaRugi["rounding_difference"]);
+                            $total_exchange_profit_loss = $calcTotal($labaRugi["exchange_profit_loss"]);
+                            
+                            // Formula Anda
+                            $net_profit_loss = $total_income 
+                                            + $total_sales_discount 
+                                            + $total_cost_of_sale 
+                                            + $total_purchase_discount 
+                                            + $total_expense 
+                                            + $total_other_income 
+                                            + $total_other_expense 
+                                            + $total_rounding_difference 
+                                            + $total_exchange_profit_loss;
+
+                            // Helper to render category
+                            $renderCategory = function($category, $categoryName, $isNegative = false) {
+                                $total = 0;
+                                $all_zero = true;
+                                $master_accounts_output = [];
+                                
+                                foreach ($category as $accountType) {
+                                    foreach ($accountType->master_accounts as $ma) {
+                                        $total_maba = 0;
+                                        foreach ($ma->balance_accounts as $maba) {
+                                            $total_maba += $maba->credit - $maba->debit;
+                                        }
+                                        if ($total_maba != 0) {
+                                            $all_zero = false;
+                                        }
+                                        $total += $total_maba;
+                                        $master_accounts_output[] = [
+                                            'code' => $ma->code,
+                                            'account_name' => $ma->account_name,
+                                            'total_maba' => $total_maba
+                                        ];
+                                    }
+                                }
+                                
+                                return [
+                                    'name' => $categoryName,
+                                    'total' => $total,
+                                    'all_zero' => $all_zero,
+                                    'accounts' => $master_accounts_output
+                                ];
+                            };
+                        @endphp
+
                         <div class="w-full d-flex flex-column justify-content-between px-5" id="bottomPrint">
+                            <!-- Income -->
+                            @php $income_data = $renderCategory($labaRugi["income"], "Income"); @endphp
+                            @if(!$income_data["all_zero"])
                             <div class="w-full d-flex flex-column justify-content-between">
-                                <p style="color: #59758B; font-size: 16px;">Pendapatan</p>
-                                @php
-                                    $total_pendapatan = 0;
-                                @endphp
-                                @foreach ($pendapatan as $p)
-                                    @php
-                                        $total = 0;
-                                        $all_zero = true;
-                                        $master_accounts_output = [];
-                                    @endphp
-                                    @foreach ($p["master_accounts"] as $ma)
-                                        @php
-                                            $total_maba = 0;
-                                            foreach ($ma["balance_accounts"] as $maba) {
-                                                $total_maba += $maba->credit - $maba->debit;
-                                            }
-                                            if ($total_maba != 0) {
-                                                $all_zero = false;
-                                            }
-                                            $total += $total_maba;
-                                            $master_accounts_output[] = [
-                                                'code' => $ma->code,
-                                                'account_name' => $ma->account_name,
-                                                'total_maba' => $total_maba
-                                            ];
-                                        @endphp
-                                    @endforeach
-
-                                    @if(!$all_zero)
-                                        <p style="margin-left: 30px; color: #367EA3; font-size: 16px;">{{ $p->name }}</p>
-                                    @foreach($master_accounts_output as $ma)
-                                    @if($ma["total_maba"] != 0)
-                                        <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 50px;">
-                                            <p>{{ $ma["code"] }}</p>
-                                            <p>{{ $ma["account_name"] }}</p>
-                                                @if ($ma["total_maba"] < 0)
-                                                    <p style="border-bottom: 1px solid black;">(
-                                                    {{ $currency->initial }} 
-                                                    {{ number_format($ma["total_maba"]*-1, 2) }}
-                                                    )
-                                                    </p>
-                                                @else
-                                                    <p style="border-bottom: 1px solid black;">
-                                                    {{ $currency->initial }} 
-                                                    {{ number_format($ma["total_maba"], 2) }}
-                                                    </p>
-                                                @endif
-                                        </div>
-                                    @endif
-                                    @endforeach
-                                    <div class="w-full d-flex justify-content-between align-items-center">
-                                        <p style="color: #00CA4C; font-size: 16px;">Total {{ $p->name }}</p>
-                                        @if ($total < 0)
-                                            <p style="color: #00CA4C; font-size: 16px; border-bottom: 1px solid #00CA4C;">
-                                                ({{ $currency->initial }} {{ number_format($total*-1, 2) }})
-                                            </p>
-                                        @else
-                                            <p style="color: #00CA4C; font-size: 16px; border-bottom: 1px solid #00CA4C;">
-                                                {{ $currency->initial }} {{ number_format($total, 2) }}
-                                            </p>
-                                        @endif
+                                <p style="color: #59758B; font-size: 16px;">Income</p>
+                                @foreach($income_data["accounts"] as $ma)
+                                @if($ma["total_maba"] != 0)
+                                <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 30px;">
+                                    <div class="d-flex gap-3">
+                                        <p>{{ $ma["code"] }}</p>
+                                        <p>{{ $ma["account_name"] }}</p>
                                     </div>
-                                    @endif
-                                    @php
-                                        $total_pendapatan += $total;
-                                    @endphp
+                                    <p style="border-bottom: 1px solid black;">
+                                        {{ $currency->initial }} {{ number_format(abs($ma["total_maba"]), 2) }}
+                                    </p>
+                                </div>
+                                @endif
                                 @endforeach
                                 <div class="w-full d-flex justify-content-between align-items-center">
-                                    <p style="color: #59758B; font-size: 16px; font-weight: bold">Total Pendapatan</p>
-                                    @if ($total_pendapatan < 0)
-                                    <p style="color: #59758B; font-size: 16px; font-weight: bold; border-bottom: 1px solid #59758B;"">
-                                        ({{ $currency->initial }} {{ number_format($total_pendapatan*-1, 2) }})
+                                    <p style="font-size: 16px;">Total Income</p>
+                                    <p style="font-size: 16px; border-bottom: 1px solid #282F53;">
+                                        {{ $currency->initial }} {{ number_format(abs($income_data["total"]), 2) }}
                                     </p>
-                                    @else
-                                    <p style="color: #59758B; font-size: 16px; font-weight: bold; border-bottom: 1px solid #59758B;"">
-                                        {{ $currency->initial }} {{ number_format($total_pendapatan, 2) }}
-                                    </p>
-                                    @endif
                                 </div>
                             </div>
-                        </div>
+                            @endif
 
-                        <!-- Bebas Atas Pendapatan -->
-                        <div class="w-full d-flex flex-column justify-content-between px-5">
+                            <!-- Sales Discount (-) -->
+                            @php $sales_discount_data = $renderCategory($labaRugi["sales_discount"], "Sales Discount", true); @endphp
+                            @if(!$sales_discount_data["all_zero"])
                             <div class="w-full d-flex flex-column justify-content-between">
-                                <p style="color: #59758B; font-size: 16px;">Beban Atas Pendapatan</p>
-                                @php
-                                    $total_beban = 0;
-                                @endphp
-                                @foreach ($beban as $b)
-                                    @php
-                                        $total = 0;
-                                        $all_zero = true;
-                                        $master_accounts_output = [];
-                                    @endphp
-                                    @foreach ($b["master_accounts"] as $ma)
-                                        @php
-                                            $total_maba = 0;
-                                            foreach ($ma["balance_accounts"] as $maba) {
-                                                $total_maba += $maba->credit - $maba->debit;
-                                            }
-                                            if ($total_maba != 0) {
-                                                $all_zero = false;
-                                            }
-                                            $total += $total_maba;
-                                            $master_accounts_output[] = [
-                                                'code' => $ma->code,
-                                                'account_name' => $ma->account_name,
-                                                'total_maba' => $total_maba
-                                            ];
-                                            $total += $total_maba;
-                                        @endphp
-                                    @endforeach
-
-                                    @if(!$all_zero)
-                                        <p style="margin-left: 30px; color: #367EA3; font-size: 16px;">{{ $b->name === 'Biaya Produksi' ? 'Biaya Vendor' : $b->name }}</p>
-                                    @foreach($master_accounts_output as $ma)
-                                    @if($ma["total_maba"] != 0)
-                                        <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 50px;">
-                                            <p>{{ $ma["code"] }}</p>
-                                            <p>{{ $ma["account_name"] === 'Biaya Produksi' ? 'Biaya Vendor' : $ma["account_name"] }}</p>
-                                                @if ($ma["total_maba"] < 0)
-                                                    <p style="border-bottom: 1px solid black;">(
-                                                    {{ $currency->initial }} 
-                                                    {{ number_format($ma["total_maba"]*-1, 2) }}
-                                                    )
-                                                    </p>
-                                                @else
-                                                    <p style="border-bottom: 1px solid black;">
-                                                    {{ $currency->initial }} 
-                                                    {{ number_format($ma["total_maba"], 2) }}
-                                                    </p>
-                                                @endif
-                                        </div>
-                                    @endif
-                                    @endforeach
-                                    <div class="w-full d-flex justify-content-between align-items-center">
-                                        <p style="color: #00CA4C; font-size: 16px;">
-                                            Total {{ $b->name === 'Biaya Produksi' ? 'Biaya Vendor' : $b->name }}
-                                        </p>
-                                        @if ($total < 0)
-                                            <p style="color: #00CA4C; font-size: 16px; border-bottom: 1px solid #00CA4C;">
-                                                ({{ $currency->initial }} {{ number_format($total*-1, 2) }})
-                                            </p>
-                                        @else
-                                            <p style="color: #00CA4C; font-size: 16px; border-bottom: 1px solid #00CA4C;">
-                                                {{ $currency->initial }} {{ number_format($total, 2) }}
-                                            </p>
-                                        @endif
+                                <p style="color: #59758B; font-size: 16px;">Sales Discount (-)</p>
+                                @foreach($sales_discount_data["accounts"] as $ma)
+                                @if($ma["total_maba"] != 0)
+                                <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 30px;">
+                                    <div class="d-flex gap-3">
+                                        <p>{{ $ma["code"] }}</p>
+                                        <p>{{ $ma["account_name"] }}</p>
                                     </div>
-                                    @endif
-                                    @php
-                                        $total_beban += $total;
-                                    @endphp
+                                    <p style="border-bottom: 1px solid black;">
+                                        ({{ $currency->initial }} {{ number_format(abs($ma["total_maba"]), 2) }})
+                                    </p>
+                                </div>
+                                @endif
                                 @endforeach
                                 <div class="w-full d-flex justify-content-between align-items-center">
-                                    <p style="color: #59758B; font-size: 16px; font-weight: bold">Total Beban Atas Pendapatan</p>
-                                    @if ($total_beban < 0)
+                                    <p style="font-size: 16px;">Total Sales Discount</p>
+                                    <p style="font-size: 16px; border-bottom: 1px solid #282F53;">
+                                        ({{ $currency->initial }} {{ number_format(abs($sales_discount_data["total"]), 2) }})
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Cost of Sale (-) -->
+                            @php $cost_of_sale_data = $renderCategory($labaRugi["cost_of_sale"], "Cost of Sale", true); @endphp
+                            @if(!$cost_of_sale_data["all_zero"])
+                            <div class="w-full d-flex flex-column justify-content-between">
+                                <p style="color: #59758B; font-size: 16px;">Cost of Sale (-)</p>
+                                @foreach($cost_of_sale_data["accounts"] as $ma)
+                                @if($ma["total_maba"] != 0)
+                                <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 30px;">
+                                    <div class="d-flex gap-3">
+                                        <p>{{ $ma["code"] }}</p>
+                                        <p>{{ $ma["account_name"] }}</p>
+                                    </div>
+                                    <p style="border-bottom: 1px solid black;">
+                                        ({{ $currency->initial }} {{ number_format(abs($ma["total_maba"]), 2) }})
+                                    </p>
+                                </div>
+                                @endif
+                                @endforeach
+                                <div class="w-full d-flex justify-content-between align-items-center">
+                                    <p style="font-size: 16px;">Total Cost of Sale</p>
+                                    <p style="font-size: 16px; border-bottom: 1px solid #282F53;">
+                                        ({{ $currency->initial }} {{ number_format(abs($cost_of_sale_data["total"]), 2) }})
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Purchase Discount (+) -->
+                            @php $purchase_discount_data = $renderCategory($labaRugi["purchase_discount"], "Purchase Discount"); @endphp
+                            @if(!$purchase_discount_data["all_zero"])
+                            <div class="w-full d-flex flex-column justify-content-between">
+                                <p style="color: #59758B; font-size: 16px;">Purchase Discount (+)</p>
+                                @foreach($purchase_discount_data["accounts"] as $ma)
+                                @if($ma["total_maba"] != 0)
+                                <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 30px;">
+                                    <div class="d-flex gap-3">
+                                        <p>{{ $ma["code"] }}</p>
+                                        <p>{{ $ma["account_name"] }}</p>
+                                    </div>
+                                    <p style="border-bottom: 1px solid black;">
+                                        {{ $currency->initial }} {{ number_format(abs($ma["total_maba"]), 2) }}
+                                    </p>
+                                </div>
+                                @endif
+                                @endforeach
+                                <div class="w-full d-flex justify-content-between align-items-center">
+                                    <p style="font-size: 16px;">Total Purchase Discount</p>
+                                    <p style="font-size: 16px; border-bottom: 1px solid #282F53;">
+                                        {{ $currency->initial }} {{ number_format(abs($purchase_discount_data["total"]), 2) }}
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Expense (-) -->
+                            @php $expense_data = $renderCategory($labaRugi["expense"], "Expense", true); @endphp
+                            @if(!$expense_data["all_zero"])
+                            <div class="w-full d-flex flex-column justify-content-between">
+                                <p style="color: #59758B; font-size: 16px;">Expense (-)</p>
+                                @foreach($expense_data["accounts"] as $ma)
+                                @if($ma["total_maba"] != 0)
+                                <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 30px;">
+                                    <div class="d-flex gap-3">
+                                        <p>{{ $ma["code"] }}</p>
+                                        <p>{{ $ma["account_name"] }}</p>
+                                    </div>
+                                    <p style="border-bottom: 1px solid black;">
+                                        ({{ $currency->initial }} {{ number_format(abs($ma["total_maba"]), 2) }})
+                                    </p>
+                                </div>
+                                @endif
+                                @endforeach
+                                <div class="w-full d-flex justify-content-between align-items-center">
+                                    <p style="font-size: 16px;">Total Expense</p>
+                                    <p style="font-size: 16px; border-bottom: 1px solid #282F53;">
+                                        ({{ $currency->initial }} {{ number_format(abs($expense_data["total"]), 2) }})
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Other Income (+) -->
+                            @php $other_income_data = $renderCategory($labaRugi["other_income"], "Other Income"); @endphp
+                            @if(!$other_income_data["all_zero"])
+                            <div class="w-full d-flex flex-column justify-content-between">
+                                <p style="color: #59758B; font-size: 16px;">Other Income (+)</p>
+                                @foreach($other_income_data["accounts"] as $ma)
+                                @if($ma["total_maba"] != 0)
+                                <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 30px;">
+                                    <div class="d-flex gap-3">
+                                        <p>{{ $ma["code"] }}</p>
+                                        <p>{{ $ma["account_name"] }}</p>
+                                    </div>
+                                    <p style="border-bottom: 1px solid black;">
+                                        {{ $currency->initial }} {{ number_format(abs($ma["total_maba"]), 2) }}
+                                    </p>
+                                </div>
+                                @endif
+                                @endforeach
+                                <div class="w-full d-flex justify-content-between align-items-center">
+                                    <p style="font-size: 16px;">Total Other Income</p>
+                                    <p style="font-size: 16px; border-bottom: 1px solid #282F53;">
+                                        {{ $currency->initial }} {{ number_format(abs($other_income_data["total"]), 2) }}
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Other Expense (-) -->
+                            @php $other_expense_data = $renderCategory($labaRugi["other_expense"], "Other Expense", true); @endphp
+                            @if(!$other_expense_data["all_zero"])
+                            <div class="w-full d-flex flex-column justify-content-between">
+                                <p style="color: #59758B; font-size: 16px;">Other Expense (-)</p>
+                                @foreach($other_expense_data["accounts"] as $ma)
+                                @if($ma["total_maba"] != 0)
+                                <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 30px;">
+                                    <div class="d-flex gap-3">
+                                        <p>{{ $ma["code"] }}</p>
+                                        <p>{{ $ma["account_name"] }}</p>
+                                    </div>
+                                    <p style="border-bottom: 1px solid black;">
+                                        ({{ $currency->initial }} {{ number_format(abs($ma["total_maba"]), 2) }})
+                                    </p>
+                                </div>
+                                @endif
+                                @endforeach
+                                <div class="w-full d-flex justify-content-between align-items-center">
+                                    <p style="font-size: 16px;">Total Other Expense</p>
+                                    <p style="font-size: 16px; border-bottom: 1px solid #282F53;">
+                                        ({{ $currency->initial }} {{ number_format(abs($other_expense_data["total"]), 2) }})
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Rounding Difference (+) -->
+                            @php $rounding_difference_data = $renderCategory($labaRugi["rounding_difference"], "Rounding Difference"); @endphp
+                            @if(!$rounding_difference_data["all_zero"])
+                            <div class="w-full d-flex flex-column justify-content-between">
+                                <p style="color: #59758B; font-size: 16px;">Rounding Difference (+)</p>
+                                @foreach($rounding_difference_data["accounts"] as $ma)
+                                @if($ma["total_maba"] != 0)
+                                <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 30px;">
+                                    <div class="d-flex gap-3">
+                                        <p>{{ $ma["code"] }}</p>
+                                        <p>{{ $ma["account_name"] }}</p>
+                                    </div>
+                                    <p style="border-bottom: 1px solid black;">
+                                        {{ $currency->initial }} {{ number_format(abs($ma["total_maba"]), 2) }}
+                                    </p>
+                                </div>
+                                @endif
+                                @endforeach
+                                <div class="w-full d-flex justify-content-between align-items-center">
+                                    <p style="font-size: 16px;">Total Rounding Difference</p>
+                                    <p style="font-size: 16px; border-bottom: 1px solid #282F53;">
+                                        {{ $currency->initial }} {{ number_format(abs($rounding_difference_data["total"]), 2) }}
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Exchange Profit/Loss (+) -->
+                            @php $exchange_profit_loss_data = $renderCategory($labaRugi["exchange_profit_loss"], "Exchange Profit/Loss"); @endphp
+                            @if(!$exchange_profit_loss_data["all_zero"])
+                            <div class="w-full d-flex flex-column justify-content-between">
+                                <p style="color: #59758B; font-size: 16px;">Exchange Profit/Loss (+)</p>
+                                @foreach($exchange_profit_loss_data["accounts"] as $ma)
+                                @if($ma["total_maba"] != 0)
+                                <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 30px;">
+                                    <div class="d-flex gap-3">
+                                        <p>{{ $ma["code"] }}</p>
+                                        <p>{{ $ma["account_name"] }}</p>
+                                    </div>
+                                    <p style="border-bottom: 1px solid black;">
+                                        {{ $currency->initial }} {{ number_format(abs($ma["total_maba"]), 2) }}
+                                    </p>
+                                </div>
+                                @endif
+                                @endforeach
+                                <div class="w-full d-flex justify-content-between align-items-center">
+                                    <p style="font-size: 16px;">Total Exchange Profit/Loss</p>
+                                    <p style="font-size: 16px; border-bottom: 1px solid #282F53;">
+                                        {{ $currency->initial }} {{ number_format(abs($exchange_profit_loss_data["total"]), 2) }}
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Net Profit/Loss -->
+                            <div class="w-full d-flex flex-column justify-content-between mb-5">
+                                <div class="w-full d-flex justify-content-between align-items-center">
+                                    <p style="color: #59758B; font-size: 16px; font-weight: bold">Net Profit/Loss</p>
+                                    @if ($net_profit_loss < 0)
                                     <p style="color: #59758B; font-size: 16px; font-weight: bold; border-bottom: 1px solid #59758B;">
-                                        ({{ $currency->initial }} {{ number_format($total_beban*-1, 2) }})
+                                        ({{ $currency->initial }} {{ number_format(abs($net_profit_loss), 2) }})
                                     </p>
                                     @else
-                                    <p style="color: #59758B; font-size: 16px; font-weight: bold; border-bottom: 1px solid #59758B;">{{ $currency->initial }} {{ number_format($total_beban, 2) }}</p>
+                                    <p style="color: #59758B; font-size: 16px; font-weight: bold; border-bottom: 1px solid #59758B;">
+                                        {{ $currency->initial }} {{ number_format($net_profit_loss, 2) }}
+                                    </p>
                                     @endif
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="w-full d-flex flex-column justify-content-between px-5">
-                            <div class="w-full d-flex justify-content-between align-items-center">
-                                <p style="color: #59758B; font-size: 16px;">Total Laba Kotor</p>
-                                @if ($total_pendapatan - $total_beban < 0)
-                                <p style="color: #59758B; font-size: 16px; border-bottom: 1px solid #59758B;">
-                                    ({{ $currency->initial }} {{ number_format(($total_pendapatan - $total_beban)*-1, 2) }})
-                                </p>
-                                @else
-                                <p style="color: #59758B; font-size: 16px; border-bottom: 1px solid #59758B;">{{ $currency->initial }} {{ number_format(($total_pendapatan - $total_beban), 2) }}</p>
-                                @endif
-                            </div>
-                        </div>
-
-                        <!-- Bebas Operasional -->
-                        <div class="w-full d-flex flex-column justify-content-between px-5">
-                            <div class="w-full d-flex flex-column justify-content-between">
-                                <p style="color: #59758B; font-size: 16px;">Beban Operasional</p>
-                                @php
-                                    $total_beban_operasional = 0;
-                                @endphp
-                                @foreach ($beban_operasional as $bo)
-                                    @php
-                                        $total = 0;
-                                        $all_zero = true;
-                                        $master_accounts_output = [];
-                                    @endphp
-                                    @foreach ($bo["master_accounts"] as $ma)
-                                        @php
-                                            $total_maba = 0;
-                                            foreach ($ma["balance_accounts"] as $maba) {
-                                                $total_maba += $maba->credit - $maba->debit;
-                                            }
-                                            if ($total_maba != 0) {
-                                                $all_zero = false;
-                                            }
-                                            $total += $total_maba;
-                                            $master_accounts_output[] = [
-                                                'code' => $ma->code,
-                                                'account_name' => $ma->account_name,
-                                                'total_maba' => $total_maba
-                                            ];
-                                            $total += $total_maba;
-                                        @endphp
-                                    @endforeach
-
-                                    @if(!$all_zero)
-                                        <p style="margin-left: 30px; color: #367EA3; font-size: 16px;">{{ $bo->name }}</p>
-                                    @foreach($master_accounts_output as $ma)
-                                    @if($ma["total_maba"] != 0)
-                                        <div class="w-full d-flex justify-content-between align-items-center" style="margin-left: 50px;">
-                                            <p>{{ $ma["code"] }}</p>
-                                            <p>{{ $ma["account_name"] }}</p>
-                                                @if ($ma["total_maba"] < 0)
-                                                    <p style="border-bottom: 1px solid black;">(
-                                                    {{ $currency->initial }} 
-                                                    {{ number_format($ma["total_maba"]*-1, 2) }}
-                                                    )
-                                                    </p>
-                                                @else
-                                                    <p style="border-bottom: 1px solid black;">
-                                                    {{ $currency->initial }} 
-                                                    {{ number_format($ma["total_maba"], 2) }}
-                                                    </p>
-                                                @endif
-                                        </div>
-                                    @endif
-                                    @endforeach
-                                    <div class="w-full d-flex justify-content-between align-items-center">
-                                        <p style="color: #00CA4C; font-size: 16px;">Total {{ $bo->name }}</p>
-                                        @if ($total < 0)
-                                        <p style="color: #00CA4C; font-size: 16px; border-bottom: 1px solid #00CA4C;">({{ $currency->initial }} {{ number_format($total*-1, 2) }})</p>
-                                        @else
-                                        <p style="color: #00CA4C; font-size: 16px; border-bottom: 1px solid #00CA4C;">{{ $currency->initial }} {{ number_format($total, 2) }}</p>
-                                        @endif
-                                    </div>
-                                    @endif
-                                    @php
-                                        $total_beban_operasional += $total;
-                                    @endphp
-                                @endforeach
-                                <div class="w-full d-flex justify-content-between align-items-center">
-                                    <p style="color: #59758B; font-size: 16px; font-weight: bold">Total Beban Operasional</p>
-                                    @if ($total_beban_operasional < 0)
-                                    <p style="color: #59758B; font-size: 16px; font-weight: bold; border-bottom: 1px solid #59758B;"">
-                                        ({{ $currency->initial }} {{ number_format($total_beban_operasional*-1, 2) }})</p>
-                                    @else
-                                    <p style="color: #59758B; font-size: 16px; font-weight: bold; border-bottom: 1px solid #59758B;"">{{ $currency->initial }} {{ number_format($total_beban_operasional, 2) }}</p>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="w-full d-flex flex-column justify-content-between px-5 mb-5">
-                            <div class="w-full d-flex justify-content-between align-items-center">
-                                <p style="color: #59758B; font-size: 16px;">Laba Bersih</p>
-                                @if ($total_pendapatan - $total_beban - $total_beban_operasional < 0)
-                                <p style="color: #59758B; font-size: 16px; border-bottom: 1px solid #59758B;">({{ $currency->initial }} {{ number_format(($total_pendapatan - $total_beban - $total_beban_operasional)*-1, 2) }})</p>
-                                @else
-                                <p style="color: #59758B; font-size: 16px; border-bottom: 1px solid #59758B;">{{ $currency->initial }} {{ number_format(($total_pendapatan - $total_beban - $total_beban_operasional), 2) }}</p>
-                                @endif
                             </div>
                         </div>
                     </div>

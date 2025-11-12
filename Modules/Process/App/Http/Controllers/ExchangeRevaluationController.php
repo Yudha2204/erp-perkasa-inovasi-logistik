@@ -5,6 +5,7 @@ namespace Modules\Process\App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Process\App\Services\ExchangeRevaluationService;
+use Modules\FinanceDataMaster\App\Models\FiscalPeriod;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 
@@ -43,6 +44,15 @@ class ExchangeRevaluationController extends Controller
         $force = $request->boolean('force', false);
 
         try {
+            // Check if period is closed
+            $fiscalPeriod = FiscalPeriod::where('period', $period)->first();
+            if ($fiscalPeriod && $fiscalPeriod->isClosed()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot execute exchange revaluation: Fiscal period {$period} is closed. Please open the period first.",
+                ], 400);
+            }
+
             // Check if revaluation already done
             if (!$force && $this->exchangeRevaluationService->isRevaluationDone($period)) {
                 return response()->json([

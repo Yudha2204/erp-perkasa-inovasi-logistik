@@ -12,6 +12,19 @@ use Modules\ExchangeRate\App\Models\ExchangeRate;
 
 class ExchangeRevaluationService
 {
+    private $idrCurrencyId;
+
+    private function getIdrCurrencyId()
+    {
+        if (!$this->idrCurrencyId) {
+            $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+            if (!$idrCurrency) {
+                throw new \Exception('IDR currency not found');
+            }
+            $this->idrCurrencyId = $idrCurrency->id;
+        }
+        return $this->idrCurrencyId;
+    }
     /**
      * Execute monthly exchange revaluation for all BS accounts with non-IDR currency
      * 
@@ -22,16 +35,12 @@ class ExchangeRevaluationService
     {
         $startDate = Carbon::createFromFormat('Y-m', $period)->startOfMonth();
         $endDate = Carbon::createFromFormat('Y-m', $period)->endOfMonth();
-        
-        // Get IDR currency ID
-        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
-        if (!$idrCurrency) {
-            throw new \Exception('IDR currency not found');
-        }
+        $idrCurrencyId = $this->getIdrCurrencyId();
+
         
         // Get Exchange Profit/Loss account
         $exchangePLAccount = MasterAccount::where('account_type_id', '22')
-            ->first();
+        ->first();
         
         if (!$exchangePLAccount) {
             throw new \Exception('Exchange Profit/Loss account not found');
@@ -41,18 +50,22 @@ class ExchangeRevaluationService
         $bsAccounts = MasterAccount::whereHas('account_type', function($query) {
                 $query->where('report_type', 'BS');
             })
-            ->whereHas('currency', function($query) use ($idrCurrency) {
-                $query->where('id', '!=', $idrCurrency->id);
+            ->whereHas('currency', function($query) use ($idrCurrencyId) {
+                $query->where('id', '!=', $idrCurrencyId);
             })
             ->with(['currency', 'account_type'])
             ->get();
-        
-        $results = [];
-        $totalRevaluationAmount = 0;
-        
-        DB::beginTransaction();
-        
-        try {
+            
+            $results = [];
+            $totalRevaluationAmount = 0;
+            
+            DB::beginTransaction();
+            
+            try {
+                BalanceAccount::where('transaction_type_id', 99) // Asumsi 99 adalah Tipe Transaksi Revaluasi
+                ->where('date', $endDate->format('Y-m-d'))
+                ->delete();
+
             foreach ($bsAccounts as $account) {
                 $revaluationResult = $this->revaluateAccount($account, $endDate, $exchangePLAccount);
                 
@@ -89,6 +102,7 @@ class ExchangeRevaluationService
      */
     private function revaluateAccount(MasterAccount $account, Carbon $endDate, MasterAccount $exchangePLAccount): array
     {
+        
         // Get account balance in foreign currency
         $balance = $this->getAccountBalance($account, $endDate);
         
@@ -102,7 +116,6 @@ class ExchangeRevaluationService
                 'revaluation_amount' => 0
             ];
         }
-        
         // Get exchange rate for end of month
         $exchangeRate = $this->getExchangeRate($account->currency, $endDate);
         
@@ -148,11 +161,13 @@ class ExchangeRevaluationService
      */
     private function getAccountBalance(MasterAccount $account, Carbon $endDate): float
     {
-        $balanceData = BalanceAccount::where('master_account_id', $account->id)
+        $balanceData = BalanceAccount::withoutGlobalScope('debit_priority')
+            ->where('master_account_id', $account->id)
+            ->where('currency_id', $account->master_currency_id)
+            ->where('transaction_type_id', '!=', 99) // Exclude revaluation transactions
             ->where('date', '<=', $endDate->format('Y-m-d'))
             ->selectRaw('SUM(debit) as total_debit, SUM(credit) as total_credit')
             ->first();
-        
         $totalDebit = $balanceData->total_debit ?? 0;
         $totalCredit = $balanceData->total_credit ?? 0;
         
@@ -173,26 +188,40 @@ class ExchangeRevaluationService
      */
     private function getExchangeRate(MasterCurrency $currency, Carbon $date): ?float
     {
-        $exchangeRate = ExchangeRate::where('from_currency_id', $currency->id)
-            ->where('to_currency_id', 1) // IDR currency ID
-            ->where('date', $date->format('Y-m-d'))
+        $idrCurrencyId = $this->getIdrCurrencyId();
+        $currencyId = $currency->id;
+        $rate = ExchangeRate::query()
+            ->whereDate('date', $date)
+            ->where(function ($q) use ($currencyId, $idrCurrencyId) {
+                $q->where(function ($q) use ($currencyId, $idrCurrencyId) {
+                    $q->where('from_currency_id', $currencyId)
+                        ->where('to_currency_id', $idrCurrencyId);
+                })->orWhere(function ($q) use ($currencyId, $idrCurrencyId) {
+                    $q->where('from_currency_id', $idrCurrencyId)
+                        ->where('to_currency_id', $currencyId);
+                });
+            })
+            // If duplicates can exist for a date, prefer the latest updated/inserted:
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
             ->first();
-        
-        if (!$exchangeRate) {
-            // Try to get the latest available rate before the date
-            $exchangeRate = ExchangeRate::where('from_currency_id', $currency->id)
-                ->where('to_currency_id', 1)
-                ->where('date', '<=', $date->format('Y-m-d'))
-                ->orderBy('date', 'desc')
-                ->first();
+
+        if (!$rate) {
+            throw new \Exception('Failed to convert amount: exchange rate not found for the given date/currencies.');
         }
-        
-        if (!$exchangeRate) {
-            return null;
+
+        if (empty($rate->from_nominal) || empty($rate->to_nominal)) {
+            throw new \Exception('Invalid exchange rate record: nominal values cannot be zero or null.');
         }
-        
-        // Calculate rate: IDR/FC = to_nominal / from_nominal
-        return $exchangeRate->to_nominal / $exchangeRate->from_nominal;
+
+        $isDirect = ((int)$rate->from_currency_id === $currencyId)
+            && ((int)$rate->to_currency_id === $idrCurrencyId);
+
+        $factor = $isDirect
+            ? ($rate->to_nominal / $rate->from_nominal)
+            : ($rate->from_nominal / $rate->to_nominal);
+
+        return $factor;
     }
     
     /**
@@ -225,104 +254,92 @@ class ExchangeRevaluationService
      */
     private function getCurrentIDRBalance(MasterAccount $account): float
     {
+        $idrCurrencyId = $this->getIdrCurrencyId();
+
         // Get the current IDR balance from previous revaluations
         // This is calculated by summing all revaluation transactions for this account
-        $revaluationBalance = BalanceAccount::where('master_account_id', $account->id)
-            ->where('transaction_type_id', 99) // Revaluation transaction type
-            ->selectRaw('SUM(debit) - SUM(credit) as net_balance')
+        $balanceData = BalanceAccount::withoutGlobalScope('debit_priority')
+            ->where('master_account_id', $account->id)
+            ->where('currency_id', $idrCurrencyId) 
+            ->selectRaw('SUM(debit) as total_debit, SUM(credit) as total_credit')
             ->first();
         
-        return $revaluationBalance->net_balance ?? 0;
+        $totalDebit = $balanceData->total_debit ?? 0;
+        $totalCredit = $balanceData->total_credit ?? 0;
+
+        // Saldo IDR harus mengikuti normal side dari akun valas-nya
+        if ($account->account_type->normal_side === 'debit') {
+            // Aset: Saldo normal Debit
+            return $totalDebit - $totalCredit;
+        } else {
+            // Kewajiban: Saldo normal Kredit
+            return $totalCredit - $totalDebit;
+        }
     }
     
     /**
-     * Create journal entries for revaluation
-     * 
-     * @param MasterAccount $account
+     * Helper function to create a single balance entry
+     */
+    private function createBalanceEntry(int $accountId, int $trxTypeId, int $currencyId, float $debit, float $credit, Carbon $date): void
+    {
+        BalanceAccount::create([
+            'master_account_id' => $accountId,
+            'transaction_type_id' => $trxTypeId,
+            'currency_id' => $currencyId,
+            'debit' => $debit,
+            'credit' => $credit,
+            'date' => $date->format('Y-m-d'),
+        ]);
+    }
+
+    /**
+     * Create journal entries for revaluation (Corrected Logic)
+     * * @param MasterAccount $account
      * @param MasterAccount $exchangePLAccount
      * @param float $revaluationAmount
      * @param Carbon $date
      */
     private function createJournalEntries(MasterAccount $account, MasterAccount $exchangePLAccount, float $revaluationAmount, Carbon $date): void
     {
-        // Determine transaction type ID for revaluation (you may need to create this)
-        $transactionTypeId = 99; // Assuming 99 is for revaluation transactions
-        
-        // Get IDR currency ID (revaluation amounts are in IDR)
-        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
-        if (!$idrCurrency) {
-            throw new \Exception('IDR currency not found');
-        }
+        $transactionTypeId = 99; // Revaluation transaction type
+        $idrCurrencyId = $this->getIdrCurrencyId();
         
         if ($revaluationAmount > 0) {
-            // Positive revaluation - debit the account, credit Exchange P/L
+            // Revaluation amount is positive
             if ($account->account_type->normal_side === 'debit') {
-                // Asset account - debit to increase
-                BalanceAccount::create([
-                    'master_account_id' => $account->id,
-                    'transaction_type_id' => $transactionTypeId,
-                    'currency_id' => $idrCurrency->id,
-                    'debit' => $revaluationAmount,
-                    'credit' => 0,
-                    'date' => $date->format('Y-m-d'),
-                ]);
+                // Case 1: Asset Increased (e.g., Bank USD value went up)
+                // (Dr) Asset Account
+                $this->createBalanceEntry($account->id, $transactionTypeId, $idrCurrencyId, $revaluationAmount, 0, $date);
+                // (Cr) P/L Account (Unrealized Gain)
+                $this->createBalanceEntry($exchangePLAccount->id, $transactionTypeId, $idrCurrencyId, 0, $revaluationAmount, $date);
             } else {
-                // Liability account - credit to increase
-                BalanceAccount::create([
-                    'master_account_id' => $account->id,
-                    'transaction_type_id' => $transactionTypeId,
-                    'currency_id' => $idrCurrency->id,
-                    'debit' => 0,
-                    'credit' => $revaluationAmount,
-                    'date' => $date->format('Y-m-d'),
-                ]);
+                // Case 2: Liability Increased (e.g., AP USD value went up)
+                // (Cr) Liability Account
+                $this->createBalanceEntry($account->id, $transactionTypeId, $idrCurrencyId, 0, $revaluationAmount, $date);
+                // (Dr) P/L Account (Unrealized Loss)
+                $this->createBalanceEntry($exchangePLAccount->id, $transactionTypeId, $idrCurrencyId, $revaluationAmount, 0, $date);
             }
-            
-            // Credit Exchange P/L
-            BalanceAccount::create([
-                'master_account_id' => $exchangePLAccount->id,
-                'transaction_type_id' => $transactionTypeId,
-                'currency_id' => $idrCurrency->id,
-                'debit' => 0,
-                'credit' => $revaluationAmount,
-                'date' => $date->format('Y-m-d'),
-            ]);
-            
         } else {
-            // Negative revaluation - credit the account, debit Exchange P/L
+            // Revaluation amount is negative or zero
             $absAmount = abs($revaluationAmount);
             
-            if ($account->account_type->normal_side === 'debit') {
-                // Asset account - credit to decrease
-                BalanceAccount::create([
-                    'master_account_id' => $account->id,
-                    'transaction_type_id' => $transactionTypeId,
-                    'currency_id' => $idrCurrency->id,
-                    'debit' => 0,
-                    'credit' => $absAmount,
-                    'date' => $date->format('Y-m-d'),
-                ]);
-            } else {
-                // Liability account - debit to decrease
-                BalanceAccount::create([
-                    'master_account_id' => $account->id,
-                    'transaction_type_id' => $transactionTypeId,
-                    'currency_id' => $idrCurrency->id,
-                    'debit' => $absAmount,
-                    'credit' => 0,
-                    'date' => $date->format('Y-m-d'),
-                ]);
+            if ($absAmount < 0.01) {
+                return; // Do nothing if amount is effectively zero
             }
-            
-            // Debit Exchange P/L
-            BalanceAccount::create([
-                'master_account_id' => $exchangePLAccount->id,
-                'transaction_type_id' => $transactionTypeId,
-                'currency_id' => $idrCurrency->id,
-                'debit' => $absAmount,
-                'credit' => 0,
-                'date' => $date->format('Y-m-d'),
-            ]);
+
+            if ($account->account_type->normal_side === 'debit') {
+                // Case 3: Asset Decreased (e.g., Bank USD value went down)
+                // (Cr) Asset Account
+                $this->createBalanceEntry($account->id, $transactionTypeId, $idrCurrencyId, 0, $absAmount, $date);
+                // (Dr) P/L Account (Unrealized Loss)
+                $this->createBalanceEntry($exchangePLAccount->id, $transactionTypeId, $idrCurrencyId, $absAmount, 0, $date);
+            } else {
+                // Case 4: Liability Decreased (e.g., AP USD value went down)
+                // (Dr) Liability Account
+                $this->createBalanceEntry($account->id, $transactionTypeId, $idrCurrencyId, $absAmount, 0, $date);
+                // (Cr) P/L Account (Unrealized Gain)
+                $this->createBalanceEntry($exchangePLAccount->id, $transactionTypeId, $idrCurrencyId, 0, $absAmount, $date);
+            }
         }
     }
     

@@ -347,14 +347,10 @@ class ReportFinanceController extends Controller
         }
 
         $labaRugi = $this->LabaRugiFilter($startDate, $endDate, $currency_id);
-        $pendapatan = $labaRugi["pendapatan"];
-        $beban = $labaRugi["beban"];
-        $beban_operasional = $labaRugi["beban_operasional"];
 
         $currency = MasterCurrency::find($currency_id);
 
-
-        return view('reportfinance::laba-rugi.spesific', compact('currency','startDate','endDate','pendapatan','beban','beban_operasional'));
+        return view('reportfinance::laba-rugi.spesific', compact('currency','startDate','endDate','labaRugi'));
     }
 
     public function LabaRugiYear(Request $request)
@@ -368,11 +364,7 @@ class ReportFinanceController extends Controller
 
             $monthProfitLoss = $this->LabaRugiFilter($startDate, $endDate, $currency_id);
             $yearProfitLoss["month_name"][] = $startDate->format('F');
-            $yearProfitLoss["data"][] = [
-               "pendapatan" => $monthProfitLoss["pendapatan"],
-               "beban" => $monthProfitLoss["beban"],
-               "beban_operasional" => $monthProfitLoss["beban_operasional"]
-            ];
+            $yearProfitLoss["data"][] = $monthProfitLoss;
         }
 
         $currency = MasterCurrency::find($currency_id);
@@ -382,52 +374,43 @@ class ReportFinanceController extends Controller
 
     private function LabaRugiFilter($startDate, $endDate, $currency_id)
     {
-        $pendapatan = AccountType::whereHas('master_accounts', function ($query) use ($currency_id, $startDate, $endDate) {
-            $query->where('master_currency_id', $currency_id)
-                ->whereHas('balance_accounts', function ($query) use ($startDate, $endDate) {
-                    $query->whereBetween('date', [$startDate, $endDate]);
-                });
-        })->with(['master_accounts' => function ($query) use ($currency_id, $startDate, $endDate) {
-            $query->where('master_currency_id', $currency_id)
-                ->with(['balance_accounts' => function ($query) use ($startDate, $endDate) {
-                    $query->whereBetween('date', [$startDate, $endDate]);
-                }]);
-        }])
-        ->where('code','like','4%')
-        ->get();
-
-        $beban = AccountType::whereHas('master_accounts', function ($query) use ($currency_id, $startDate, $endDate) {
-                $query->where('master_currency_id', $currency_id)
-                    ->whereHas('balance_accounts', function ($query) use ($startDate, $endDate) {
-                        $query->whereBetween('date', [$startDate, $endDate]);
+        $baseQuery = function($code) use ($currency_id, $startDate, $endDate) {
+            return AccountType::whereHas('master_accounts', function ($query) use ($currency_id, $startDate, $endDate) {
+                $query
+                    ->whereHas('balance_accounts', function ($query) use ($startDate, $endDate, $currency_id) {
+                        $query->whereBetween('date', [$startDate, $endDate])
+                        ->where('currency_id', $currency_id);
                     });
             })->with(['master_accounts' => function ($query) use ($currency_id, $startDate, $endDate) {
-                $query->where('master_currency_id', $currency_id)
-                    ->with(['balance_accounts' => function ($query) use ($startDate, $endDate) {
-                        $query->whereBetween('date', [$startDate, $endDate]);
+                $query->with(['balance_accounts' => function ($query) use ($startDate, $endDate, $currency_id) {
+                        $query->whereBetween('date', [$startDate, $endDate])
+                        ->where('currency_id', $currency_id);
                     }]);
             }])
-            ->where('code','like','5%')
+            ->where('code', $code)
             ->get();
+        };
 
-        $beban_operasional = AccountType::whereHas('master_accounts', function ($query) use ($currency_id, $startDate, $endDate) {
-                $query->where('master_currency_id', $currency_id)
-                    ->whereHas('balance_accounts', function ($query) use ($startDate, $endDate) {
-                        $query->whereBetween('date', [$startDate, $endDate]);
-                    });
-            })->with(['master_accounts' => function ($query) use ($currency_id, $startDate, $endDate) {
-                $query->where('master_currency_id', $currency_id)
-                    ->with(['balance_accounts' => function ($query) use ($startDate, $endDate) {
-                        $query->whereBetween('date', [$startDate, $endDate]);
-                    }]);
-            }])
-            ->where('code','like','6%')
-            ->get();
+        $income = $baseQuery('4-0000');
+        $sales_discount = $baseQuery('4-0001');
+        $cost_of_sale = $baseQuery('5-0000');
+        $purchase_discount = $baseQuery('5-0001');
+        $expense = $baseQuery('6-0000');
+        $other_income = $baseQuery('7-0000');
+        $other_expense = $baseQuery('8-0000');
+        $rounding_difference = $baseQuery('9-0001');
+        $exchange_profit_loss = $baseQuery('9-0002');
 
         return [
-            "pendapatan" => $pendapatan,
-            "beban" => $beban,
-            "beban_operasional" => $beban_operasional
+            "income" => $income,
+            "sales_discount" => $sales_discount,
+            "cost_of_sale" => $cost_of_sale,
+            "purchase_discount" => $purchase_discount,
+            "expense" => $expense,
+            "other_income" => $other_income,
+            "other_expense" => $other_expense,
+            "rounding_difference" => $rounding_difference,
+            "exchange_profit_loss" => $exchange_profit_loss
         ];
     }
 

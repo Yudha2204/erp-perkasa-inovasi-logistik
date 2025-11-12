@@ -70,6 +70,15 @@ class ProcessController extends Controller
 
         foreach ($processes as $process) {
             try {
+                // Check if period is closed for processes that require an open period
+                if (in_array($process, ['exchange_revaluation', 'profit_loss_closing', 'fiscal_period_close']) && $period) {
+                    $fiscalPeriod = FiscalPeriod::where('period', $period)->first();
+                    if ($fiscalPeriod && $fiscalPeriod->isClosed()) {
+                        $errors[] = "Cannot execute {$process}: Fiscal period {$period} is closed. Please open the period first.";
+                        continue;
+                    }
+                }
+
                 switch ($process) {
                     case 'exchange_revaluation':
                         if (!$force && $this->exchangeRevaluationService->isRevaluationDone($period)) {
@@ -147,6 +156,13 @@ class ProcessController extends Controller
                             continue 2;
                         }
 
+                        // Additional check: if period is already closed, skip (unless forced)
+                        $fiscalPeriod = FiscalPeriod::where('period', $period)->first();
+                        if ($fiscalPeriod && $fiscalPeriod->isClosed() && !$force) {
+                            $errors[] = "Fiscal period {$period} is already closed.";
+                            continue 2;
+                        }
+
                         $result = $this->fiscalPeriodService->closePeriod($period, auth()->id());
                         $results[] = [
                             'process' => 'Fiscal Period Close',
@@ -205,7 +221,9 @@ class ProcessController extends Controller
                 $date = Carbon::createFromFormat('Y-m', $fiscalPeriod->period);
                 $periods[] = [
                     'value' => $fiscalPeriod->period,
-                    'label' => $date->format('F Y') . ($fiscalPeriod->status === 'closed' ? ' (Closed)' : '')
+                    'label' => $date->format('F Y') . ($fiscalPeriod->status === 'closed' ? ' (Closed)' : ''),
+                    'status' => $fiscalPeriod->status,
+                    'is_closed' => $fiscalPeriod->status === 'closed'
                 ];
             }
         }

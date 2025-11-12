@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Modules\Process\App\Services\ProfitLossClosingService;
+use Modules\FinanceDataMaster\App\Models\FiscalPeriod;
 use Carbon\Carbon;
 
 class ProfitLossClosingController extends Controller
@@ -44,6 +45,15 @@ class ProfitLossClosingController extends Controller
         $force = $request->boolean('force', false);
 
         try {
+            // Check if period is closed
+            $fiscalPeriod = FiscalPeriod::where('period', $period)->first();
+            if ($fiscalPeriod && $fiscalPeriod->isClosed()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot execute P&L closing: Fiscal period {$period} is closed. Please open the period first.",
+                ], 400);
+            }
+
             if (!$force && $this->profitLossClosingService->isClosingDone($period)) {
                 return response()->json([
                     'success' => false,

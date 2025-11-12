@@ -190,7 +190,7 @@ $(document).ready(function() {
     });
 
     function loadPeriods() {
-        $.get('{{ route("process.periods") }}')
+        return $.get('{{ route("process.periods") }}')
             .done(function(data) {
                 periods = data;
                 updatePeriodSelect();
@@ -203,12 +203,23 @@ $(document).ready(function() {
 
     function updatePeriodSelect() {
         const select = $('#periodSelect');
+        const currentValue = select.val(); // Preserve current selection
         select.empty();
         select.append('<option value="">Select a period...</option>');
         
         periods.forEach(function(period) {
-            select.append(`<option value="${period.value}">${period.label}</option>`);
+            const option = $(`<option value="${period.value}">${period.label}</option>`);
+            if (period.value === currentValue) {
+                option.prop('selected', true);
+            }
+            select.append(option);
         });
+        
+        // If we had a selection, restore it and update form visibility
+        if (currentValue) {
+            updateFormVisibility();
+            updateExecuteButton();
+        }
     }
 
 
@@ -217,29 +228,49 @@ $(document).ready(function() {
         const hasPeriod = selectedPeriod !== '';
         const isJanuary = selectedPeriod && selectedPeriod.endsWith('-01');
 
+        // Find the selected period object to check if it's closed
+        const selectedPeriodObj = periods.find(p => p.value === selectedPeriod);
+        const isPeriodClosed = selectedPeriodObj && selectedPeriodObj.is_closed === true;
+        
+        // If period object doesn't exist or doesn't have is_closed property, assume it's open (fallback case)
+
         // Show process selection if period is selected
         if (hasPeriod) {
             $('#processSection').show();
-            // Enable monthly processes
-            $('#exchange_revaluation, #profit_loss_closing').prop('disabled', false);
             
-            // Enable fiscal period processes
-            $('#fiscal_period_open, #fiscal_period_close').prop('disabled', false);
+            // Hide/show processes based on period status
+            if (isPeriodClosed) {
+                // Hide processes that require open period when period is closed
+                $('#exchange_revaluation, #profit_loss_closing, #fiscal_period_close').closest('.col-md-4').hide();
+                $('#exchange_revaluation, #profit_loss_closing, #fiscal_period_close').prop('checked', false);
+                
+                // Show fiscal period open (can still open a closed period)
+                $('#fiscal_period_open').closest('.col-md-4').show();
+                $('#fiscal_period_open').removeAttr('disabled');
+            } else {
+                // Show processes that require open period when period is open
+                $('#exchange_revaluation, #profit_loss_closing, #fiscal_period_close').closest('.col-md-4').show();
+                $('#exchange_revaluation, #profit_loss_closing, #fiscal_period_close').removeAttr('disabled');
+                
+                // Hide fiscal period open when period is already open
+                $('#fiscal_period_open').closest('.col-md-4').hide();
+                $('#fiscal_period_open').prop('checked', false);
+            }
             
-            // Enable/disable annual process based on January selection
+            // Show/hide annual process based on January selection
             const annualCheckbox = $('#annual_profit_loss_closing');
             if (isJanuary) {
-                annualCheckbox.prop('disabled', false);
-                annualCheckbox.closest('.form-check').removeClass('text-muted');
+                annualCheckbox.closest('.col-md-4').show();
+                annualCheckbox.removeAttr('disabled');
             } else {
-                annualCheckbox.prop('disabled', true);
+                annualCheckbox.closest('.col-md-4').hide();
                 annualCheckbox.prop('checked', false);
-                annualCheckbox.closest('.form-check').addClass('text-muted');
             }
         } else {
             $('#processSection').hide();
-            // Disable all process checkboxes
-            $('input[name="processes[]"]').prop('disabled', true).prop('checked', false);
+            // Hide all process checkboxes
+            $('input[name="processes[]"]').closest('.col-md-4').hide();
+            $('input[name="processes[]"]').prop('checked', false);
         }
     }
 
@@ -339,6 +370,20 @@ $(document).ready(function() {
         })
         .done(function(data) {
             displayResults(data);
+            
+            // If fiscal period open/close was executed, reload periods and refresh form
+            const executedProcesses = selectedProcesses;
+            const hasFiscalPeriodOperation = executedProcesses.includes('fiscal_period_open') || 
+                                           executedProcesses.includes('fiscal_period_close');
+            
+            if (hasFiscalPeriodOperation && data.success) {
+                // Reload periods to get updated status
+                loadPeriods().then(function() {
+                    // Refresh form visibility to update disabled states
+                    updateFormVisibility();
+                    updateExecuteButton();
+                });
+            }
         })
         .fail(function(xhr) {
             console.error('Failed to execute processes:', xhr.responseText);
