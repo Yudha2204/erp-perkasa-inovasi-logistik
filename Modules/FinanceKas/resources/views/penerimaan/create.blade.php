@@ -1109,7 +1109,7 @@
                 url: '{{ route('finance.master-data.account') }}',
                 data: { 
                     'currency_id': currency_id,
-                    'account_type': [1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] // Filter for detail accounts only
+                    'account_type_id': [1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20] // Filter for detail accounts only, excluding AR (4), AP (8), and Current Earning (13)
                 },
                 success: function(response) {
                     if(response.data) {
@@ -1283,7 +1283,7 @@
                 url: '{{ route('finance.master-data.account') }}',
                 data: { 
                     'currency_id': currency_id,
-                    'account_type': [1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] 
+                    'account_type_id': [1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20] // Filter for detail accounts only, excluding AR (4), AP (8), and Current Earning (13)
                 },
                 success: function(response) {
                     if(response.data) {
