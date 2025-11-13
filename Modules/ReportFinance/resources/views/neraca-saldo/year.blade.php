@@ -86,11 +86,15 @@
                                                 $endDate = \Carbon\Carbon::createFromFormat('F Y', $month . ' ' . $year)->endOfMonth();    
                                                 
                                                 $data = $ma->getDebitKreditAll($startDate, $endDate, $idrCurrency->id);
-                                                if($data["debit"] == 0 && $data["kredit"] == 0) {
+                                                $saldoAwal = $ma->getDebitKreditSaldoAwal($idrCurrency->id);
+                                                // Skip only if both mutation and opening balance are zero
+                                                if($data["debit"] == 0 && $data["kredit"] == 0 && $saldoAwal["debit"] == 0 && $saldoAwal["kredit"] == 0) {
                                                     continue;
                                                 }
                                                 $debitData = '(' . $data["debit"] . ')';
                                                 $kreditData = $data["kredit"];
+                                                $debitSaldoAwal = '(' . $saldoAwal["debit"] . ')';
+                                                $kreditSaldoAwal = $saldoAwal["kredit"];
                                             @endphp
                                             {{-- IDR Row --}}
                                             <tr>
@@ -100,11 +104,6 @@
                                                 <td>{{ $idrCurrency->initial }}</td>
 
                                                 {{-- Saldo Awal --}}
-                                                @php
-                                                    $saldoAwal = $ma->getDebitKreditSaldoAwal($idrCurrency->id);
-                                                    $debitSaldoAwal = '(' . $saldoAwal["debit"] . ')';
-                                                    $kreditSaldoAwal = $saldoAwal["kredit"];
-                                                @endphp
                                                 <td>{{ $debitSaldoAwal }}</td>
                                                 <td>{{ $kreditSaldoAwal }}</td>
                                                 

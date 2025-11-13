@@ -68,7 +68,9 @@
                                     @foreach($masterAccounts as $ma)
                                     @php
                                         $data = $ma->getDebitKreditAll($startDate, $endDate, $idrCurrency->id);
-                                        if($data["debit"] == 0 && $data["kredit"] == 0) {
+                                        $saldoAwal = $ma->getDebitKreditSaldoAwal($idrCurrency->id);
+                                        // Skip only if both mutation and opening balance are zero
+                                        if($data["debit"] == 0 && $data["kredit"] == 0 && $saldoAwal["debit"] == 0 && $saldoAwal["kredit"] == 0) {
                                             continue;
                                         }
                                     @endphp
@@ -78,7 +80,6 @@
                                             <td>{{$ma->account_name}}</td>
                                             <td>{{ $idrCurrency->initial }}</td>
                                             @php
-                                                $saldoAwal = $ma->getDebitKreditSaldoAwal($idrCurrency->id);
                                                 $netMutation = $ma->getNetMutation($startDate, $endDate, $idrCurrency->id);
                                             @endphp
                                             <td>{{ number_format($saldoAwal["debit"], 0, ',', '.') }}</td>

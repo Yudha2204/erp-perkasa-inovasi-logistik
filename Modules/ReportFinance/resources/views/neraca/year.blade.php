@@ -58,45 +58,38 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @foreach($balanceSheet['aktiva']['data'] as $group)
-                                                    <tr style="background-color: #E8F4F8;">
-                                                        <td colspan="2" style="font-weight: bold;">
-                                                            {{ $group['account_type']->name }}
-                                                        </td>
-                                                    </tr>
-                                                    @foreach($group['accounts'] as $accountGroup)
-                                                        @if($accountGroup['header'])
+                                                @foreach($balanceSheet['aktiva']['data'] as $accountGroup)
+                                                    @if($accountGroup['header'])
+                                                        <tr>
+                                                            <td style="padding-left: 20px; font-weight: bold;">
+                                                                {{ $accountGroup['header']->code }} - {{ $accountGroup['header']->account_name }}
+                                                            </td>
+                                                            <td style="text-align: right; font-weight: bold;">
+                                                                {{ number_format($accountGroup['total'], 0, ',', '.') }}
+                                                            </td>
+                                                        </tr>
+                                                        @foreach($accountGroup['children'] as $child)
                                                             <tr>
-                                                                <td style="padding-left: 20px; font-weight: bold;">
-                                                                    {{ $accountGroup['header']->code }} - {{ $accountGroup['header']->account_name }}
+                                                                <td style="padding-left: 40px;">
+                                                                    {{ $child['account']->code }} - {{ $child['account']->account_name }}
                                                                 </td>
-                                                                <td style="text-align: right; font-weight: bold;">
-                                                                    {{ number_format($accountGroup['total'], 0, ',', '.') }}
+                                                                <td style="text-align: right;">
+                                                                    {{ number_format($child['balance'], 0, ',', '.') }}
                                                                 </td>
                                                             </tr>
-                                                            @foreach($accountGroup['children'] as $child)
-                                                                <tr>
-                                                                    <td style="padding-left: 40px;">
-                                                                        {{ $child['account']->code }} - {{ $child['account']->account_name }}
-                                                                    </td>
-                                                                    <td style="text-align: right;">
-                                                                        {{ number_format($child['balance'], 0, ',', '.') }}
-                                                                    </td>
-                                                                </tr>
-                                                            @endforeach
-                                                        @else
-                                                            @foreach($accountGroup['children'] as $child)
-                                                                <tr>
-                                                                    <td style="padding-left: 20px;">
-                                                                        {{ $child['account']->code }} - {{ $child['account']->account_name }}
-                                                                    </td>
-                                                                    <td style="text-align: right;">
-                                                                        {{ number_format($child['balance'], 0, ',', '.') }}
-                                                                    </td>
-                                                                </tr>
-                                                            @endforeach
-                                                        @endif
-                                                    @endforeach
+                                                        @endforeach
+                                                    @else
+                                                        @foreach($accountGroup['children'] as $child)
+                                                            <tr>
+                                                                <td style="padding-left: 20px;">
+                                                                    {{ $child['account']->code }} - {{ $child['account']->account_name }}
+                                                                </td>
+                                                                <td style="text-align: right;">
+                                                                    {{ number_format($child['balance'], 0, ',', '.') }}
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    @endif
                                                 @endforeach
                                                 <tr style="background-color: #597fb3">
                                                     <th style="color: white; font-weight: bold;">TOTAL AKTIVA</th>
@@ -121,45 +114,38 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @foreach($balanceSheet['passiva']['data'] as $group)
-                                                    <tr style="background-color: #E8F4F8;">
-                                                        <td colspan="2" style="font-weight: bold;">
-                                                            {{ $group['account_type']->name }}
-                                                        </td>
-                                                    </tr>
-                                                    @foreach($group['accounts'] as $accountGroup)
-                                                        @if($accountGroup['header'])
+                                                @foreach($balanceSheet['passiva']['data'] as $accountGroup)
+                                                    @if($accountGroup['header'])
+                                                        <tr>
+                                                            <td style="padding-left: 20px; font-weight: bold;">
+                                                                {{ $accountGroup['header']->code }} - {{ $accountGroup['header']->account_name }}
+                                                            </td>
+                                                            <td style="text-align: right; font-weight: bold;">
+                                                                {{ number_format($accountGroup['total'], 0, ',', '.') }}
+                                                            </td>
+                                                        </tr>
+                                                        @foreach($accountGroup['children'] as $child)
                                                             <tr>
-                                                                <td style="padding-left: 20px; font-weight: bold;">
-                                                                    {{ $accountGroup['header']->code }} - {{ $accountGroup['header']->account_name }}
+                                                                <td style="padding-left: 40px;">
+                                                                    {{ $child['account']->code }} - {{ $child['account']->account_name }}
                                                                 </td>
-                                                                <td style="text-align: right; font-weight: bold;">
-                                                                    {{ number_format($accountGroup['total'], 0, ',', '.') }}
+                                                                <td style="text-align: right;">
+                                                                    {{ number_format($child['balance'], 0, ',', '.') }}
                                                                 </td>
                                                             </tr>
-                                                            @foreach($accountGroup['children'] as $child)
-                                                                <tr>
-                                                                    <td style="padding-left: 40px;">
-                                                                        {{ $child['account']->code }} - {{ $child['account']->account_name }}
-                                                                    </td>
-                                                                    <td style="text-align: right;">
-                                                                        {{ number_format($child['balance'], 0, ',', '.') }}
-                                                                    </td>
-                                                                </tr>
-                                                            @endforeach
-                                                        @else
-                                                            @foreach($accountGroup['children'] as $child)
-                                                                <tr>
-                                                                    <td style="padding-left: 20px;">
-                                                                        {{ $child['account']->code }} - {{ $child['account']->account_name }}
-                                                                    </td>
-                                                                    <td style="text-align: right;">
-                                                                        {{ number_format($child['balance'], 0, ',', '.') }}
-                                                                    </td>
-                                                                </tr>
-                                                            @endforeach
-                                                        @endif
-                                                    @endforeach
+                                                        @endforeach
+                                                    @else
+                                                        @foreach($accountGroup['children'] as $child)
+                                                            <tr>
+                                                                <td style="padding-left: 20px;">
+                                                                    {{ $child['account']->code }} - {{ $child['account']->account_name }}
+                                                                </td>
+                                                                <td style="text-align: right;">
+                                                                    {{ number_format($child['balance'], 0, ',', '.') }}
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    @endif
                                                 @endforeach
                                                 <tr style="background-color: #597fb3">
                                                     <th style="color: white; font-weight: bold;">TOTAL PASSIVA</th>
