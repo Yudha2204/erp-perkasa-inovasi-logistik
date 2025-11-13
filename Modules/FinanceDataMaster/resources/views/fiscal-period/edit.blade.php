@@ -35,7 +35,7 @@
                                 </div>
                             @endif
 
-                            <form action="{{ route('finance.master-data.fiscal-period.update', $fiscalPeriod->id) }}" method="POST">
+                            <form action="{{ route('finance.master-data.fiscal-period.update', $fiscalPeriod->id) }}" method="POST" onsubmit="return validatePeriod()">
                                 @csrf
                                 @method('PUT')
 
@@ -48,7 +48,12 @@
                                                 value="{{ old('period', $fiscalPeriod->period) }}" 
                                                 placeholder="YYYY-MM (e.g., 2025-01)" 
                                                 required>
-                                            <small class="form-text text-muted">Format: YYYY-MM (e.g., 2025-01)</small>
+                                            <small class="form-text text-muted">
+                                                Format: YYYY-MM (e.g., 2025-01)
+                                                @if($startEntryPeriod)
+                                                    <br><span class="text-warning"><i class="fe fe-alert-circle"></i> Period must be >= {{ $startEntryPeriod->format('F Y') }}</span>
+                                                @endif
+                                            </small>
                                             @error('period')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -147,6 +152,28 @@
 
 @push('scripts')
 <script>
+@if($startEntryPeriod)
+const startEntryPeriodDate = new Date('{{ $startEntryPeriod->format('Y-m-d') }}');
+const startEntryPeriodFormatted = '{{ $startEntryPeriod->format('F Y') }}';
+@endif
+
+function validatePeriod() {
+    @if($startEntryPeriod)
+    const period = $('#period').val();
+    if (period && period.match(/^\d{4}-\d{2}$/)) {
+        const [year, month] = period.split('-');
+        const startDate = new Date(year, month - 1, 1);
+        
+        if (startDate < startEntryPeriodDate) {
+            alert('Cannot create fiscal period before the start entry period (' + startEntryPeriodFormatted + ').');
+            $('#period').focus();
+            return false;
+        }
+    }
+    @endif
+    return true;
+}
+
 $(document).ready(function() {
     // Auto-fill dates when period is entered
     $('#period').on('blur', function() {
@@ -158,6 +185,22 @@ $(document).ready(function() {
             
             $('#start_date').val(startDate.toISOString().split('T')[0]);
             $('#end_date').val(endDate.toISOString().split('T')[0]);
+            
+            // Validate against start entry period if exists
+            @if($startEntryPeriod)
+            if (startDate < startEntryPeriodDate) {
+                $(this).addClass('is-invalid');
+                const errorMsg = 'Period must be >= ' + startEntryPeriodFormatted;
+                if ($(this).next('.invalid-feedback').length === 0) {
+                    $(this).after('<div class="invalid-feedback">' + errorMsg + '</div>');
+                } else {
+                    $(this).next('.invalid-feedback').text(errorMsg);
+                }
+            } else {
+                $(this).removeClass('is-invalid');
+                $(this).next('.invalid-feedback').remove();
+            }
+            @endif
         }
     });
 });

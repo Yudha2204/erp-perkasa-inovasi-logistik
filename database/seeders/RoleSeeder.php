@@ -41,7 +41,7 @@ class RoleSeeder extends Seeder
         $kas = $this->formatPermissions(["kas_in", "kas_out"]);
         $payments = $this->formatPermissions(["account_payable", "payment"]);
         $exchange = ["view-exchange_rate@finance","create-exchange_rate@finance","delete-exchange_rate@finance","edit-exchange_rate@finance"];
-        $report = ["view-buku_besar@finance","view-jurnal_umum@finance","view-neraca_saldo@finance","view-arus_kas@finance","view-laba_rugi@finance"];
+        $report = ["view-buku_besar@finance","view-jurnal_umum@finance","view-neraca_saldo@finance","view-arus_kas@finance","view-laba_rugi@finance","view-outstanding_arap@finance"];
         
         $allPermissions = array_merge($accounts, $sales, $kas, $payments, $exchange, $report);
         $finance->givePermissionTo($allPermissions);

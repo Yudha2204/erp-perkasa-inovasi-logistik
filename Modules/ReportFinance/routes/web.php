@@ -21,6 +21,8 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
         Route::get('/year-ledger', [ReportFinanceController::class, 'BukuBesarYear'])->name('year-data-ledger');
         Route::get('/year-trial-balancer', [ReportFinanceController::class, 'NeracaSaldoYear'])->name('year-trial-balancer');
         Route::get('/data-trial-balancer', [ReportFinanceController::class, 'NeracaSaldo'])->name('trial-balance');
+        Route::get('/data-neraca', [ReportFinanceController::class, 'Neraca'])->name('neraca');
+        Route::get('/year-neraca', [ReportFinanceController::class, 'NeracaYear'])->name('year-neraca');
         Route::get('/data-general-ledger', [ReportFinanceController::class, 'JurnalUmum'])->name('general-ledger');
         Route::get('/year-general-ledger', [ReportFinanceController::class, 'JurnalUmumYear'])->name('year-general-ledger');
         Route::get('/data-cash-flow', [ReportFinanceController::class, 'ArusKas'])->name('cash-flow');
@@ -29,5 +31,6 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
         Route::get('/year-profit-loss', [ReportFinanceController::class, 'LabaRugiYear'])->name('year-profit-loss');
         Route::get('/laporan-rekening', [ReportFinanceController::class, 'LaporanKeuangan'])->name('laporan-rekening');
         Route::get('/laporan-rekening-pdf/{id}', [ReportFinanceController::class, 'PrintLaporanKeuangan'])->name('laporan-rekening-pdf');
+        Route::get('/outstanding-arap', [ReportFinanceController::class, 'OutstandingARAP'])->name('outstanding-arap');
     });
 });

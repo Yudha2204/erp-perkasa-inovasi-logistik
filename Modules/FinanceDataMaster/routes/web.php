@@ -43,6 +43,7 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
             Route::get('/', [FiscalPeriodController::class, 'index'])->name('index');
             Route::get('/create', [FiscalPeriodController::class, 'create'])->name('create');
             Route::post('/', [FiscalPeriodController::class, 'store'])->name('store');
+            Route::post('/store-year', [FiscalPeriodController::class, 'storeYear'])->name('store-year');
             Route::get('/{id}', [FiscalPeriodController::class, 'show'])->name('show');
             Route::get('/{id}/edit', [FiscalPeriodController::class, 'edit'])->name('edit');
             Route::put('/{id}', [FiscalPeriodController::class, 'update'])->name('update');

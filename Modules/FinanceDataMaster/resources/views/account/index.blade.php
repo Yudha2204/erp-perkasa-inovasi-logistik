@@ -69,20 +69,37 @@
                                                 <td>{{ $a->currency?->initial ?? '-'}}</td>
                                                 <td>
                                                     @php
-                                                        $grand_total = 0;
-                                                        $balance_accounts = $a->balance_accounts->where('currency_id', $a->currency?->id);
+                                                        // Get all balance accounts
+                                                        $balance_accounts = $a->balance_accounts->where('currency_id', $a->master_currency_id);
+                                                        
+                                                        // Sum all debit and credit
+                                                        $total_debit = 0;
+                                                        $total_credit = 0;
                                                         foreach ($balance_accounts as $data) {
-                                                            $total = $data->credit - $data->debit;
-                                                            $grand_total += $total;
+                                                            $total_debit += $data->debit ?? 0;
+                                                            $total_credit += $data->credit ?? 0;
                                                         }
                                                         
-                                                        if($grand_total < 0) {
-                                                            $grand_total = '(' . number_format($grand_total*-1, 2, '.', ',') . ')';
+                                                        // Get normal_side from account_type, default to 'debit'
+                                                        $normalSide = $a->account_type?->normal_side ?? 'debit';
+                                                        
+                                                        // Calculate ending balance based on normal_side
+                                                        if ($normalSide === 'debit') {
+                                                            // Asset accounts: ending balance = debit - credit
+                                                            $ending_balance = $total_debit - $total_credit;
                                                         } else {
-                                                            $grand_total = number_format($grand_total, 2, '.', ',');
+                                                            // Liability/Equity accounts: ending balance = credit - debit
+                                                            $ending_balance = $total_credit - $total_debit;
+                                                        }
+                                                        
+                                                        // Format the ending balance
+                                                        if($ending_balance < 0) {
+                                                            $ending_balance = '(' . number_format($ending_balance*-1, 2, '.', ',') . ')';
+                                                        } else {
+                                                            $ending_balance = number_format($ending_balance, 2, '.', ',');
                                                         }
                                                     @endphp
-                                                    {{ $grand_total }}
+                                                    {{ $ending_balance }}
                                                 </td>
                                                 <td>
                                                     <div class="g-2">
@@ -210,6 +227,78 @@
     </div>
 </div>
 
+{{-- modal edit --}}
+<div class="modal fade" id="modal-edit" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Account</h5>
+                <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <form action="" method="POST" id="form-edit">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="id" id="id_edit">
+                            <div class="form-group">
+                                <label>Type</label>
+                                <select class="form-control select2 form-select"
+                                    data-placeholder="Choose one" name="type" id="type_edit">
+                                    <option value="header">Header</option>
+                                    <option value="detail">Detail</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Classification</label>
+                                <select class="form-control select2 form-select"
+                                    data-placeholder="Choose one" name="account_type_id" id="account_type_id_edit">
+                                    @foreach ($accountTypes as $accountType)
+                                        <option value="{{ $accountType->id }}" data-report-type="{{ $accountType->report_type ?? 'NONE' }}">{{ $accountType->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Code</label>
+                                <input type="text" name="code" id="code_edit" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Account Name</label>
+                                <input type="text" name="account_name" id="account_name_edit" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Parent</label>
+                                <select class="form-control select2 form-select"
+                                    data-placeholder="Choose one" name="parent" id="parent_edit">
+                                    @foreach ($headerAccounts as $account)
+                                        <option value="{{ $account->id }}">{{ $account->code }} - {{ $account->account_name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Currency</label>
+                                <select class="form-control select2 form-select"
+                                    data-placeholder="Choose one" name="master_currency_id" id="master_currency_id_edit">
+                                    @foreach ($currencies as $currency)
+                                        <option value="{{ $currency->id }}">{{ $currency->initial }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="mt-3" style="text-align: right">
+                                <a class="btn btn-white color-grey" data-bs-dismiss="modal">Close</a>
+                                <button type="submit" class="btn btn-primary">Update</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- modal create beginning balance --}}
 <div class="modal fade" id="createBeginningBalance" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
@@ -253,19 +342,30 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="row">
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label>Invoice Number <span class="text-danger">*</span></label>
                                                     <input type="number" min="1" step="1" id="new_invoice_number" class="form-control">
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label>Invoice Date <span class="text-danger">*</span></label>
                                                     <input type="date" id="new_invoice_date" class="form-control">
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label>Customer/Vendor <span class="text-danger">*</span></label>
+                                                    <select class="form-control select2 form-select" id="new_invoice_contact_id" data-placeholder="Choose One">
+                                                        <option label="Choose One" selected disabled></option>
+                                                        @foreach ($customers as $customer)
+                                                            <option value="{{ $customer->id }}">{{ $customer->customer_name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label>Beginning Balance Value <span class="text-danger">*</span></label>
                                                     <input type="number" step="0.01" id="new_invoice_value" class="form-control">
@@ -285,6 +385,7 @@
                                             <tr>
                                                 <th>Invoice Number</th>
                                                 <th>Invoice Date</th>
+                                                <th>Customer/Vendor</th>
                                                 <th>Value</th>
                                                 <th>Action</th>
                                             </tr>
@@ -307,19 +408,30 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="row">
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label>AP Number <span class="text-danger">*</span></label>
                                                     <input type="text" id="new_ap_number" class="form-control">
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label>AP Date <span class="text-danger">*</span></label>
                                                     <input type="date" id="new_ap_date" class="form-control">
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label>Vendor <span class="text-danger">*</span></label>
+                                                    <select class="form-control select2 form-select" id="new_ap_vendor_id" data-placeholder="Choose One">
+                                                        <option label="Choose One" selected disabled></option>
+                                                        @foreach ($vendors as $vendor)
+                                                            <option value="{{ $vendor->id }}">{{ $vendor->customer_name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label>Beginning Balance Value <span class="text-danger">*</span></label>
                                                     <input type="number" step="0.01" id="new_ap_value" class="form-control">
@@ -339,6 +451,7 @@
                                             <tr>
                                                 <th>AP Number</th>
                                                 <th>AP Date</th>
+                                                <th>Vendor</th>
                                                 <th>Value</th>
                                                 <th>Action</th>
                                             </tr>
@@ -537,6 +650,22 @@
         toggleCurrencyField(this, '#master_currency_id_edit');
     });
 
+    // Show/hide Parent field based on Type selection (edit modal)
+    $('#type_edit').on('change', function() {
+        if ($(this).val() === 'detail') {
+            $('#parent_edit').closest('.form-group').show();
+            $('#account_type_id_edit').closest('.form-group').show();
+            $('#master_currency_id_edit').closest('.form-group').show();
+        } else {
+            $('#parent_edit').val("").trigger('change');
+            $('#account_type_id_edit').val("").trigger('change');
+            $('#master_currency_id_edit').val("").trigger('change');
+            $('#parent_edit').closest('.form-group').hide();
+            $('#account_type_id_edit').closest('.form-group').hide();
+            $('#master_currency_id_edit').closest('.form-group').hide();
+        }
+    });
+
     // On page load, trigger change to set initial state
     $(document).ready(function() {
         $('select[name="type"]').val("header").change();
@@ -630,32 +759,86 @@
     $('body').on('click', '#btn-edit', function () {
 
         let editId = $(this).data('id');
-        var url = "{{ route('finance.master-data.account.edit', ':id') }}";
-        url = url.replace(':id', editId);
-
+        var editUrl = "{{ route('finance.master-data.account.edit', ':id') }}";
+        editUrl = editUrl.replace(':id', editId);
+        
+        var updateUrl = "{{ route('finance.master-data.account.update', ':id') }}";
+        updateUrl = updateUrl.replace(':id', editId);
 
         $.ajax({
             headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
             type: 'GET',
             dataType: 'json',
-            url: url,
+            url: editUrl,
             success:function(response){
-                    // //fill data to form
-                    $('#id_edit').val(response.data.id);
-                    $("#account_type_id_edit").val(response.data.account_type_id).change();
-                    $('#code_edit').val(response.data.code);
-                    $('#account_name_edit').val(response.data.account_name);
-                    $("#type_edit").val(response.data.type).change();
-                    $("#parent_edit").val(response.data.parent).change();
-                    $("#master_currency_id_edit").val(response.data.master_currency_id).change();
+                    console.log('Edit response:', response); // Debug log
+                    
+                    if (!response || !response.data) {
+                        console.error('Invalid response structure:', response);
+                        alert('Invalid response from server. Please try again.');
+                        return;
+                    }
+                    
+                    // Set form action
+                    $('#form-edit').attr('action', updateUrl);
+                    
+                    // Fill data to form
+                    $('#id_edit').val(response.data.id || '');
+                    $('#code_edit').val(response.data.code || '');
+                    $('#account_name_edit').val(response.data.account_name || '');
+                    
+                    // Set type first to control field visibility
+                    if (response.data.type) {
+                        $("#type_edit").val(response.data.type).trigger('change');
+                    }
+                    
+                    // Then set other fields
+                    if (response.data.account_type_id) {
+                        $("#account_type_id_edit").val(response.data.account_type_id).trigger('change');
+                    }
+                    if (response.data.parent) {
+                        $("#parent_edit").val(response.data.parent).trigger('change');
+                    }
+                    if (response.data.master_currency_id) {
+                        $("#master_currency_id_edit").val(response.data.master_currency_id).trigger('change');
+                    }
                     
                     // Check currency field visibility after setting account type
                     setTimeout(function() {
                         toggleCurrencyField('#account_type_id_edit', '#master_currency_id_edit');
-                    }, 100);
-                    
-                    $('#modal-edit').modal('show');
-                }
+                        
+                        // Show modal after a small delay to ensure DOM is ready
+                        var modalElement = document.getElementById('modal-edit');
+                        console.log('Modal element:', modalElement); // Debug log
+                        
+                        if (modalElement) {
+                            // Try Bootstrap 5 native API first
+                            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                try {
+                                    var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                                    modal.show();
+                                    console.log('Modal shown using Bootstrap 5 API');
+                                } catch(e) {
+                                    console.error('Error showing modal with Bootstrap 5:', e);
+                                    // Fallback to jQuery
+                                    $('#modal-edit').modal('show');
+                                }
+                            } else {
+                                // Fallback to jQuery
+                                $('#modal-edit').modal('show');
+                                console.log('Modal shown using jQuery');
+                            }
+                        } else {
+                            console.error('Modal element #modal-edit not found in DOM');
+                            alert('Modal element not found. Please refresh the page.');
+                        }
+                    }, 150);
+                },
+            error: function(xhr, status, error) {
+                console.error('Error loading edit data:', error);
+                console.error('Response:', xhr.responseText);
+                alert('Error loading account data. Please try again.');
+            }
         });
     });
 
@@ -701,9 +884,11 @@
         const number = $('#new_invoice_number').val();
         const date = $('#new_invoice_date').val();
         const value = $('#new_invoice_value').val();
+        const contactId = $('#new_invoice_contact_id').val();
+        const contactName = $('#new_invoice_contact_id option:selected').text();
 
-        if (!number || !date || !value) {
-            alert('Please fill all required fields');
+        if (!number || !date || !value || !contactId) {
+            alert('Please fill all required fields including Customer/Vendor');
             return;
         }
 
@@ -711,7 +896,9 @@
             id: Date.now(), // Temporary ID for new entries
             number: number,
             date: date,
-            value: parseFloat(value)
+            value: parseFloat(value),
+            contact_id: contactId,
+            contact_name: contactName
         };
 
         invoiceEntries.push(entry);
@@ -722,13 +909,16 @@
         $('#new_invoice_number').val('');
         $('#new_invoice_date').val('');
         $('#new_invoice_value').val('');
+        $('#new_invoice_contact_id').val('').trigger('change');
     }
 
     function addInvoiceEntryToTable(entry) {
+        const contactName = entry.contact_name || 'N/A';
         const row = `
             <tr data-entry-id="${entry.id}">
                 <td>${entry.number}</td>
                 <td>${entry.date}</td>
+                <td>${contactName}</td>
                 <td>${entry.value.toLocaleString()}</td>
                 <td>
                     <button type="button" class="btn btn-sm btn-warning" onclick="editInvoiceEntry('${entry.id}')">
@@ -770,9 +960,11 @@
         const number = $('#new_ap_number').val();
         const date = $('#new_ap_date').val();
         const value = $('#new_ap_value').val();
+        const vendorId = $('#new_ap_vendor_id').val();
+        const vendorName = $('#new_ap_vendor_id option:selected').text();
 
-        if (!number || !date || !value) {
-            alert('Please fill all required fields');
+        if (!number || !date || !value || !vendorId) {
+            alert('Please fill all required fields including Vendor');
             return;
         }
 
@@ -780,7 +972,9 @@
             id: Date.now(), // Temporary ID for new entries
             number: number,
             date: date,
-            value: parseFloat(value)
+            value: parseFloat(value),
+            vendor_id: vendorId,
+            vendor_name: vendorName
         };
 
         apEntries.push(entry);
@@ -791,13 +985,16 @@
         $('#new_ap_number').val('');
         $('#new_ap_date').val('');
         $('#new_ap_value').val('');
+        $('#new_ap_vendor_id').val('').trigger('change');
     }
 
     function addAPEntryToTable(entry) {
+        const vendorName = entry.vendor_name || 'N/A';
         const row = `
             <tr data-entry-id="${entry.id}">
                 <td>${entry.number}</td>
                 <td>${entry.date}</td>
+                <td>${vendorName}</td>
                 <td>${entry.value.toLocaleString()}</td>
                 <td>
                     <button type="button" class="btn btn-sm btn-warning" onclick="editAPEntry('${entry.id}')">

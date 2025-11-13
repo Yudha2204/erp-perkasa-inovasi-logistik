@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Modules\FinanceDataMaster\App\Services\FiscalPeriodService;
 use Modules\FinanceDataMaster\App\Models\FiscalPeriod;
+use App\Models\Setup;
 use Carbon\Carbon;
 
 class FiscalPeriodController extends Controller
@@ -51,7 +52,8 @@ class FiscalPeriodController extends Controller
      */
     public function create()
     {
-        return view('financedatamaster::fiscal-period.create');
+        $startEntryPeriod = \App\Models\Setup::getStartEntryPeriod();
+        return view('financedatamaster::fiscal-period.create', compact('startEntryPeriod'));
     }
 
     /**
@@ -67,6 +69,17 @@ class FiscalPeriodController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
+        // Check if the period is before the start entry period
+        $startEntryPeriod = Setup::getStartEntryPeriod();
+        if ($startEntryPeriod) {
+            $periodDate = Carbon::createFromFormat('Y-m', $request->input('period'))->startOfMonth();
+            if ($periodDate->lt($startEntryPeriod)) {
+                return redirect()->back()
+                    ->withErrors(['period' => 'Cannot create fiscal period before the start entry period (' . $startEntryPeriod->format('F d, Y') . ').'])
+                    ->withInput();
+            }
+        }
+
         $data = $request->only(['period', 'start_date', 'end_date', 'status', 'notes']);
 
         if ($data['status'] === 'closed') {
@@ -78,6 +91,92 @@ class FiscalPeriodController extends Controller
 
         return redirect()->route('finance.master-data.fiscal-period.index')
             ->with('success', 'Fiscal period created successfully.');
+    }
+
+    /**
+     * Store fiscal periods for a whole year
+     */
+    public function storeYear(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'year' => 'required|integer|min:2000|max:2100',
+            'status' => 'required|in:open,closed',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $year = $request->input('year');
+        $status = $request->input('status');
+        $notes = $request->input('notes');
+        $created = 0;
+        $skipped = 0;
+        $excluded = 0;
+        $errors = [];
+
+        // Get the start entry period from setup
+        $startEntryPeriod = Setup::getStartEntryPeriod();
+
+        try {
+            for ($month = 1; $month <= 12; $month++) {
+                $period = sprintf('%04d-%02d', $year, $month);
+                
+                // Calculate start and end dates for the month
+                $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+                $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+                // Skip months before the start entry period
+                if ($startEntryPeriod && $startDate->lt($startEntryPeriod)) {
+                    $excluded++;
+                    continue;
+                }
+                
+                // Check if period already exists
+                $existingPeriod = FiscalPeriod::where('period', $period)->first();
+                
+                if ($existingPeriod) {
+                    $skipped++;
+                    continue;
+                }
+
+                $data = [
+                    'period' => $period,
+                    'start_date' => $startDate->format('Y-m-d'),
+                    'end_date' => $endDate->format('Y-m-d'),
+                    'status' => $status,
+                    'notes' => $notes,
+                ];
+
+                if ($status === 'closed') {
+                    $data['closed_at'] = now();
+                    $data['closed_by'] = auth()->id();
+                }
+
+                try {
+                    FiscalPeriod::create($data);
+                    $created++;
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to create period {$period}: " . $e->getMessage();
+                }
+            }
+
+            $message = "Successfully created {$created} fiscal period(s) for year {$year}.";
+            if ($skipped > 0) {
+                $message .= " {$skipped} period(s) already existed and were skipped.";
+            }
+            if ($excluded > 0) {
+                $message .= " {$excluded} period(s) were excluded (before start entry period: " . ($startEntryPeriod ? $startEntryPeriod->format('Y-m-d') : 'N/A') . ").";
+            }
+            if (!empty($errors)) {
+                $message .= " Errors: " . implode('; ', $errors);
+            }
+
+            return redirect()->route('finance.master-data.fiscal-period.index')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            return redirect()->route('finance.master-data.fiscal-period.create')
+                ->with('error', 'Error creating fiscal periods: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
@@ -95,7 +194,8 @@ class FiscalPeriodController extends Controller
     public function edit($id)
     {
         $fiscalPeriod = FiscalPeriod::findOrFail($id);
-        return view('financedatamaster::fiscal-period.edit', compact('fiscalPeriod'));
+        $startEntryPeriod = Setup::getStartEntryPeriod();
+        return view('financedatamaster::fiscal-period.edit', compact('fiscalPeriod', 'startEntryPeriod'));
     }
 
     /**
@@ -112,6 +212,17 @@ class FiscalPeriodController extends Controller
             'status' => 'required|in:open,closed',
             'notes' => 'nullable|string|max:1000',
         ]);
+
+        // Check if the period is before the start entry period
+        $startEntryPeriod = Setup::getStartEntryPeriod();
+        if ($startEntryPeriod) {
+            $periodDate = Carbon::createFromFormat('Y-m', $request->input('period'))->startOfMonth();
+            if ($periodDate->lt($startEntryPeriod)) {
+                return redirect()->back()
+                    ->withErrors(['period' => 'Cannot create fiscal period before the start entry period (' . $startEntryPeriod->format('F d, Y') . ').'])
+                    ->withInput();
+            }
+        }
 
         $data = $request->only(['period', 'start_date', 'end_date', 'status', 'notes']);
 

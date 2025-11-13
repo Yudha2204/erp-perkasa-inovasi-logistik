@@ -13,7 +13,8 @@ class AnnualProfitLossClosingService
     /**
      * Execute annual Profit & Loss closing by:
      * 1. Resetting accumulated balances from Jan-Dec of previous year for all P&L accounts and Profit Loss Summary
-     * 2. Creating automatic reversing journal: Current Earning (Debit) - Retained Earning (Credit)
+     * 2. Zeroing out beginning balances for all P&L accounts and Profit Loss Summary
+     * 3. Creating automatic reversing journal: Current Earning (Debit) - Retained Earning (Credit)
      *
      * @param string $year Format: Y (e.g., '2024')
      * @return array
@@ -52,7 +53,10 @@ class AnnualProfitLossClosingService
             // Step 1: Reset accumulated balances for all P&L accounts and Profit Loss Summary
             $this->resetAccumulatedBalances($startDate->format('Y-m-d'), $endDate->format('Y-m-d'), $postingDate->format('Y-m-d'));
             
-            // Step 2: Create reversing journal: Current Earning (Debit) - Retained Earning (Credit)
+            // Step 2: Zero out beginning balances for all P&L accounts and Profit Loss Summary
+            $this->resetBeginningBalances($postingDate->format('Y-m-d'));
+            
+            // Step 3: Create reversing journal: Current Earning (Debit) - Retained Earning (Credit)
             $this->createReversingJournal($accumulatedPL, $postingDate);
             
             DB::commit();
@@ -61,7 +65,7 @@ class AnnualProfitLossClosingService
                 'success' => true,
                 'year' => $year,
                 'accumulated_pl' => $accumulatedPL,
-                'message' => 'Annual P&L closing executed successfully. Accumulated balances reset and reversing journal posted.'
+                'message' => 'Annual P&L closing executed successfully. Accumulated balances reset, beginning balances zeroed, and reversing journal posted.'
             ];
         } catch (\Exception $e) {
             DB::rollBack();
@@ -106,36 +110,104 @@ class AnnualProfitLossClosingService
         $transactionTypeId = 101; // Annual Profit/Loss Closing
 
         foreach ($accounts as $account) {
-            // Calculate the net balance for this account during the year
-            $accountBalance = BalanceAccount::whereBetween('date', [$startDate, $endDate])
+            // Get all currencies used for this account during the year (excluding beginning balance)
+            $currencies = BalanceAccount::whereBetween('date', [$startDate, $endDate])
                 ->where('master_account_id', $account->id)
-                ->selectRaw('COALESCE(SUM(credit),0) as total_credit, COALESCE(SUM(debit),0) as total_debit')
-                ->first();
+                ->where('transaction_type_id', '!=', 1) // Exclude beginning balance
+                ->distinct()
+                ->pluck('currency_id')
+                ->unique();
 
-            $totalCredit = (float)($accountBalance->total_credit ?? 0);
-            $totalDebit = (float)($accountBalance->total_debit ?? 0);
-            $netBalance = $totalCredit - $totalDebit;
+            foreach ($currencies as $currencyId) {
+                // Calculate the net balance for this account and currency during the year (excluding beginning balance)
+                $accountBalance = BalanceAccount::whereBetween('date', [$startDate, $endDate])
+                    ->where('master_account_id', $account->id)
+                    ->where('currency_id', $currencyId)
+                    ->where('transaction_type_id', '!=', 1) // Exclude beginning balance
+                    ->selectRaw('COALESCE(SUM(credit),0) as total_credit, COALESCE(SUM(debit),0) as total_debit')
+                    ->first();
 
-            // If there's a balance, create offsetting entries to reset it
-            if (abs($netBalance) > 0.01) {
-                if ($netBalance > 0) {
-                    // Credit balance: Debit the account to reset
-                    BalanceAccount::create([
-                        'master_account_id' => $account->id,
-                        'transaction_type_id' => $transactionTypeId,
-                        'debit' => $netBalance,
-                        'credit' => 0,
-                        'date' => $postingDate,
-                    ]);
-                } else {
-                    // Debit balance: Credit the account to reset
-                    BalanceAccount::create([
-                        'master_account_id' => $account->id,
-                        'transaction_type_id' => $transactionTypeId,
-                        'debit' => 0,
-                        'credit' => abs($netBalance),
-                        'date' => $postingDate,
-                    ]);
+                $totalCredit = (float)($accountBalance->total_credit ?? 0);
+                $totalDebit = (float)($accountBalance->total_debit ?? 0);
+                $netBalance = $totalCredit - $totalDebit;
+
+                // If there's a balance, create offsetting entries to reset it
+                if (abs($netBalance) > 0.01) {
+                    if ($netBalance > 0) {
+                        // Credit balance: Debit the account to reset
+                        BalanceAccount::create([
+                            'master_account_id' => $account->id,
+                            'transaction_type_id' => $transactionTypeId,
+                            'debit' => $netBalance,
+                            'credit' => 0,
+                            'date' => $postingDate,
+                            'currency_id' => $currencyId,
+                        ]);
+                    } else {
+                        // Debit balance: Credit the account to reset
+                        BalanceAccount::create([
+                            'master_account_id' => $account->id,
+                            'transaction_type_id' => $transactionTypeId,
+                            'debit' => 0,
+                            'credit' => abs($netBalance),
+                            'date' => $postingDate,
+                            'currency_id' => $currencyId,
+                        ]);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Zero out beginning balances for all P&L accounts and Profit Loss Summary
+     * by creating offsetting entries on January 1st of the next year
+     */
+    private function resetBeginningBalances(string $postingDate): void
+    {
+        // Get all P&L accounts and Profit Loss Summary
+        $accounts = MasterAccount::whereHas('account_type', function ($q) {
+            $q->whereIn('report_type', ['PL'])
+               ->orWhere('id', 23); // Profit Loss Summary account type
+        })->get();
+
+        // Define a transaction type ID for annual P&L closing (reserved custom id)
+        $transactionTypeId = 101; // Annual Profit/Loss Closing
+
+        foreach ($accounts as $account) {
+            // Get all beginning balance entries for this account (transaction_type_id = 1)
+            $beginningBalances = BalanceAccount::where('master_account_id', $account->id)
+                ->where('transaction_type_id', 1)
+                ->get();
+
+            foreach ($beginningBalances as $beginningBalance) {
+                $totalCredit = (float)($beginningBalance->credit ?? 0);
+                $totalDebit = (float)($beginningBalance->debit ?? 0);
+                $netBalance = $totalCredit - $totalDebit;
+
+                // If there's a balance, create offsetting entries to zero it out
+                if (abs($netBalance) > 0.01) {
+                    if ($netBalance > 0) {
+                        // Credit balance: Debit the account to zero it out
+                        BalanceAccount::create([
+                            'master_account_id' => $account->id,
+                            'transaction_type_id' => $transactionTypeId,
+                            'debit' => $netBalance,
+                            'credit' => 0,
+                            'date' => $postingDate,
+                            'currency_id' => $beginningBalance->currency_id ?? 1,
+                        ]);
+                    } else {
+                        // Debit balance: Credit the account to zero it out
+                        BalanceAccount::create([
+                            'master_account_id' => $account->id,
+                            'transaction_type_id' => $transactionTypeId,
+                            'debit' => 0,
+                            'credit' => abs($netBalance),
+                            'date' => $postingDate,
+                            'currency_id' => $beginningBalance->currency_id ?? 1,
+                        ]);
+                    }
                 }
             }
         }

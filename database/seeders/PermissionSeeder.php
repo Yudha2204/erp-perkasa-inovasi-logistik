@@ -81,6 +81,7 @@ class PermissionSeeder extends Seeder
         Permission::create(['group' => 'finance', 'name' =>  "view-neraca_saldo@finance"]);
         Permission::create(['group' => 'finance', 'name' =>  "view-arus_kas@finance"]);
         Permission::create(['group' => 'finance', 'name' =>  "view-laba_rugi@finance"]);
+        Permission::create(['group' => 'finance', 'name' =>  "view-outstanding_arap@finance"]);
 
         Permission::create(['group' => 'process', 'name' => 'view-revaluation@process']);
         Permission::create(['group' => 'process', 'name' => 'execute-revaluation@process']);

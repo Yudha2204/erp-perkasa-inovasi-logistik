@@ -190,8 +190,8 @@ class ExchangeRevaluationService
     {
         $idrCurrencyId = $this->getIdrCurrencyId();
         $currencyId = $currency->id;
+        // Get the closest (on or before) exchange rate for the given currencies
         $rate = ExchangeRate::query()
-            ->whereDate('date', $date)
             ->where(function ($q) use ($currencyId, $idrCurrencyId) {
                 $q->where(function ($q) use ($currencyId, $idrCurrencyId) {
                     $q->where('from_currency_id', $currencyId)
@@ -201,7 +201,10 @@ class ExchangeRevaluationService
                         ->where('to_currency_id', $currencyId);
                 });
             })
-            // If duplicates can exist for a date, prefer the latest updated/inserted:
+            // Only consider rates on or before the selected date
+            ->whereDate('date', '<=', $date)
+            // Prefer the latest (closest) date first, then updated_at
+            ->orderByDesc('date')
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
             ->first();

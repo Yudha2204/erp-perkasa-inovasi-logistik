@@ -13,6 +13,10 @@ use Modules\FinanceDataMaster\App\Models\BalanceAccount;
 use Modules\FinanceDataMaster\App\Models\MasterAccount;
 use Modules\FinanceDataMaster\App\Models\TransactionType;
 use Modules\ReportFinance\App\Models\Sao;
+use Modules\FinancePiutang\App\Models\InvoiceHead;
+use Modules\FinancePayments\App\Models\OrderHead;
+use Modules\FinancePiutang\App\Models\RecieveDetail;
+use Modules\FinancePayments\App\Models\PaymentDetail;
 
 class ReportFinanceController extends Controller
 {
@@ -25,8 +29,10 @@ class ReportFinanceController extends Controller
         $this->middleware('permission:view-buku_besar@finance', ['only' => ['BukuBesar','BukuBesarYear','BukuBesarFilter']]);
         $this->middleware('permission:view-jurnal_umum@finance', ['only' => ['JurnalUmum','JurnalUmumYear']]);
         $this->middleware('permission:view-neraca_saldo@finance', ['only' => ['NeracaSaldo','NeracaSaldoYear','NeracaSaldoFilter']]);
+        $this->middleware('permission:view-neraca@finance', ['only' => ['Neraca','NeracaYear','NeracaFilter']]);
         $this->middleware('permission:view-arus_kas@finance', ['only' => ['ArusKas','ArusKasYear','ArusKasFilter']]);
         $this->middleware('permission:view-laba_rugi@finance', ['only' => ['LabaRugi','LabaRugiYear','LabaRugiFilter']]);
+        $this->middleware('permission:view-outstanding_arap@finance', ['only' => ['OutstandingARAP']]);
     }
 
     public function index()
@@ -536,6 +542,428 @@ class ReportFinanceController extends Controller
         return view('reportfinance::neraca-saldo.year', compact('idrCurrency', 'yearTrialBalance', 'year', 'foreign_currency'));
     }
 
+    public function Neraca(Request $request)
+    {
+        $currency_id = $request->currency;
+        $start_datepicker = $request->start_date_neraca_balance;
+        $end_datepicker = $request->end_date_neraca_balance;
+
+        $startDate = Carbon::now()->subYear()->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+        if($start_datepicker){
+            $startDate = date('Y-m-d', strtotime($start_datepicker));
+        }
+        if($end_datepicker){
+            $endDate = date('Y-m-d', strtotime($end_datepicker));
+        }
+
+        // Always use IDR currency
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        if (!$idrCurrency) {
+            throw new \Exception('IDR currency not found');
+        }
+
+        $balanceSheet = $this->NeracaFilter($startDate, $endDate, $idrCurrency->id);
+
+        return view('reportfinance::neraca.spesific', compact('startDate', 'endDate', 'balanceSheet', 'idrCurrency'));
+    }
+
+    public function NeracaYear(Request $request)
+    {
+        $currency_id = $request->currency;
+        $year = $request->year;
+
+        // Always use IDR currency
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        if (!$idrCurrency) {
+            throw new \Exception('IDR currency not found');
+        }
+
+        $yearBalanceSheet = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+            $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+            $monthBalanceSheet = $this->NeracaFilter($startDate, $endDate, $idrCurrency->id);
+            $yearBalanceSheet["month_name"][] = $startDate->format('F');
+            $yearBalanceSheet["data"][] = $monthBalanceSheet;
+        }
+
+        return view('reportfinance::neraca.year', compact('idrCurrency', 'yearBalanceSheet', 'year'));
+    }
+
+    private function NeracaFilter($startDate, $endDate, $currency)
+    {
+        // Define classification codes for Aktiva and Passiva
+        $aktivaCodes = ['1-0001', '1-0002', '1-0003', '1-0004', '1-0005', '1-0006', '1-0007']; // Cash, Bank, Current Asset, Account Receivable, Fixed Asset, Other Asset, Accumulated Depreciation
+        $passivaCodes = ['2-0001', '2-0002', '2-0003', '2-0004', '3-0001', '3-0002', '3-0003']; // Account Payable, Other Payable, Prepaid Sales, Tax Payable, Equity, Current Earning, Retained Earning
+
+        // Get account types for balance sheet
+        $aktivaAccountTypes = AccountType::whereIn('code', $aktivaCodes)
+            ->with(['classification'])
+            ->orderBy('code')
+            ->get();
+
+        $passivaAccountTypes = AccountType::whereIn('code', $passivaCodes)
+            ->with(['classification'])
+            ->orderBy('code')
+            ->get();
+
+        // Process Aktiva
+        $aktivaData = [];
+        $aktivaTotal = 0;
+        foreach ($aktivaAccountTypes as $accountType) {
+            $groupAccounts = [];
+            $groupTotal = 0;
+
+            // Step 1: Get header accounts first for this account type, ordered by code
+            $headerAccounts = MasterAccount::where('account_type_id', $accountType->id)
+                ->where('type', 'header')
+                ->with(['account_type', 'account_type.classification'])
+                ->orderBy('code')
+                ->get()
+                ->filter(function($header) use ($endDate, $currency) {
+                    // Check if header has direct balance
+                    $hasDirectBalance = BalanceAccount::where('master_account_id', $header->id)
+                        ->where('date', '<=', $endDate)
+                        ->where('currency_id', $currency)
+                        ->exists();
+                    
+                    // Check if header has children with balances
+                    $children = MasterAccount::where('parent', $header->id)->pluck('id');
+                    $hasChildrenWithBalance = BalanceAccount::whereIn('master_account_id', $children)
+                        ->where('date', '<=', $endDate)
+                        ->where('currency_id', $currency)
+                        ->exists();
+                    
+                    return $hasDirectBalance || $hasChildrenWithBalance;
+                });
+
+            // Step 2: Process each header account with its children
+            foreach ($headerAccounts as $header) {
+                $headerBalance = $this->calculateAccountBalance($header, $startDate, $endDate, $currency, $accountType->code === '1-0007');
+                
+                // Get child accounts for this header, ordered by code
+                $children = MasterAccount::where('parent', $header->id)
+                    ->where('account_type_id', $accountType->id)
+                    ->where('type', 'detail')
+                    ->with(['account_type', 'account_type.classification'])
+                    ->orderBy('code')
+                    ->get()
+                    ->filter(function($child) use ($endDate, $currency) {
+                        // Check if account has IDR balance or foreign currency balance
+                        $hasIDRBalance = BalanceAccount::where('master_account_id', $child->id)
+                            ->where('date', '<=', $endDate)
+                            ->where('currency_id', $currency)
+                            ->exists();
+                        
+                        $hasForeignBalance = BalanceAccount::where('master_account_id', $child->id)
+                            ->where('date', '<=', $endDate)
+                            ->where('currency_id', $child->master_currency_id)
+                            ->exists();
+                        
+                        return $hasIDRBalance || $hasForeignBalance;
+                    });
+
+                $childrenData = [];
+                $childrenTotal = $headerBalance;
+                
+                foreach ($children as $child) {
+                    $childBalance = $this->calculateAccountBalance($child, $startDate, $endDate, $currency, $accountType->code === '1-0007');
+                    
+                    // Get foreign currency data if account is not IDR
+                    $foreignCurrencyData = null;
+                    if ($child->master_currency_id != $currency) {
+                        $foreignBalance = $this->calculateAccountBalance($child, $startDate, $endDate, $child->master_currency_id, $accountType->code === '1-0007');
+                        if ($foreignBalance != 0) {
+                            $foreignCurrencyData = [
+                                'currency' => $child->currency,
+                                'balance' => $foreignBalance,
+                            ];
+                            // If no IDR balance but has foreign balance, use foreign balance for total calculation
+                            if ($childBalance == 0) {
+                                // Convert foreign balance to IDR equivalent (already done in balance_account_data)
+                                // Just use the IDR balance which should exist
+                                $childBalance = $this->calculateAccountBalance($child, $startDate, $endDate, $currency, $accountType->code === '1-0007');
+                            }
+                        }
+                    }
+                    
+                    $childrenTotal += $childBalance;
+                    $childrenData[] = [
+                        'account' => $child,
+                        'balance' => $childBalance,
+                        'foreign_currency' => $foreignCurrencyData,
+                    ];
+                }
+
+                $groupAccounts[] = [
+                    'header' => $header,
+                    'header_balance' => $headerBalance,
+                    'children' => $childrenData,
+                    'total' => $childrenTotal,
+                ];
+                $groupTotal += $childrenTotal;
+            }
+
+            // Step 3: Get detail accounts without parent, ordered by code
+            $detailAccounts = MasterAccount::where('account_type_id', $accountType->id)
+                ->where('type', 'detail')
+                ->whereNull('parent')
+                ->with(['account_type', 'account_type.classification'])
+                ->orderBy('code')
+                ->get()
+                ->filter(function($detail) use ($endDate, $currency) {
+                    // Check if account has IDR balance or foreign currency balance
+                    $hasIDRBalance = BalanceAccount::where('master_account_id', $detail->id)
+                        ->where('date', '<=', $endDate)
+                        ->where('currency_id', $currency)
+                        ->exists();
+                    
+                    $hasForeignBalance = BalanceAccount::where('master_account_id', $detail->id)
+                        ->where('date', '<=', $endDate)
+                        ->where('currency_id', $detail->master_currency_id)
+                        ->exists();
+                    
+                    return $hasIDRBalance || $hasForeignBalance;
+                });
+
+            foreach ($detailAccounts as $detail) {
+                $detailBalance = $this->calculateAccountBalance($detail, $startDate, $endDate, $currency, $accountType->code === '1-0007');
+                
+                // Get foreign currency data if account is not IDR
+                $foreignCurrencyData = null;
+                if ($detail->master_currency_id != $currency) {
+                    $foreignBalance = $this->calculateAccountBalance($detail, $startDate, $endDate, $detail->master_currency_id, $accountType->code === '1-0007');
+                    if ($foreignBalance != 0) {
+                        $foreignCurrencyData = [
+                            'currency' => $detail->currency,
+                            'balance' => $foreignBalance,
+                        ];
+                    }
+                }
+                
+                $groupAccounts[] = [
+                    'header' => null,
+                    'header_balance' => 0,
+                    'children' => [[
+                        'account' => $detail,
+                        'balance' => $detailBalance,
+                        'foreign_currency' => $foreignCurrencyData,
+                    ]],
+                    'total' => $detailBalance,
+                ];
+                $groupTotal += $detailBalance;
+            }
+
+            if (!empty($groupAccounts)) {
+                $aktivaData[] = [
+                    'account_type' => $accountType,
+                    'accounts' => $groupAccounts,
+                    'total' => $groupTotal,
+                ];
+                $aktivaTotal += $groupTotal;
+            }
+        }
+
+        // Process Passiva
+        $passivaData = [];
+        $passivaTotal = 0;
+        foreach ($passivaAccountTypes as $accountType) {
+            $groupAccounts = [];
+            $groupTotal = 0;
+
+            // Step 1: Get header accounts first for this account type, ordered by code
+            $headerAccounts = MasterAccount::where('account_type_id', $accountType->id)
+                ->where('type', 'header')
+                ->with(['account_type', 'account_type.classification'])
+                ->orderBy('code')
+                ->get()
+                ->filter(function($header) use ($endDate, $currency) {
+                    // Check if header has direct balance
+                    $hasDirectBalance = BalanceAccount::where('master_account_id', $header->id)
+                        ->where('date', '<=', $endDate)
+                        ->where('currency_id', $currency)
+                        ->exists();
+                    
+                    // Check if header has children with balances
+                    $children = MasterAccount::where('parent', $header->id)->pluck('id');
+                    $hasChildrenWithBalance = BalanceAccount::whereIn('master_account_id', $children)
+                        ->where('date', '<=', $endDate)
+                        ->where('currency_id', $currency)
+                        ->exists();
+                    
+                    return $hasDirectBalance || $hasChildrenWithBalance;
+                });
+
+            // Step 2: Process each header account with its children
+            foreach ($headerAccounts as $header) {
+                $headerBalance = $this->calculateAccountBalance($header, $startDate, $endDate, $currency, false);
+                
+                // Get child accounts for this header, ordered by code
+                $children = MasterAccount::where('parent', $header->id)
+                    ->where('account_type_id', $accountType->id)
+                    ->where('type', 'detail')
+                    ->with(['account_type', 'account_type.classification'])
+                    ->orderBy('code')
+                    ->get()
+                    ->filter(function($child) use ($endDate, $currency) {
+                        // Check if account has IDR balance or foreign currency balance
+                        $hasIDRBalance = BalanceAccount::where('master_account_id', $child->id)
+                            ->where('date', '<=', $endDate)
+                            ->where('currency_id', $currency)
+                            ->exists();
+                        
+                        $hasForeignBalance = BalanceAccount::where('master_account_id', $child->id)
+                            ->where('date', '<=', $endDate)
+                            ->where('currency_id', $child->master_currency_id)
+                            ->exists();
+                        
+                        return $hasIDRBalance || $hasForeignBalance;
+                    });
+
+                $childrenData = [];
+                $childrenTotal = $headerBalance;
+                
+                foreach ($children as $child) {
+                    $childBalance = $this->calculateAccountBalance($child, $startDate, $endDate, $currency, false);
+                    
+                    // Get foreign currency data if account is not IDR
+                    $foreignCurrencyData = null;
+                    if ($child->master_currency_id != $currency) {
+                        $foreignBalance = $this->calculateAccountBalance($child, $startDate, $endDate, $child->master_currency_id, false);
+                        if ($foreignBalance != 0) {
+                            $foreignCurrencyData = [
+                                'currency' => $child->currency,
+                                'balance' => $foreignBalance,
+                            ];
+                            // If no IDR balance but has foreign balance, use foreign balance for total calculation
+                            if ($childBalance == 0) {
+                                // Convert foreign balance to IDR equivalent (already done in balance_account_data)
+                                // Just use the IDR balance which should exist
+                                $childBalance = $this->calculateAccountBalance($child, $startDate, $endDate, $currency, false);
+                            }
+                        }
+                    }
+                    
+                    $childrenTotal += $childBalance;
+                    $childrenData[] = [
+                        'account' => $child,
+                        'balance' => $childBalance,
+                        'foreign_currency' => $foreignCurrencyData,
+                    ];
+                }
+
+                $groupAccounts[] = [
+                    'header' => $header,
+                    'header_balance' => $headerBalance,
+                    'children' => $childrenData,
+                    'total' => $childrenTotal,
+                ];
+                $groupTotal += $childrenTotal;
+            }
+
+            // Step 3: Get detail accounts without parent, ordered by code
+            $detailAccounts = MasterAccount::where('account_type_id', $accountType->id)
+                ->where('type', 'detail')
+                ->whereNull('parent')
+                ->with(['account_type', 'account_type.classification'])
+                ->orderBy('code')
+                ->get()
+                ->filter(function($detail) use ($endDate, $currency) {
+                    // Check if account has IDR balance or foreign currency balance
+                    $hasIDRBalance = BalanceAccount::where('master_account_id', $detail->id)
+                        ->where('date', '<=', $endDate)
+                        ->where('currency_id', $currency)
+                        ->exists();
+                    
+                    $hasForeignBalance = BalanceAccount::where('master_account_id', $detail->id)
+                        ->where('date', '<=', $endDate)
+                        ->where('currency_id', $detail->master_currency_id)
+                        ->exists();
+                    
+                    return $hasIDRBalance || $hasForeignBalance;
+                });
+
+            foreach ($detailAccounts as $detail) {
+                $detailBalance = $this->calculateAccountBalance($detail, $startDate, $endDate, $currency, false);
+                
+                // Get foreign currency data if account is not IDR
+                $foreignCurrencyData = null;
+                if ($detail->master_currency_id != $currency) {
+                    $foreignBalance = $this->calculateAccountBalance($detail, $startDate, $endDate, $detail->master_currency_id, false);
+                    if ($foreignBalance != 0) {
+                        $foreignCurrencyData = [
+                            'currency' => $detail->currency,
+                            'balance' => $foreignBalance,
+                        ];
+                    }
+                }
+                
+                $groupAccounts[] = [
+                    'header' => null,
+                    'header_balance' => 0,
+                    'children' => [[
+                        'account' => $detail,
+                        'balance' => $detailBalance,
+                        'foreign_currency' => $foreignCurrencyData,
+                    ]],
+                    'total' => $detailBalance,
+                ];
+                $groupTotal += $detailBalance;
+            }
+
+            if (!empty($groupAccounts)) {
+                $passivaData[] = [
+                    'account_type' => $accountType,
+                    'accounts' => $groupAccounts,
+                    'total' => $groupTotal,
+                ];
+                $passivaTotal += $groupTotal;
+            }
+        }
+
+        return [
+            'aktiva' => [
+                'data' => $aktivaData,
+                'total' => $aktivaTotal,
+            ],
+            'passiva' => [
+                'data' => $passivaData,
+                'total' => $passivaTotal,
+            ],
+        ];
+    }
+
+    private function calculateAccountBalance($account, $startDate, $endDate, $currency, $isNegative = false)
+    {
+        // Get all balance accounts up to end date
+        $allBalances = BalanceAccount::where('master_account_id', $account->id)
+            ->where('currency_id', $currency)
+            ->where('date', '<=', $endDate)
+            ->get();
+        
+        // Get normal side
+        $normalSide = $account->account_type?->normal_side ?? 'debit';
+        $normalDebit = strtolower($normalSide) === 'debit';
+        
+        // Calculate total debit and credit
+        $totalDebit = $allBalances->sum('debit');
+        $totalCredit = $allBalances->sum('credit');
+        
+        // Calculate balance based on normal side
+        $balance = $normalDebit
+            ? ($totalDebit - $totalCredit)
+            : ($totalCredit - $totalDebit);
+        
+        // For Accumulated Depreciation, make it negative
+        if ($isNegative) {
+            $balance = -abs($balance);
+        }
+        
+        return $balance;
+    }
+
     public function LaporanKeuangan(Request $request)
     {
         $source = $request->source;
@@ -567,6 +995,136 @@ class ReportFinanceController extends Controller
             $sao = $query->paginate(10);
         }
         return view('reportfinance::laporan-rekening.index', compact('sao'));
+    }
+
+    public function OutstandingARAP(Request $request)
+    {
+        $source = $request->source;
+        $as_of_date = $request->as_of_date;
+
+        // Default to today if no date provided
+        $asOfDate = Carbon::now()->endOfDay();
+        if($as_of_date){
+            $asOfDate = Carbon::parse($as_of_date)->endOfDay();
+        }
+
+        $outstandingData = collect();
+
+        if($source == 'invoice') {
+            // AR (Invoice) - Calculate outstanding from InvoiceHead and RecieveDetail
+            $invoices = InvoiceHead::with(['contact', 'currency'])
+                ->where('date_invoice', '<=', $asOfDate->format('Y-m-d'))
+                ->orderBy('date_invoice', 'desc');
+
+            if ($request->has('search') && $request->search != '') {
+                $invoices->whereHas('contact', function ($subQuery) use ($request) {
+                    $subQuery->where('customer_name', 'LIKE', '%' . $request->search . '%');
+                });
+            }
+
+            $invoices = $invoices->get();
+
+            foreach($invoices as $invoice) {
+                // Get all payments received up to as_of_date
+                $paymentsReceived = RecieveDetail::where('invoice_id', $invoice->id)
+                    ->where('charge_type', 'invoice')
+                    ->whereHas('head', function($query) use ($asOfDate) {
+                        $query->where('date_recieve', '<=', $asOfDate->format('Y-m-d'));
+                    })
+                    ->get();
+
+                $alreadyPaid = $paymentsReceived->sum('total') + $paymentsReceived->sum('dp');
+                $invoiceTotal = $invoice->total;
+                $remaining = $invoiceTotal - $alreadyPaid;
+
+                // Only include if there's outstanding amount
+                if($remaining > 0) {
+                    $outstandingData->push((object)[
+                        'id' => $invoice->id,
+                        'contact' => $invoice->contact,
+                        'currency' => $invoice->currency,
+                        'invoice' => $invoice,
+                        'order' => null,
+                        'date' => $invoice->date_invoice,
+                        'account' => 'piutang',
+                        'total' => $invoiceTotal,
+                        'already_paid' => $alreadyPaid,
+                        'remaining' => $remaining,
+                        'isPaid' => false,
+                    ]);
+                }
+            }
+        } elseif($source == 'order') {
+            // AP - Calculate outstanding from OrderHead and PaymentDetail
+            $orders = OrderHead::with(['vendor', 'currency'])
+                ->where('date_order', '<=', $asOfDate->format('Y-m-d'))
+                ->orderBy('date_order', 'desc');
+
+            if ($request->has('search') && $request->search != '') {
+                $orders->whereHas('vendor', function ($subQuery) use ($request) {
+                    $subQuery->where('customer_name', 'LIKE', '%' . $request->search . '%');
+                });
+            }
+
+            $orders = $orders->get();
+
+            foreach($orders as $order) {
+                // Get all payments made up to as_of_date
+                $paymentsMade = PaymentDetail::where('payable_id', $order->id)
+                    ->where('charge_type', 'payable')
+                    ->whereHas('head', function($query) use ($asOfDate) {
+                        $query->where('date_payment', '<=', $asOfDate->format('Y-m-d'));
+                    })
+                    ->get();
+
+                $alreadyPaid = $paymentsMade->sum('total') + $paymentsMade->sum('dp');
+                $orderTotal = $order->total;
+                $remaining = $orderTotal - $alreadyPaid;
+
+                // Only include if there's outstanding amount
+                if($remaining > 0) {
+                    $outstandingData->push((object)[
+                        'id' => $order->id,
+                        'contact' => $order->vendor,
+                        'currency' => $order->currency,
+                        'invoice' => null,
+                        'order' => $order,
+                        'date' => $order->date_order,
+                        'account' => 'hutang',
+                        'total' => $orderTotal,
+                        'already_paid' => $alreadyPaid,
+                        'remaining' => $remaining,
+                        'isPaid' => false,
+                    ]);
+                }
+            }
+        }
+
+        // Calculate totals by currency for footer
+        $totalsByCurrency = $outstandingData->groupBy(function($item) {
+            return $item->currency->id ?? 0;
+        })->map(function($group) {
+            return [
+                'currency' => $group->first()->currency ?? null,
+                'total' => $group->sum('remaining')
+            ];
+        });
+
+        // Paginate manually
+        $page = $request->get('page', 1);
+        $perPage = 10;
+        $items = $outstandingData->slice(($page - 1) * $perPage, $perPage)->values();
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            $outstandingData->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        $currency = MasterCurrency::all();
+
+        return view('reportfinance::outstanding-arap.index', compact('paginator', 'asOfDate', 'source', 'currency', 'totalsByCurrency'));
     }
     public function PrintLaporanKeuangan($id)
     {

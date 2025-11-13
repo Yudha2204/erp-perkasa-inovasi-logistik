@@ -11,6 +11,7 @@ use Modules\FinanceDataMaster\App\Models\AccountType;
 use Modules\FinanceDataMaster\App\Models\BalanceAccount;
 use Modules\FinanceDataMaster\App\Models\MasterCurrency;
 use Modules\FinanceDataMaster\App\Models\ClassificationAccountType;
+use Modules\FinanceDataMaster\App\Models\MasterContact;
 use Modules\FinancePiutang\App\Models\InvoiceHead;
 use Modules\FinancePayments\App\Models\OrderHead;
 
@@ -29,7 +30,7 @@ class AccountDataController extends Controller
      * Display a listing of the resource.
      */
     public function searchFilterIndex($search){
-        $index = MasterAccount::query()->with('balance_accounts');
+        $index = MasterAccount::query()->with(['balance_accounts', 'account_type']);
 
         if($search) {
             $index
@@ -47,14 +48,16 @@ class AccountDataController extends Controller
         if ($search) {
             $accounts = $this->searchFilterIndex($search);
         } else {
-            $accounts = MasterAccount::orderBy('id', 'ASC')->with('balance_accounts')->paginate(10);
+            $accounts = MasterAccount::orderBy('id', 'ASC')->with(['balance_accounts', 'account_type'])->paginate(10);
         }
 
         $accountTypes = AccountType::all();
         $currencies = MasterCurrency::all();
         $headerAccounts = MasterAccount::where('type', 'header')->get();
+        $vendors = MasterContact::whereJsonContains('type','2')->get();
+        $customers = MasterContact::whereJsonContains('type','1')->get();
 
-        return view('financedatamaster::account.index', compact('accounts', 'accountTypes', 'currencies', 'headerAccounts'));
+        return view('financedatamaster::account.index', compact('accounts', 'accountTypes', 'currencies', 'headerAccounts', 'vendors', 'customers'));
     }
 
     /**
@@ -180,6 +183,14 @@ class AccountDataController extends Controller
         if ($accountTypeId == 4) {
             // Validate invoice entries
             $invoiceEntries = json_decode($request->invoice_entries, true) ?? [];
+            
+            // Validate that all entries have contact_id
+            foreach ($invoiceEntries as $entry) {
+                if (empty($entry['contact_id'])) {
+                    toast('Vendor/Customer is required for all invoice entries!','error');
+                    return redirect()->back();
+                }
+            }
 
             $this->createMultipleBeginningBalanceInvoices($invoiceEntries, $masterAccount);
             toast('Beginning balance saved with Invoice entries!','success');
@@ -190,6 +201,14 @@ class AccountDataController extends Controller
         if ($accountTypeId == 8) {
             // Validate AP entries
             $apEntries = json_decode($request->ap_entries, true) ?? [];
+            
+            // Validate that all entries have vendor_id
+            foreach ($apEntries as $entry) {
+                if (empty($entry['vendor_id'])) {
+                    toast('Vendor is required for all AP entries!','error');
+                    return redirect()->back();
+                }
+            }
 
             $this->createMultipleBeginningBalanceAPs($apEntries, $masterAccount);
             toast('Beginning balance saved with Account Payable entries!','success');
@@ -222,6 +241,7 @@ class AccountDataController extends Controller
                         'number' => (int) $entry['number'],
                         'date_invoice' => $entry['date'],
                         'description' => 'Beginning Balance - ' . $masterAccount->account_name,
+                        'contact_id' => $entry['contact_id'] ?? null,
                     ]);
 
                     // Update invoice detail
@@ -254,7 +274,7 @@ class AccountDataController extends Controller
             } else {
                 // Create new invoice
                 $invoiceHead = InvoiceHead::create([
-                    'contact_id' => null,
+                    'contact_id' => $entry['contact_id'] ?? null,
                     'sales_id' => null,
                     'term_payment' => null,
                     'currency_id' => $masterAccount->master_currency_id ?? 1,
@@ -397,6 +417,7 @@ class AccountDataController extends Controller
                         'transaction' => $entry['number'],
                         'date_order' => $entry['date'],
                         'description' => 'Beginning Balance - ' . $masterAccount->account_name,
+                        'vendor_id' => $entry['vendor_id'] ?? null,
                     ]);
 
                     // Update order detail
@@ -429,7 +450,7 @@ class AccountDataController extends Controller
             } else {
                 // Create new AP
                 $orderHead = OrderHead::create([
-                    'vendor_id' => null,
+                    'vendor_id' => $entry['vendor_id'] ?? null,
                     'customer_id' => null,
                     'currency_id' => $masterAccount->master_currency_id ?? 1,
                     'operation_id' => null,
@@ -495,7 +516,7 @@ class AccountDataController extends Controller
         // Handle Account Receivable (AR) accounts - ID 4
         if ($accountTypeId == 4) {
             // Get all beginning balance invoices for AR accounts
-            $beginningBalanceInvoices = InvoiceHead::where('account_id', $id)
+            $beginningBalanceInvoices = InvoiceHead::with('contact')->where('account_id', $id)
                 ->where('status', 'Beginning Balance')
                 ->get();
             
@@ -505,11 +526,14 @@ class AccountDataController extends Controller
             
             foreach ($beginningBalanceInvoices as $invoice) {
                 $invoiceDetail = \Modules\FinancePiutang\App\Models\InvoiceDetail::where('head_id', $invoice->id)->first();
+                $contact = $invoice->contact;
                 $invoiceEntries[] = [
                     'id' => $invoice->id,
                     'number' => $invoice->number,
                     'date' => $invoice->date_invoice,
-                    'value' => $invoiceDetail->price ?? 0
+                    'value' => $invoiceDetail->price ?? 0,
+                    'contact_id' => $invoice->contact_id,
+                    'contact_name' => $contact->customer_name ?? 'N/A'
                 ];
                 
                 // Get the balance account entry for this invoice
@@ -531,7 +555,7 @@ class AccountDataController extends Controller
         // Handle Account Payable (AP) accounts - ID 8
         elseif ($accountTypeId == 8) {
             // Get all beginning balance APs for AP accounts
-            $beginningBalanceAPs = OrderHead::where('account_id', $id)
+            $beginningBalanceAPs = OrderHead::with('vendor')->where('account_id', $id)
                 ->where('status', 'Beginning Balance')
                 ->get();
             
@@ -541,11 +565,14 @@ class AccountDataController extends Controller
             
             foreach ($beginningBalanceAPs as $ap) {
                 $orderDetail = \Modules\FinancePayments\App\Models\OrderDetail::where('head_id', $ap->id)->first();
+                $vendor = $ap->vendor;
                 $apEntries[] = [
                     'id' => $ap->id,
                     'number' => $ap->transaction,
                     'date' => $ap->date_order,
-                    'value' => $orderDetail->price ?? 0
+                    'value' => $orderDetail->price ?? 0,
+                    'vendor_id' => $ap->vendor_id,
+                    'vendor_name' => $vendor->customer_name ?? 'N/A'
                 ];
                 
                 // Get the balance account entry for this AP
