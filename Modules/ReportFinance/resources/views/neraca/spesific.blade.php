@@ -54,7 +54,7 @@
                                         @foreach($balanceSheet['aktiva']['data'] as $group)
                                             <tr style="background-color: #E8F4F8;">
                                                 <td colspan="2" style="font-weight: bold;">
-                                                    {{ $group['account_type']->classification->classification ?? $group['account_type']->name }}
+                                                    {{ $group['account_type']->name }}
                                                 </td>
                                             </tr>
                                             @foreach($group['accounts'] as $accountGroup)
@@ -64,7 +64,7 @@
                                                             {{ $accountGroup['header']->code }} - {{ $accountGroup['header']->account_name }}
                                                         </td>
                                                         <td style="text-align: right; font-weight: bold;">
-                                                            {{ number_format($accountGroup['header_balance'], 2, ',', '.') }}
+                                                            {{ number_format($accountGroup['total'], 2, ',', '.') }}
                                                         </td>
                                                     </tr>
                                                     @foreach($accountGroup['children'] as $child)
@@ -87,14 +87,6 @@
                                                             </tr>
                                                         @endif
                                                     @endforeach
-                                                    @if(count($accountGroup['children']) > 0)
-                                                        <tr style="background-color: #F0F0F0;">
-                                                            <td style="padding-left: 20px; font-weight: bold;">Subtotal</td>
-                                                            <td style="text-align: right; font-weight: bold;">
-                                                                {{ number_format($accountGroup['total'], 2, ',', '.') }}
-                                                            </td>
-                                                        </tr>
-                                                    @endif
                                                 @else
                                                     @foreach($accountGroup['children'] as $child)
                                                         <tr>
@@ -118,12 +110,6 @@
                                                     @endforeach
                                                 @endif
                                             @endforeach
-                                            <tr style="background-color: #D0E8F0;">
-                                                <td style="font-weight: bold;">Total {{ $group['account_type']->classification->classification ?? $group['account_type']->name }}</td>
-                                                <td style="text-align: right; font-weight: bold;">
-                                                    {{ number_format($group['total'], 2, ',', '.') }}
-                                                </td>
-                                            </tr>
                                         @endforeach
                                         <tr id="footer" style="background-color: #597fb3">
                                             <th style="color: white; font-weight: bold;">TOTAL AKTIVA</th>
@@ -151,7 +137,7 @@
                                         @foreach($balanceSheet['passiva']['data'] as $group)
                                             <tr style="background-color: #E8F4F8;">
                                                 <td colspan="2" style="font-weight: bold;">
-                                                    {{ $group['account_type']->classification->classification ?? $group['account_type']->name }}
+                                                    {{ $group['account_type']->name }}
                                                 </td>
                                             </tr>
                                             @foreach($group['accounts'] as $accountGroup)
@@ -161,7 +147,7 @@
                                                             {{ $accountGroup['header']->code }} - {{ $accountGroup['header']->account_name }}
                                                         </td>
                                                         <td style="text-align: right; font-weight: bold;">
-                                                            {{ number_format($accountGroup['header_balance'], 2, ',', '.') }}
+                                                            {{ number_format($accountGroup['total'], 2, ',', '.') }}
                                                         </td>
                                                     </tr>
                                                     @foreach($accountGroup['children'] as $child)
@@ -184,14 +170,6 @@
                                                             </tr>
                                                         @endif
                                                     @endforeach
-                                                    @if(count($accountGroup['children']) > 0)
-                                                        <tr style="background-color: #F0F0F0;">
-                                                            <td style="padding-left: 20px; font-weight: bold;">Subtotal</td>
-                                                            <td style="text-align: right; font-weight: bold;">
-                                                                {{ number_format($accountGroup['total'], 2, ',', '.') }}
-                                                            </td>
-                                                        </tr>
-                                                    @endif
                                                 @else
                                                     @foreach($accountGroup['children'] as $child)
                                                         <tr>
@@ -215,12 +193,6 @@
                                                     @endforeach
                                                 @endif
                                             @endforeach
-                                            <tr style="background-color: #D0E8F0;">
-                                                <td style="font-weight: bold;">Total {{ $group['account_type']->classification->classification ?? $group['account_type']->name }}</td>
-                                                <td style="text-align: right; font-weight: bold;">
-                                                    {{ number_format($group['total'], 2, ',', '.') }}
-                                                </td>
-                                            </tr>
                                         @endforeach
                                         <tr id="footer" style="background-color: #597fb3">
                                             <th style="color: white; font-weight: bold;">TOTAL PASSIVA</th>

@@ -600,12 +600,10 @@ class ReportFinanceController extends Controller
 
         // Get account types for balance sheet
         $aktivaAccountTypes = AccountType::whereIn('code', $aktivaCodes)
-            ->with(['classification'])
             ->orderBy('code')
             ->get();
 
         $passivaAccountTypes = AccountType::whereIn('code', $passivaCodes)
-            ->with(['classification'])
             ->orderBy('code')
             ->get();
 
@@ -616,54 +614,48 @@ class ReportFinanceController extends Controller
             $groupAccounts = [];
             $groupTotal = 0;
 
-            // Step 1: Get header accounts first for this account type, ordered by code
-            $headerAccounts = MasterAccount::where('account_type_id', $accountType->id)
-                ->where('type', 'header')
-                ->with(['account_type', 'account_type.classification'])
+            // Step 1: Get detail accounts with this account type that have balances
+            $detailAccounts = MasterAccount::where('account_type_id', $accountType->id)
+                ->where('type', 'detail')
+                ->with(['account_type'])
                 ->orderBy('code')
                 ->get()
-                ->filter(function($header) use ($endDate, $currency) {
-                    // Check if header has direct balance
-                    $hasDirectBalance = BalanceAccount::where('master_account_id', $header->id)
+                ->filter(function($detail) use ($endDate, $currency) {
+                    // Check if account has IDR balance or foreign currency balance
+                    $hasIDRBalance = BalanceAccount::where('master_account_id', $detail->id)
                         ->where('date', '<=', $endDate)
                         ->where('currency_id', $currency)
                         ->exists();
                     
-                    // Check if header has children with balances
-                    $children = MasterAccount::where('parent', $header->id)->pluck('id');
-                    $hasChildrenWithBalance = BalanceAccount::whereIn('master_account_id', $children)
+                    $hasForeignBalance = BalanceAccount::where('master_account_id', $detail->id)
                         ->where('date', '<=', $endDate)
-                        ->where('currency_id', $currency)
+                        ->where('currency_id', $detail->master_currency_id)
                         ->exists();
                     
-                    return $hasDirectBalance || $hasChildrenWithBalance;
+                    return $hasIDRBalance || $hasForeignBalance;
                 });
 
-            // Step 2: Process each header account with its children
-            foreach ($headerAccounts as $header) {
-                $headerBalance = $this->calculateAccountBalance($header, $startDate, $endDate, $currency, $accountType->code === '1-0007');
+            // Step 2: Group detail accounts by parent (header)
+            $groupedByParent = $detailAccounts->groupBy(function($item) {
+                return $item->parent;
+            });
+
+            // Step 3: Process each group
+            foreach ($groupedByParent as $parentId => $children) {
+                $header = null;
+                $headerBalance = 0;
                 
-                // Get child accounts for this header, ordered by code
-                $children = MasterAccount::where('parent', $header->id)
-                    ->where('account_type_id', $accountType->id)
-                    ->where('type', 'detail')
-                    ->with(['account_type', 'account_type.classification'])
-                    ->orderBy('code')
-                    ->get()
-                    ->filter(function($child) use ($endDate, $currency) {
-                        // Check if account has IDR balance or foreign currency balance
-                        $hasIDRBalance = BalanceAccount::where('master_account_id', $child->id)
-                            ->where('date', '<=', $endDate)
-                            ->where('currency_id', $currency)
-                            ->exists();
-                        
-                        $hasForeignBalance = BalanceAccount::where('master_account_id', $child->id)
-                            ->where('date', '<=', $endDate)
-                            ->where('currency_id', $child->master_currency_id)
-                            ->exists();
-                        
-                        return $hasIDRBalance || $hasForeignBalance;
-                    });
+                // If parent exists, get the header account (header might not have account_type_id)
+                if ($parentId !== null) {
+                    $header = MasterAccount::where('id', $parentId)
+                        ->where('type', 'header')
+                        ->with(['account_type'])
+                        ->first();
+                    
+                    if ($header) {
+                        $headerBalance = $this->calculateAccountBalance($header, $startDate, $endDate, $currency, $accountType->code === '1-0007');
+                    }
+                }
 
                 $childrenData = [];
                 $childrenTotal = $headerBalance;
@@ -706,56 +698,6 @@ class ReportFinanceController extends Controller
                 $groupTotal += $childrenTotal;
             }
 
-            // Step 3: Get detail accounts without parent, ordered by code
-            $detailAccounts = MasterAccount::where('account_type_id', $accountType->id)
-                ->where('type', 'detail')
-                ->whereNull('parent')
-                ->with(['account_type', 'account_type.classification'])
-                ->orderBy('code')
-                ->get()
-                ->filter(function($detail) use ($endDate, $currency) {
-                    // Check if account has IDR balance or foreign currency balance
-                    $hasIDRBalance = BalanceAccount::where('master_account_id', $detail->id)
-                        ->where('date', '<=', $endDate)
-                        ->where('currency_id', $currency)
-                        ->exists();
-                    
-                    $hasForeignBalance = BalanceAccount::where('master_account_id', $detail->id)
-                        ->where('date', '<=', $endDate)
-                        ->where('currency_id', $detail->master_currency_id)
-                        ->exists();
-                    
-                    return $hasIDRBalance || $hasForeignBalance;
-                });
-
-            foreach ($detailAccounts as $detail) {
-                $detailBalance = $this->calculateAccountBalance($detail, $startDate, $endDate, $currency, $accountType->code === '1-0007');
-                
-                // Get foreign currency data if account is not IDR
-                $foreignCurrencyData = null;
-                if ($detail->master_currency_id != $currency) {
-                    $foreignBalance = $this->calculateAccountBalance($detail, $startDate, $endDate, $detail->master_currency_id, $accountType->code === '1-0007');
-                    if ($foreignBalance != 0) {
-                        $foreignCurrencyData = [
-                            'currency' => $detail->currency,
-                            'balance' => $foreignBalance,
-                        ];
-                    }
-                }
-                
-                $groupAccounts[] = [
-                    'header' => null,
-                    'header_balance' => 0,
-                    'children' => [[
-                        'account' => $detail,
-                        'balance' => $detailBalance,
-                        'foreign_currency' => $foreignCurrencyData,
-                    ]],
-                    'total' => $detailBalance,
-                ];
-                $groupTotal += $detailBalance;
-            }
-
             if (!empty($groupAccounts)) {
                 $aktivaData[] = [
                     'account_type' => $accountType,
@@ -773,54 +715,48 @@ class ReportFinanceController extends Controller
             $groupAccounts = [];
             $groupTotal = 0;
 
-            // Step 1: Get header accounts first for this account type, ordered by code
-            $headerAccounts = MasterAccount::where('account_type_id', $accountType->id)
-                ->where('type', 'header')
-                ->with(['account_type', 'account_type.classification'])
+            // Step 1: Get detail accounts with this account type that have balances
+            $detailAccounts = MasterAccount::where('account_type_id', $accountType->id)
+                ->where('type', 'detail')
+                ->with(['account_type'])
                 ->orderBy('code')
                 ->get()
-                ->filter(function($header) use ($endDate, $currency) {
-                    // Check if header has direct balance
-                    $hasDirectBalance = BalanceAccount::where('master_account_id', $header->id)
+                ->filter(function($detail) use ($endDate, $currency) {
+                    // Check if account has IDR balance or foreign currency balance
+                    $hasIDRBalance = BalanceAccount::where('master_account_id', $detail->id)
                         ->where('date', '<=', $endDate)
                         ->where('currency_id', $currency)
                         ->exists();
                     
-                    // Check if header has children with balances
-                    $children = MasterAccount::where('parent', $header->id)->pluck('id');
-                    $hasChildrenWithBalance = BalanceAccount::whereIn('master_account_id', $children)
+                    $hasForeignBalance = BalanceAccount::where('master_account_id', $detail->id)
                         ->where('date', '<=', $endDate)
-                        ->where('currency_id', $currency)
+                        ->where('currency_id', $detail->master_currency_id)
                         ->exists();
                     
-                    return $hasDirectBalance || $hasChildrenWithBalance;
+                    return $hasIDRBalance || $hasForeignBalance;
                 });
 
-            // Step 2: Process each header account with its children
-            foreach ($headerAccounts as $header) {
-                $headerBalance = $this->calculateAccountBalance($header, $startDate, $endDate, $currency, false);
+            // Step 2: Group detail accounts by parent (header)
+            $groupedByParent = $detailAccounts->groupBy(function($item) {
+                return $item->parent;
+            });
+
+            // Step 3: Process each group
+            foreach ($groupedByParent as $parentId => $children) {
+                $header = null;
+                $headerBalance = 0;
                 
-                // Get child accounts for this header, ordered by code
-                $children = MasterAccount::where('parent', $header->id)
-                    ->where('account_type_id', $accountType->id)
-                    ->where('type', 'detail')
-                    ->with(['account_type', 'account_type.classification'])
-                    ->orderBy('code')
-                    ->get()
-                    ->filter(function($child) use ($endDate, $currency) {
-                        // Check if account has IDR balance or foreign currency balance
-                        $hasIDRBalance = BalanceAccount::where('master_account_id', $child->id)
-                            ->where('date', '<=', $endDate)
-                            ->where('currency_id', $currency)
-                            ->exists();
-                        
-                        $hasForeignBalance = BalanceAccount::where('master_account_id', $child->id)
-                            ->where('date', '<=', $endDate)
-                            ->where('currency_id', $child->master_currency_id)
-                            ->exists();
-                        
-                        return $hasIDRBalance || $hasForeignBalance;
-                    });
+                // If parent exists, get the header account (header might not have account_type_id)
+                if ($parentId !== null) {
+                    $header = MasterAccount::where('id', $parentId)
+                        ->where('type', 'header')
+                        ->with(['account_type'])
+                        ->first();
+                    
+                    if ($header) {
+                        $headerBalance = $this->calculateAccountBalance($header, $startDate, $endDate, $currency, false);
+                    }
+                }
 
                 $childrenData = [];
                 $childrenTotal = $headerBalance;
@@ -861,56 +797,6 @@ class ReportFinanceController extends Controller
                     'total' => $childrenTotal,
                 ];
                 $groupTotal += $childrenTotal;
-            }
-
-            // Step 3: Get detail accounts without parent, ordered by code
-            $detailAccounts = MasterAccount::where('account_type_id', $accountType->id)
-                ->where('type', 'detail')
-                ->whereNull('parent')
-                ->with(['account_type', 'account_type.classification'])
-                ->orderBy('code')
-                ->get()
-                ->filter(function($detail) use ($endDate, $currency) {
-                    // Check if account has IDR balance or foreign currency balance
-                    $hasIDRBalance = BalanceAccount::where('master_account_id', $detail->id)
-                        ->where('date', '<=', $endDate)
-                        ->where('currency_id', $currency)
-                        ->exists();
-                    
-                    $hasForeignBalance = BalanceAccount::where('master_account_id', $detail->id)
-                        ->where('date', '<=', $endDate)
-                        ->where('currency_id', $detail->master_currency_id)
-                        ->exists();
-                    
-                    return $hasIDRBalance || $hasForeignBalance;
-                });
-
-            foreach ($detailAccounts as $detail) {
-                $detailBalance = $this->calculateAccountBalance($detail, $startDate, $endDate, $currency, false);
-                
-                // Get foreign currency data if account is not IDR
-                $foreignCurrencyData = null;
-                if ($detail->master_currency_id != $currency) {
-                    $foreignBalance = $this->calculateAccountBalance($detail, $startDate, $endDate, $detail->master_currency_id, false);
-                    if ($foreignBalance != 0) {
-                        $foreignCurrencyData = [
-                            'currency' => $detail->currency,
-                            'balance' => $foreignBalance,
-                        ];
-                    }
-                }
-                
-                $groupAccounts[] = [
-                    'header' => null,
-                    'header_balance' => 0,
-                    'children' => [[
-                        'account' => $detail,
-                        'balance' => $detailBalance,
-                        'foreign_currency' => $foreignCurrencyData,
-                    ]],
-                    'total' => $detailBalance,
-                ];
-                $groupTotal += $detailBalance;
             }
 
             if (!empty($groupAccounts)) {

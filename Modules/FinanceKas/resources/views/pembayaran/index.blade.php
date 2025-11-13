@@ -65,7 +65,7 @@
                                             </td>
                                             <td>{{ $data->description }}</td>
                                             <td>
-                                                {{ isset($data->currency) ? $data->currency->initial : "" }} {{ number_format($data->total, 2, '.', ','); }}
+                                                {{ isset($data->currency) ? $data->currency->initial : "" }} {{ number_format($data->total, 2, '.', ',') }}
                                             </td>
                                             <td>
                                                 <div class="dropdown" style="position: absolute; display: inline-block;">
