@@ -65,7 +65,7 @@
                                     </a>
                                 </div>
                                 @endcanany
-                                @if(['view-arus_kas@finance'])
+                                @if(false)
                                 @canany(['view-arus_kas@finance'])
                                 <div class="col-md-4">
                                     <a data-bs-effect="effect-scale" data-bs-toggle="modal" href="#modal-arus-kas-format">

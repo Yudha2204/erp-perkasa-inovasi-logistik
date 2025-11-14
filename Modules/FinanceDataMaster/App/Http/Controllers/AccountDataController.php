@@ -14,7 +14,7 @@ use Modules\FinanceDataMaster\App\Models\ClassificationAccountType;
 use Modules\FinanceDataMaster\App\Models\MasterContact;
 use Modules\FinancePiutang\App\Models\InvoiceHead;
 use Modules\FinancePayments\App\Models\OrderHead;
-
+use Modules\FinanceDataMaster\App\Models\FiscalPeriod;
 class AccountDataController extends Controller
 {
     public function __construct()
@@ -52,13 +52,94 @@ class AccountDataController extends Controller
             $accounts = MasterAccount::orderBy('code', 'ASC')->with(['balance_accounts', 'account_type'])->paginate($pageSize);
         }
 
+        // Load beginning balance data for AR/AP accounts
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        $idrCurrencyId = $idrCurrency ? $idrCurrency->id : 1;
+        
+        foreach ($accounts as $account) {
+            // Initialize beginning_balance_entries as empty array
+            $account->beginning_balance_entries = [];
+            
+            if ($account->account_type_id == 4) {
+                // AR Account - load invoices
+                $beginningBalanceInvoices = InvoiceHead::with('contact')->where('account_id', $account->id)
+                    ->where('status', 'Beginning Balance')
+                    ->get();
+                
+                $invoiceEntries = [];
+                foreach ($beginningBalanceInvoices as $invoice) {
+                    $invoiceDetail = \Modules\FinancePiutang\App\Models\InvoiceDetail::where('head_id', $invoice->id)->first();
+                    
+                    // Get IDR value
+                    $idrValue = null;
+                    if ($account->master_currency_id != $idrCurrencyId) {
+                        $idrBalanceAccount = BalanceAccount::where('master_account_id', $account->id)
+                            ->where('transaction_type_id', 1)
+                            ->where('transaction_id', $invoice->id)
+                            ->where('currency_id', $idrCurrencyId)
+                            ->first();
+                        
+                        if ($idrBalanceAccount) {
+                            $normalSide = $account->account_type->normal_side ?? 'debit';
+                            $idrValue = $normalSide === 'debit' ? $idrBalanceAccount->debit : $idrBalanceAccount->credit;
+                        }
+                    }
+                    
+                    $invoiceEntries[] = [
+                        'id' => $invoice->id,
+                        'number' => $invoice->number,
+                        'date' => $invoice->date_invoice,
+                        'value' => $invoiceDetail->price ?? 0,
+                        'contact_id' => $invoice->contact_id,
+                        'contact_name' => $invoice->contact->customer_name ?? 'N/A',
+                        'idr_value' => $idrValue
+                    ];
+                }
+                $account->beginning_balance_entries = $invoiceEntries;
+            } elseif ($account->account_type_id == 8) {
+                // AP Account - load orders
+                $beginningBalanceAPs = OrderHead::with('vendor')->where('account_id', $account->id)
+                    ->where('status', 'Beginning Balance')
+                    ->get();
+                
+                $apEntries = [];
+                foreach ($beginningBalanceAPs as $ap) {
+                    $orderDetail = \Modules\FinancePayments\App\Models\OrderDetail::where('head_id', $ap->id)->first();
+                    
+                    // Get IDR value
+                    $idrValue = null;
+                    if ($account->master_currency_id != $idrCurrencyId) {
+                        $idrBalanceAccount = BalanceAccount::where('master_account_id', $account->id)
+                            ->where('transaction_type_id', 1)
+                            ->where('transaction_id', $ap->id)
+                            ->where('currency_id', $idrCurrencyId)
+                            ->first();
+                        
+                        if ($idrBalanceAccount) {
+                            $normalSide = $account->account_type->normal_side ?? 'credit';
+                            $idrValue = $normalSide === 'debit' ? $idrBalanceAccount->debit : $idrBalanceAccount->credit;
+                        }
+                    }
+                    
+                    $apEntries[] = [
+                        'id' => $ap->id,
+                        'number' => $ap->transaction,
+                        'date' => $ap->date_order,
+                        'value' => $orderDetail->price ?? 0,
+                        'vendor_id' => $ap->vendor_id,
+                        'vendor_name' => $ap->vendor->customer_name ?? 'N/A',
+                        'idr_value' => $idrValue
+                    ];
+                }
+                $account->beginning_balance_entries = $apEntries;
+            }
+        }
+
         $accountTypes = AccountType::all();
         $currencies = MasterCurrency::all();
         $headerAccounts = MasterAccount::where('type', 'header')->get();
         $vendors = MasterContact::whereJsonContains('type','2')->get();
         $customers = MasterContact::whereJsonContains('type','1')->get();
-        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
-        $idrCurrencyId = $idrCurrency ? $idrCurrency->id : 1;
         $startEntryPeriod = Setup::getStartEntryPeriod();
         $startEntryPeriodDate = $startEntryPeriod ? $startEntryPeriod->format('Y-m-d') : null;
 
@@ -144,6 +225,11 @@ class AccountDataController extends Controller
 
         if (!$date) {
             toast('Start Entry Period is not set!','error');
+            return redirect()->back();
+        }
+
+        if (!FiscalPeriod::isDateInOpenPeriodStrict($date)) {
+            toast('Cannot create beginning balance: Period for entry date is closed!','error');
             return redirect()->back();
         }
 
@@ -234,7 +320,7 @@ class AccountDataController extends Controller
                 }
             }
 
-            $this->createMultipleBeginningBalanceAPs($apEntries, $masterAccount);
+            $this->createMultipleBeginningBalanceAPs($apEntries, $masterAccount, $date);
             toast('Beginning balance saved with Account Payable entries!','success');
             return redirect()->back();
         }
@@ -585,7 +671,7 @@ class AccountDataController extends Controller
         }
     }
 
-    private function createMultipleBeginningBalanceAPs($apEntries, $masterAccount)
+    private function createMultipleBeginningBalanceAPs($apEntries, $masterAccount, $entryPeriodDate)
     {
         // Get IDR currency ID
         $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();

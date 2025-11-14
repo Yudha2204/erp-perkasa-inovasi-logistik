@@ -412,6 +412,7 @@
                                                 <th>Invoice Date</th>
                                                 <th>Customer</th>
                                                 <th>Value</th>
+                                                <th class="invoice_idr_header" style="display: none;">IDR Value</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -486,6 +487,7 @@
                                                 <th>AP Date</th>
                                                 <th>Vendor</th>
                                                 <th>Value</th>
+                                                <th class="ap_idr_header" style="display: none;">IDR Value</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -520,43 +522,6 @@
     </div>
 </div>
 
-{{-- modal edit --}}
-<div class="modal fade z-index-1000" id="modal-edit-beginning-balance" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg bg-white" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">+ Update Saldo Awal</h5>
-            </div>
-            <form action="{{ route('finance.master-data.account.update-beginning-balance') }}" method="POST" id="form-edit-beginning-balance">
-                @csrf
-                <div class="modal-body">
-                    <input type="hidden" name="id" id="id_ar_ap">
-                    <input type="hidden" name="type" id="edit_type">
-                    <div class="form-group">
-                        <label>Number</label>
-                        <input type="text" name="number_edit_beginning_balance" id="number_edit_beginning_balance" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" name="date_edit_beginning_balance" id="date_edit_beginning_balance" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Value</label>
-                        <input type="text" name="value_edit_beginning_balance" id="value_edit_beginning_balance" class="form-control">
-                    </div>
-                    <div class="form-group" id="idr_value_edit_field" style="display: none;">
-                        <label>IDR Value (Manual Exchange Rate) <span class="text-muted">(Optional)</span></label>
-                        <input type="number" step="0.01" name="idr_value_edit_beginning_balance" id="idr_value_edit_beginning_balance" class="form-control" placeholder="Leave empty to use default exchange rate">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Update</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 {{-- modal show --}}
 <div class="modal fade" id="modal-show" tabindex="-1" role="dialog">
@@ -759,9 +724,13 @@
                     if (isForeignCurrency) {
                         $('#invoice_idr_field').show();
                         $('#ap_idr_field').show();
+                        $('.invoice_idr_header').show();
+                        $('.ap_idr_header').show();
                     } else {
                         $('#invoice_idr_field').hide();
                         $('#ap_idr_field').hide();
+                        $('.invoice_idr_header').hide();
+                        $('.ap_idr_header').hide();
                     }
                     
                     // Show AR fields for Account Receivable (ID 4)
@@ -800,6 +769,21 @@
                     }
 
                     $('#createBeginningBalance').modal('show');
+                    
+                    // Initialize select2 for any existing select elements in the modal after it's shown
+                    setTimeout(function() {
+                        if (typeof $.fn.select2 !== 'undefined') {
+                            $('#createBeginningBalance').find('select.select2').each(function() {
+                                if (!$(this).hasClass('select2-hidden-accessible')) {
+                                    $(this).select2({
+                                        dropdownParent: $('#createBeginningBalance'),
+                                        width: '100%',
+                                        minimumResultsForSearch: Infinity
+                                    });
+                                }
+                            });
+                        }
+                    }, 300);
                 }
         });
 
@@ -980,16 +964,31 @@
 
     function addInvoiceEntryToTable(entry) {
         const contactName = entry.contact_name || 'N/A';
+        const idrCurrencyId = {{ $idrCurrencyId }};
+        const accountCurrencyId = $('#account_type_id_beginning_balance').data('currency-id') || null;
+        const isForeignCurrency = accountCurrencyId && accountCurrencyId != idrCurrencyId;
+        const idrValue = entry.idr_value || '';
+        
+        let idrCell = '';
+        if (isForeignCurrency) {
+            idrCell = `<td><input type="number" step="0.01" class="form-control form-control-sm" value="${idrValue}" onchange="updateInvoiceEntryField('${entry.id}', 'idr_value', this.value)"></td>`;
+        }
+        
         const row = `
             <tr data-entry-id="${entry.id}">
-                <td>${entry.number}</td>
-                <td>${entry.date}</td>
-                <td>${contactName}</td>
-                <td>${entry.value.toLocaleString()}</td>
+                <td><input type="number" min="1" step="1" class="form-control form-control-sm" value="${entry.number}" onchange="updateInvoiceEntryField('${entry.id}', 'number', this.value)"></td>
+                <td><input type="date" class="form-control form-control-sm" value="${entry.date}" onchange="updateInvoiceEntryField('${entry.id}', 'date', this.value)"></td>
                 <td>
-                    <button type="button" class="btn btn-sm btn-warning" onclick="editInvoiceEntry('${entry.id}')">
-                        <i class="fe fe-edit"></i>
-                    </button>
+                    <select class="form-control form-control-sm select2" onchange="updateInvoiceEntryField('${entry.id}', 'contact_id', this.value); updateInvoiceEntryField('${entry.id}', 'contact_name', this.options[this.selectedIndex].text)">
+                        <option value="">Choose One</option>
+                        @foreach ($customers as $customer)
+                            <option value="{{ $customer->id }}" ${String(entry.contact_id) === '{{ $customer->id }}' ? 'selected' : ''}>{{ $customer->customer_name }}</option>
+                        @endforeach
+                    </select>
+                </td>
+                <td><input type="number" step="0.01" class="form-control form-control-sm" value="${entry.value}" onchange="updateInvoiceEntryField('${entry.id}', 'value', this.value)"></td>
+                ${idrCell}
+                <td>
                     <button type="button" class="btn btn-sm btn-danger" onclick="deleteInvoiceEntry('${entry.id}')">
                         <i class="fe fe-trash-2"></i>
                     </button>
@@ -997,31 +996,54 @@
             </tr>
         `;
         $('#invoice_table_body').append(row);
+        
+        // Initialize select2 for the new row after DOM is ready
+        setTimeout(function() {
+            const selectElement = $(`tr[data-entry-id="${entry.id}"] select`);
+            if (selectElement.length && typeof $.fn.select2 !== 'undefined') {
+                selectElement.select2({
+                    dropdownParent: $('#createBeginningBalance'),
+                    width: '100%',
+                    minimumResultsForSearch: Infinity
+                });
+            }
+        }, 100);
     }
 
-    function editInvoiceEntry(entryId) {
+    function updateInvoiceEntryField(entryId, field, value) {
         const entry = invoiceEntries.find(e => e.id == entryId || e.id == parseInt(entryId));
         if (entry) {
-            const idrCurrencyId = {{ $idrCurrencyId }};
-            const accountCurrencyId = $('#account_type_id_beginning_balance').data('currency-id') || null;
-            const isForeignCurrency = accountCurrencyId && accountCurrencyId != idrCurrencyId;
-            
-            $('#id_ar_ap').val(entry.id);
-            $('#edit_type').val("invoice");
-            $('#number_edit_beginning_balance').val(entry.number);
-            $('#date_edit_beginning_balance').val(entry.date);
-            $('#value_edit_beginning_balance').val(entry.value);
-            
-            // Show/hide IDR field based on currency
-            if (isForeignCurrency) {
-                $('#idr_value_edit_field').show();
-                $('#idr_value_edit_beginning_balance').val(entry.idr_value || '');
-            } else {
-                $('#idr_value_edit_field').hide();
-                $('#idr_value_edit_beginning_balance').val('');
+            // Validate date if it's a date field
+            if (field === 'date') {
+                @if($startEntryPeriodDate)
+                const startPeriodDate = new Date('{{ $startEntryPeriodDate }}');
+                const transactionDate = new Date(value);
+                if (transactionDate >= startPeriodDate) {
+                    alert('Transaction date must be before start entry period ({{ \Carbon\Carbon::parse($startEntryPeriodDate)->format('d/m/Y') }})!');
+                    // Revert to original value
+                    $(`tr[data-entry-id="${entryId}"] input[type="date"]`).val(entry.date);
+                    return;
+                }
+                @endif
             }
             
-            $('#modal-edit-beginning-balance').modal('show');
+            // Update the entry
+            if (field === 'value') {
+                entry[field] = parseFloat(value) || 0;
+            } else if (field === 'idr_value') {
+                entry[field] = value ? parseFloat(value) : null;
+            } else if (field === 'number') {
+                entry[field] = value;
+            } else if (field === 'date') {
+                entry[field] = value;
+            } else if (field === 'contact_id') {
+                entry[field] = value;
+            } else if (field === 'contact_name') {
+                entry[field] = value;
+            }
+            
+            // Update hidden field
+            updateInvoiceEntriesHiddenField();
         }
     }
 
@@ -1089,16 +1111,31 @@
 
     function addAPEntryToTable(entry) {
         const vendorName = entry.vendor_name || 'N/A';
+        const idrCurrencyId = {{ $idrCurrencyId }};
+        const accountCurrencyId = $('#account_type_id_beginning_balance').data('currency-id') || null;
+        const isForeignCurrency = accountCurrencyId && accountCurrencyId != idrCurrencyId;
+        const idrValue = entry.idr_value || '';
+        
+        let idrCell = '';
+        if (isForeignCurrency) {
+            idrCell = `<td><input type="number" step="0.01" class="form-control form-control-sm" value="${idrValue}" onchange="updateAPEntryField('${entry.id}', 'idr_value', this.value)"></td>`;
+        }
+        
         const row = `
             <tr data-entry-id="${entry.id}">
-                <td>${entry.number}</td>
-                <td>${entry.date}</td>
-                <td>${vendorName}</td>
-                <td>${entry.value.toLocaleString()}</td>
+                <td><input type="text" class="form-control form-control-sm" value="${entry.number}" onchange="updateAPEntryField('${entry.id}', 'number', this.value)"></td>
+                <td><input type="date" class="form-control form-control-sm" value="${entry.date}" onchange="updateAPEntryField('${entry.id}', 'date', this.value)"></td>
                 <td>
-                    <button type="button" class="btn btn-sm btn-warning" onclick="editAPEntry('${entry.id}')">
-                        <i class="fe fe-edit"></i>
-                    </button>
+                    <select class="form-control form-control-sm select2" onchange="updateAPEntryField('${entry.id}', 'vendor_id', this.value); updateAPEntryField('${entry.id}', 'vendor_name', this.options[this.selectedIndex].text)">
+                        <option value="">Choose One</option>
+                        @foreach ($vendors as $vendor)
+                            <option value="{{ $vendor->id }}" ${String(entry.vendor_id) === '{{ $vendor->id }}' ? 'selected' : ''}>{{ $vendor->customer_name }}</option>
+                        @endforeach
+                    </select>
+                </td>
+                <td><input type="number" step="0.01" class="form-control form-control-sm" value="${entry.value}" onchange="updateAPEntryField('${entry.id}', 'value', this.value)"></td>
+                ${idrCell}
+                <td>
                     <button type="button" class="btn btn-sm btn-danger" onclick="deleteAPEntry('${entry.id}')">
                         <i class="fe fe-trash-2"></i>
                     </button>
@@ -1106,31 +1143,54 @@
             </tr>
         `;
         $('#ap_table_body').append(row);
+        
+        // Initialize select2 for the new row after DOM is ready
+        setTimeout(function() {
+            const selectElement = $(`tr[data-entry-id="${entry.id}"] select`);
+            if (selectElement.length && typeof $.fn.select2 !== 'undefined') {
+                selectElement.select2({
+                    dropdownParent: $('#createBeginningBalance'),
+                    width: '100%',
+                    minimumResultsForSearch: Infinity
+                });
+            }
+        }, 100);
     }
 
-    function editAPEntry(entryId) {
+    function updateAPEntryField(entryId, field, value) {
         const entry = apEntries.find(e => e.id == entryId || e.id == parseInt(entryId));
         if (entry) {
-            const idrCurrencyId = {{ $idrCurrencyId }};
-            const accountCurrencyId = $('#account_type_id_beginning_balance').data('currency-id') || null;
-            const isForeignCurrency = accountCurrencyId && accountCurrencyId != idrCurrencyId;
-            
-            $('#id_ar_ap').val(entry.id);
-            $('#edit_type').val("ap");
-            $('#number_edit_beginning_balance').val(entry.number);
-            $('#date_edit_beginning_balance').val(entry.date);
-            $('#value_edit_beginning_balance').val(entry.value);
-            
-            // Show/hide IDR field based on currency
-            if (isForeignCurrency) {
-                $('#idr_value_edit_field').show();
-                $('#idr_value_edit_beginning_balance').val(entry.idr_value || '');
-            } else {
-                $('#idr_value_edit_field').hide();
-                $('#idr_value_edit_beginning_balance').val('');
+            // Validate date if it's a date field
+            if (field === 'date') {
+                @if($startEntryPeriodDate)
+                const startPeriodDate = new Date('{{ $startEntryPeriodDate }}');
+                const transactionDate = new Date(value);
+                if (transactionDate >= startPeriodDate) {
+                    alert('Transaction date must be before start entry period ({{ \Carbon\Carbon::parse($startEntryPeriodDate)->format('d/m/Y') }})!');
+                    // Revert to original value
+                    $(`tr[data-entry-id="${entryId}"] input[type="date"]`).val(entry.date);
+                    return;
+                }
+                @endif
             }
             
-            $('#modal-edit-beginning-balance').modal('show');
+            // Update the entry
+            if (field === 'value') {
+                entry[field] = parseFloat(value) || 0;
+            } else if (field === 'idr_value') {
+                entry[field] = value ? parseFloat(value) : null;
+            } else if (field === 'number') {
+                entry[field] = value;
+            } else if (field === 'date') {
+                entry[field] = value;
+            } else if (field === 'vendor_id') {
+                entry[field] = value;
+            } else if (field === 'vendor_name') {
+                entry[field] = value;
+            }
+            
+            // Update hidden field
+            updateAPEntriesHiddenField();
         }
     }
 
@@ -1156,20 +1216,5 @@
         window.location.href = url.toString();
     });
 
-    // Validate date before submit edit beginning balance form
-    $('#form-edit-beginning-balance').on('submit', function(e) {
-        const date = $('#date_edit_beginning_balance').val();
-        @if($startEntryPeriodDate)
-        if (date) {
-            const startPeriodDate = new Date('{{ $startEntryPeriodDate }}');
-            const transactionDate = new Date(date);
-            if (transactionDate >= startPeriodDate) {
-                e.preventDefault();
-                alert('Transaction date must be before start entry period ({{ \Carbon\Carbon::parse($startEntryPeriodDate)->format('d/m/Y') }})!');
-                return false;
-            }
-        }
-        @endif
-    });
     </script>
 @endpush

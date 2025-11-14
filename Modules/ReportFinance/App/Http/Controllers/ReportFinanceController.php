@@ -47,14 +47,20 @@ class ReportFinanceController extends Controller
         $masterAccounts = MasterAccount::query()
             ->where('master_currency_id', $currency)
             ->whereHas('balance_accounts', function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('date', [$startDate, $endDate]);
+                $q->where(function($query) use ($startDate, $endDate) {
+                    $query->whereBetween('date', [$startDate, $endDate])
+                          ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                });
             })
 
             // Eager load relasi (biar akses di Blade gampang & tanpa N+1)
             ->with([
                 'balance_accounts' => function ($q) use ($startDate, $endDate, $currency) {
-                    $q->whereBetween('date', [$startDate, $endDate])
-                    ->where('currency_id', $currency)
+                    $q->where('currency_id', $currency)
+                    ->where(function($query) use ($startDate, $endDate) {
+                        $query->whereBetween('date', [$startDate, $endDate])
+                              ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                    })
                     ->orderBy('date', 'asc')
                     ->orderBy('id', 'asc');
                 },
@@ -82,9 +88,9 @@ class ReportFinanceController extends Controller
         };
 
         $groupedData = $masterAccounts->map(function ($acc) use ($startDate, $calcRunning, $currency) {
-        // 3) Opening balance (sebelum periode)
+        // 3) Opening balance - ambil semua saldo awal (transaction_type_id = 1) tanpa filter period
         $opening = $acc->balance_accounts()
-            ->where('date', '<', $startDate)
+            ->where('transaction_type_id', 1)
             ->where('currency_id', $currency)
             ->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')
             ->first();
@@ -323,12 +329,18 @@ class ReportFinanceController extends Controller
         $account = AccountType::whereHas('master_accounts', function ($query) use ($currency, $startDate, $endDate) {
             $query->where('master_currency_id', $currency)
                   ->whereHas('balance_accounts', function ($query) use ($startDate, $endDate) {
-                      $query->whereBetween('date', [$startDate, $endDate]);
+                      $query->where(function($q) use ($startDate, $endDate) {
+                          $q->whereBetween('date', [$startDate, $endDate])
+                            ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                      });
                   });
         })->with(['master_accounts' => function ($query) use ($currency, $startDate, $endDate) {
             $query->where('master_currency_id', $currency)
                   ->with(['balance_accounts' => function ($query) use ($startDate, $endDate) {
-                      $query->whereBetween('date', [$startDate, $endDate]);
+                      $query->where(function($q) use ($startDate, $endDate) {
+                          $q->whereBetween('date', [$startDate, $endDate])
+                            ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                      });
                   }]);
         }])->get();
 
@@ -384,13 +396,19 @@ class ReportFinanceController extends Controller
             return AccountType::whereHas('master_accounts', function ($query) use ($currency_id, $startDate, $endDate) {
                 $query
                     ->whereHas('balance_accounts', function ($query) use ($startDate, $endDate, $currency_id) {
-                        $query->whereBetween('date', [$startDate, $endDate])
-                        ->where('currency_id', $currency_id);
+                        $query->where('currency_id', $currency_id)
+                        ->where(function($q) use ($startDate, $endDate) {
+                            $q->whereBetween('date', [$startDate, $endDate])
+                              ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                        });
                     });
             })->with(['master_accounts' => function ($query) use ($currency_id, $startDate, $endDate) {
                 $query->with(['balance_accounts' => function ($query) use ($startDate, $endDate, $currency_id) {
-                        $query->whereBetween('date', [$startDate, $endDate])
-                        ->where('currency_id', $currency_id);
+                        $query->where('currency_id', $currency_id)
+                        ->where(function($q) use ($startDate, $endDate) {
+                            $q->whereBetween('date', [$startDate, $endDate])
+                              ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                        });
                     }]);
             }])
             ->where('code', $code)
@@ -451,12 +469,18 @@ class ReportFinanceController extends Controller
     {
         // Get all accounts that have balance_accounts in IDR (currency passed is IDR)
         $masterAccounts = MasterAccount::whereHas('balance_accounts', function ($query) use ($startDate, $endDate, $currency) {
-            $query->whereBetween('date', [$startDate, $endDate])
-                  ->where('currency_id', $currency);
+            $query->where('currency_id', $currency)
+                  ->where(function($q) use ($startDate, $endDate) {
+                      $q->whereBetween('date', [$startDate, $endDate])
+                        ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                  });
         })
         ->with(['balance_accounts' => function ($query) use ($startDate, $endDate, $currency) {
-            $query->whereBetween('date', [$startDate, $endDate])
-                  ->where('currency_id', $currency);
+            $query->where('currency_id', $currency)
+                  ->where(function($q) use ($startDate, $endDate) {
+                      $q->whereBetween('date', [$startDate, $endDate])
+                        ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                  });
         }, 'currency'])
         ->get();
 
@@ -619,14 +643,21 @@ class ReportFinanceController extends Controller
             ->get()
             ->filter(function($detail) use ($endDate, $currency) {
                 // Check if account has IDR balance or foreign currency balance
+                // Include saldo awal (transaction_type_id = 1) tanpa filter period
                 $hasIDRBalance = BalanceAccount::where('master_account_id', $detail->id)
-                    ->where('date', '<=', $endDate)
                     ->where('currency_id', $currency)
+                    ->where(function($q) use ($endDate) {
+                        $q->where('date', '<=', $endDate)
+                          ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                    })
                     ->exists();
                 
                 $hasForeignBalance = BalanceAccount::where('master_account_id', $detail->id)
-                    ->where('date', '<=', $endDate)
                     ->where('currency_id', $detail->master_currency_id)
+                    ->where(function($q) use ($endDate) {
+                        $q->where('date', '<=', $endDate)
+                          ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                    })
                     ->exists();
                 
                 return $hasIDRBalance || $hasForeignBalance;
@@ -712,14 +743,21 @@ class ReportFinanceController extends Controller
             ->get()
             ->filter(function($detail) use ($endDate, $currency) {
                 // Check if account has IDR balance or foreign currency balance
+                // Include saldo awal (transaction_type_id = 1) tanpa filter period
                 $hasIDRBalance = BalanceAccount::where('master_account_id', $detail->id)
-                    ->where('date', '<=', $endDate)
                     ->where('currency_id', $currency)
+                    ->where(function($q) use ($endDate) {
+                        $q->where('date', '<=', $endDate)
+                          ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                    })
                     ->exists();
                 
                 $hasForeignBalance = BalanceAccount::where('master_account_id', $detail->id)
-                    ->where('date', '<=', $endDate)
                     ->where('currency_id', $detail->master_currency_id)
+                    ->where(function($q) use ($endDate) {
+                        $q->where('date', '<=', $endDate)
+                          ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+                    })
                     ->exists();
                 
                 return $hasIDRBalance || $hasForeignBalance;
@@ -804,10 +842,13 @@ class ReportFinanceController extends Controller
 
     private function calculateAccountBalance($account, $startDate, $endDate, $currency, $isNegative = false)
     {
-        // Get all balance accounts up to end date
+        // Get all balance accounts up to end date, include saldo awal (transaction_type_id = 1) tanpa filter period
         $allBalances = BalanceAccount::where('master_account_id', $account->id)
             ->where('currency_id', $currency)
-            ->where('date', '<=', $endDate)
+            ->where(function($query) use ($endDate) {
+                $query->where('date', '<=', $endDate)
+                      ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
+            })
             ->get();
         
         // Get normal side
