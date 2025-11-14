@@ -428,12 +428,13 @@
                         <form class="standardForm" action="{{ route('finance.report-finance.neraca') }}" method="GET" enctype="multipart/form-data">
 
                             <div class="row d-flex justify-content-center align-items-center flex-column">
-                                <label for="">Pick date:</label>
-                                <div class="d-flex justify-content-around align-items-center">
-                                    <input type="text" id="start_datepicker_neraca_balance" name="start_date_neraca_balance" style="width: 200px; text-align: center; border: 1px solid #D8D8DC;">
-                                    <div style="margin-top: 2px;">-</div>
-                                    <input type="text" id="end_datepicker_neraca_balance" name="end_date_neraca_balance" style="width: 200px; text-align: center; border: 1px solid #D8D8DC;">
-                                </div>
+                                <label for="">Fiscal Period:</label>
+                                <select name="fiscal_period_neraca" id="fiscal_period_neraca" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
+                                    <option label="Choose one" value="" selected disabled></option>
+                                    @foreach($fiscalPeriods as $period)
+                                        <option value="{{$period->id}}">{{$period->period}} ({{ \Carbon\Carbon::parse($period->start_date)->format('d M Y') }} - {{ \Carbon\Carbon::parse($period->end_date)->format('d M Y') }})</option>
+                                    @endforeach
+                                </select>
                             </div>
                             <br><br>
                             <div class="mt-3" style="text-align: right">
@@ -491,12 +492,13 @@
                                         <option value="{{$data->id}}">{{$data->initial}}</option>
                                     @endforeach
                                 </select>
-                                <label for="">Pick date:</label>
-                                <div class="d-flex justify-content-around align-items-center">
-                                    <input type="text" id="start_datepicker_profit_loss" name="start_date_profit_loss" style="width: 200px; text-align: center; border: 1px solid #D8D8DC;">
-                                    <div style="margin-top: 2px;">-</div>
-                                    <input type="text" id="end_datepicker_profit_loss" name="end_date_profit_loss" style="width: 200px; text-align: center; border: 1px solid #D8D8DC;">
-                                </div>
+                                <label for="">Fiscal Period:</label>
+                                <select name="fiscal_period_laba_rugi" id="fiscal_period_laba_rugi" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
+                                    <option label="Choose one" value="" selected disabled></option>
+                                    @foreach($fiscalPeriods as $period)
+                                        <option value="{{$period->id}}">{{$period->period}} ({{ \Carbon\Carbon::parse($period->start_date)->format('d M Y') }} - {{ \Carbon\Carbon::parse($period->end_date)->format('d M Y') }})</option>
+                                    @endforeach
+                                </select>
                             </div>
                             <br><br>
                             <div class="mt-3" style="text-align: right">
@@ -637,11 +639,7 @@
         $("#start_datepicker_neraca").datepicker();
         $("#end_datepicker_neraca").datepicker();
 
-        $("#start_datepicker_neraca_balance").datepicker();
-        $("#end_datepicker_neraca_balance").datepicker();
 
-        $("#start_datepicker_profit_loss").datepicker();
-        $("#end_datepicker_profit_loss").datepicker();
 
         $("#start_datepicker_laporan_rekening").datepicker();
         $("#end_datepicker_laporan_rekening").datepicker();
@@ -667,5 +665,6 @@
             standardBtn.style.borderBottom = 'none';
         }
     }
+
 </script>
 @endpush

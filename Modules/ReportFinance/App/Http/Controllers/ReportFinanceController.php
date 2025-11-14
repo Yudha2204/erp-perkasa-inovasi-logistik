@@ -12,11 +12,9 @@ use Modules\FinanceDataMaster\App\Models\AccountType;
 use Modules\FinanceDataMaster\App\Models\BalanceAccount;
 use Modules\FinanceDataMaster\App\Models\MasterAccount;
 use Modules\FinanceDataMaster\App\Models\TransactionType;
-use Modules\ReportFinance\App\Models\Sao;
-use Modules\FinancePiutang\App\Models\InvoiceHead;
-use Modules\FinancePayments\App\Models\OrderHead;
 use Modules\FinancePiutang\App\Models\RecieveDetail;
 use Modules\FinancePayments\App\Models\PaymentDetail;
+use Modules\FinanceDataMaster\App\Models\FiscalPeriod;
 
 class ReportFinanceController extends Controller
 {
@@ -38,10 +36,11 @@ class ReportFinanceController extends Controller
     public function index()
     {
         $currency = MasterCurrency::all();
-        return view('reportfinance::index', compact('currency'));
+        $fiscalPeriods = FiscalPeriod::all();
+        return view('reportfinance::index', compact('currency', 'fiscalPeriods'));
     }
 
-    private function BukuBesarFilter($startDate, $endDate, $currency)
+    public function BukuBesarFilter($startDate, $endDate, $currency)
     {
         // 1) Ambil akun + baris ledger di periode, sudah DIURUTKAN
         $masterAccounts = MasterAccount::query()
@@ -354,7 +353,6 @@ class ReportFinanceController extends Controller
         $currency_id = $request->currency;
         $start_datepicker = $request->start_date_profit_loss;
         $end_datepicker = $request->end_date_profit_loss;
-
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
         if($start_datepicker){
@@ -467,23 +465,75 @@ class ReportFinanceController extends Controller
 
     private function NeracaSaldoFilter($startDate, $endDate, $currency, $foreign_currency = false)
     {
-        // Get all accounts that have balance_accounts in IDR (currency passed is IDR)
-        $masterAccounts = MasterAccount::whereHas('balance_accounts', function ($query) use ($startDate, $endDate, $currency) {
-            $query->where('currency_id', $currency)
-                  ->where(function($q) use ($startDate, $endDate) {
-                      $q->whereBetween('date', [$startDate, $endDate])
-                        ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
-                  });
-        })
-        ->with(['balance_accounts' => function ($query) use ($startDate, $endDate, $currency) {
-            $query->where('currency_id', $currency)
-                  ->where(function($q) use ($startDate, $endDate) {
-                      $q->whereBetween('date', [$startDate, $endDate])
-                        ->orWhere('transaction_type_id', 1); // Include saldo awal tanpa filter period
-                  });
-        }, 'currency'])
-        ->get();
+        // Get IDR currency for comparison
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
 
+        // Query untuk mendapatkan MasterAccount dengan agregasi data balance_accounts
+        // Menggunakan JOIN untuk menghindari N+1 query
+        // Saldo awal = saldo awal (transaction_type_id = 1) + semua mutasi sebelum startDate
+        // Mutasi = semua mutasi dalam periode (startDate sampai endDate, transaction_type_id != 1)
+        $masterAccounts = MasterAccount::select('master_account.*')
+            ->selectRaw('
+                COALESCE(SUM(CASE 
+                    WHEN balance_account_data.currency_id = ? 
+                    AND (
+                        balance_account_data.transaction_type_id = 1 
+                        OR (balance_account_data.transaction_type_id != 1 AND balance_account_data.date < ?)
+                    )
+                    THEN balance_account_data.debit ELSE 0 END), 0) as saldo_awal_debit,
+                COALESCE(SUM(CASE 
+                    WHEN balance_account_data.currency_id = ? 
+                    AND (
+                        balance_account_data.transaction_type_id = 1 
+                        OR (balance_account_data.transaction_type_id != 1 AND balance_account_data.date < ?)
+                    )
+                    THEN balance_account_data.credit ELSE 0 END), 0) as saldo_awal_credit,
+                COALESCE(SUM(CASE 
+                    WHEN balance_account_data.currency_id = ? 
+                    AND balance_account_data.transaction_type_id != 1
+                    AND balance_account_data.date >= ? 
+                    AND balance_account_data.date <= ?
+                    THEN balance_account_data.debit ELSE 0 END), 0) as mutasi_debit,
+                COALESCE(SUM(CASE 
+                    WHEN balance_account_data.currency_id = ? 
+                    AND balance_account_data.transaction_type_id != 1
+                    AND balance_account_data.date >= ? 
+                    AND balance_account_data.date <= ?
+                    THEN balance_account_data.credit ELSE 0 END), 0) as mutasi_credit
+            ', [
+                $currency, $startDate, // saldo awal debit
+                $currency, $startDate, // saldo awal credit
+                $currency, $startDate, $endDate, // mutasi debit
+                $currency, $startDate, $endDate, // mutasi credit
+            ])
+            ->leftJoin('balance_account_data', function($join) use ($currency, $startDate, $endDate) {
+                $join->on('master_account.id', '=', 'balance_account_data.master_account_id')
+                     ->where('balance_account_data.currency_id', $currency)
+                     ->where(function($q) use ($startDate, $endDate) {
+                         // Include saldo awal (transaction_type_id = 1) tanpa filter period
+                         $q->where('balance_account_data.transaction_type_id', 1)
+                           // Include mutasi sebelum periode untuk saldo awal
+                           ->orWhere(function($beforeQ) use ($startDate) {
+                               $beforeQ->where('balance_account_data.transaction_type_id', '!=', 1)
+                                        ->where('balance_account_data.date', '<', $startDate);
+                           })
+                           // Include mutasi dalam periode
+                           ->orWhere(function($periodQ) use ($startDate, $endDate) {
+                               $periodQ->where('balance_account_data.transaction_type_id', '!=', 1)
+                                       ->whereBetween('balance_account_data.date', [$startDate, $endDate]);
+                           });
+                     })
+                     ->whereNull('balance_account_data.deleted_at');
+            })
+            ->groupBy('master_account.id')
+            ->havingRaw('(saldo_awal_debit > 0 OR saldo_awal_credit > 0 OR mutasi_debit > 0 OR mutasi_credit > 0)')
+            ->get();
+
+        // Load currency relation untuk semua account sekaligus (batch loading)
+        $currencyIds = $masterAccounts->pluck('master_currency_id')->unique()->filter();
+        $currencies = MasterCurrency::whereIn('id', $currencyIds)->get()->keyBy('id');
+        
+        // Attach currency dan hitung data untuk setiap account
         $footer = [
             'saldoAwalDebit' => 0,
             'saldoAwalKredit' => 0,
@@ -494,20 +544,28 @@ class ReportFinanceController extends Controller
             'saldoAkhirKredit' => 0,
         ];
 
-        // Get IDR currency for comparison
-        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        foreach ($masterAccounts as $ma) {
+            // Attach currency relation
+            if ($ma->master_currency_id && isset($currencies[$ma->master_currency_id])) {
+                $ma->setRelation('currency', $currencies[$ma->master_currency_id]);
+            }
 
-        foreach ($masterAccounts as $ma ) {
-            // Get IDR data
-            $saldoAwal = $ma->getDebitKreditSaldoAwal($currency);
-            $footer['saldoAwalDebit'] += $saldoAwal["debit"];
-            $footer['saldoAwalKredit'] += $saldoAwal["kredit"];
+            // Get calculated values from query
+            $saldoAwalDebit = (float) $ma->saldo_awal_debit;
+            $saldoAwalCredit = (float) $ma->saldo_awal_credit;
+            $mutasiDebit = (float) $ma->mutasi_debit;
+            $mutasiCredit = (float) $ma->mutasi_credit;
 
-            $data = $ma->getDebitKreditAll($startDate, $endDate, $currency);
-            $footer['mutasDebit'] += $data["debit"];
-            $footer['mutasKredit'] += $data["kredit"];
+            // Calculate net mutation
+            $saldoAwalNet = $saldoAwalDebit - $saldoAwalCredit;
+            $mutasiNet = $mutasiDebit - $mutasiCredit;
+            $netMutation = $saldoAwalNet + $mutasiNet;
 
-            $netMutation = $ma->getNetMutation($startDate, $endDate, $currency);
+            // Add to footer
+            $footer['saldoAwalDebit'] += $saldoAwalDebit;
+            $footer['saldoAwalKredit'] += $saldoAwalCredit;
+            $footer['mutasDebit'] += $mutasiDebit;
+            $footer['mutasKredit'] += $mutasiCredit;
             $footer['netMutasi'] += $netMutation;
 
             // If netMutation is positive, it's a debit balance (goes to Debit column)
@@ -518,23 +576,85 @@ class ReportFinanceController extends Controller
                 $footer['saldoAkhirKredit'] += abs($netMutation);
             }
 
+            // Store calculated values as attributes for view
+            $ma->saldo_awal = [
+                'debit' => $saldoAwalDebit,
+                'kredit' => $saldoAwalCredit,
+            ];
+            $ma->mutasi = [
+                'debit' => $mutasiDebit,
+                'kredit' => $mutasiCredit,
+            ];
+            $ma->net_mutation = $netMutation;
+
             // If foreign currency is checked and account is not IDR, get foreign currency data
             if ($foreign_currency && $ma->master_currency_id != $idrCurrency->id) {
-                // Check if account has balance_accounts in foreign currency
-                $hasForeignCurrencyData = BalanceAccount::where('master_account_id', $ma->id)
-                    ->where('currency_id', $ma->master_currency_id)
-                    ->where(function($q) use ($startDate, $endDate) {
-                        $q->whereBetween('date', [$startDate, $endDate])
-                          ->orWhere('transaction_type_id', 1); // Include opening balance
-                    })
-                    ->exists();
-                
-                if ($hasForeignCurrencyData) {
+                // Query untuk foreign currency data dengan logika yang sama
+                $foreignData = BalanceAccount::selectRaw('
+                    COALESCE(SUM(CASE 
+                        WHEN currency_id = ? 
+                        AND (
+                            transaction_type_id = 1 
+                            OR (transaction_type_id != 1 AND date < ?)
+                        )
+                        THEN debit ELSE 0 END), 0) as saldo_awal_debit,
+                    COALESCE(SUM(CASE 
+                        WHEN currency_id = ? 
+                        AND (
+                            transaction_type_id = 1 
+                            OR (transaction_type_id != 1 AND date < ?)
+                        )
+                        THEN credit ELSE 0 END), 0) as saldo_awal_credit,
+                    COALESCE(SUM(CASE 
+                        WHEN currency_id = ? 
+                        AND transaction_type_id != 1
+                        AND date >= ? 
+                        AND date <= ?
+                        THEN debit ELSE 0 END), 0) as mutasi_debit,
+                    COALESCE(SUM(CASE 
+                        WHEN currency_id = ? 
+                        AND transaction_type_id != 1
+                        AND date >= ? 
+                        AND date <= ?
+                        THEN credit ELSE 0 END), 0) as mutasi_credit
+                ', [
+                    $ma->master_currency_id, $startDate,
+                    $ma->master_currency_id, $startDate,
+                    $ma->master_currency_id, $startDate, $endDate,
+                    $ma->master_currency_id, $startDate, $endDate,
+                ])
+                ->where('master_account_id', $ma->id)
+                ->where('currency_id', $ma->master_currency_id)
+                ->where(function($q) use ($startDate, $endDate) {
+                    $q->where('transaction_type_id', 1)
+                      ->orWhere(function($beforeQ) use ($startDate) {
+                          $beforeQ->where('transaction_type_id', '!=', 1)
+                                   ->where('date', '<', $startDate);
+                      })
+                      ->orWhere(function($periodQ) use ($startDate, $endDate) {
+                          $periodQ->where('transaction_type_id', '!=', 1)
+                                  ->whereBetween('date', [$startDate, $endDate]);
+                      });
+                })
+                ->whereNull('deleted_at')
+                ->first();
+
+                if ($foreignData && ($foreignData->saldo_awal_debit > 0 || $foreignData->saldo_awal_credit > 0 || $foreignData->mutasi_debit > 0 || $foreignData->mutasi_credit > 0)) {
+                    $foreignSaldoAwalNet = $foreignData->saldo_awal_debit - $foreignData->saldo_awal_credit;
+                    $foreignMutasiNet = $foreignData->mutasi_debit - $foreignData->mutasi_credit;
+                    $foreignNetMutation = $foreignSaldoAwalNet + $foreignMutasiNet;
+
                     $ma->foreign_currency_data = [
                         'currency' => $ma->currency,
-                        'saldoAwal' => $ma->getDebitKreditSaldoAwal($ma->master_currency_id),
-                        'data' => $ma->getDebitKreditAll($startDate, $endDate, $ma->master_currency_id),
-                        'netMutation' => $ma->getNetMutation($startDate, $endDate, $ma->master_currency_id),
+                        'saldoAwal' => [
+                            'debit' => (float) $foreignData->saldo_awal_debit,
+                            'kredit' => (float) $foreignData->saldo_awal_credit,
+                        ],
+                        'data' => [
+                            'debit' => (float) $foreignData->mutasi_debit,
+                            'kredit' => (float) $foreignData->mutasi_credit,
+                        ],
+                        'netMutation' => $foreignNetMutation,
                     ];
                 }
             }
@@ -564,16 +684,13 @@ class ReportFinanceController extends Controller
             $yearTrialBalance["data"][] = $monthTrialBalance["masterAccounts"];
             $yearTrialBalance["total"][] = $monthTrialBalance["footer"];
         }
-
         return view('reportfinance::neraca-saldo.year', compact('idrCurrency', 'yearTrialBalance', 'year', 'foreign_currency'));
     }
 
     public function Neraca(Request $request)
     {
-        $currency_id = $request->currency;
-        $start_datepicker = $request->start_date_neraca_balance;
-        $end_datepicker = $request->end_date_neraca_balance;
-
+        $start_datepicker = $request->start_date_neraca;
+        $end_datepicker = $request->end_date_neraca;
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
         if($start_datepicker){

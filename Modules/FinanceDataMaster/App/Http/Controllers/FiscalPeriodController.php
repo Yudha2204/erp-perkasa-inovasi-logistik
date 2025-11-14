@@ -246,11 +246,16 @@ class FiscalPeriodController extends Controller
      */
     public function destroy($id): RedirectResponse
     {
-        $fiscalPeriod = FiscalPeriod::findOrFail($id);
-        $fiscalPeriod->delete();
+        if (fiscalPeriod::where('id', $id)->where('status', 'open')->exists()) {
+            $fiscalPeriod = FiscalPeriod::findOrFail($id);
+            $fiscalPeriod->forceDelete();
 
-        return redirect()->route('finance.master-data.fiscal-period.index')
-            ->with('success', 'Fiscal period deleted successfully.');
+            return redirect()->route('finance.master-data.fiscal-period.index')
+                ->with('success', 'Fiscal period deleted successfully.');
+        } else {
+            return redirect()->route('finance.master-data.fiscal-period.index')
+                ->with('error', 'cannot delete fiscal period that is closed.');
+        }
     }
 
     /**
