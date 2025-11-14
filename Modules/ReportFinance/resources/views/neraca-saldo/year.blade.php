@@ -124,13 +124,13 @@
                                                 
                                                 {{-- Saldo Akhir --}}
                                                 @php
-                                                    $debitSaldoAkhir = "(0)";
+                                                    $debitSaldoAkhir = "0";
                                                     $kreditSaldoAkhir = "0";
                                                     
-                                                    if ($netMutation < 0) {
-                                                        $debitSaldoAkhir = '(' . abs($netMutation) . ')';
+                                                    if ($netMutation >= 0) {
+                                                        $debitSaldoAkhir = $netMutation;
                                                     } else {
-                                                        $kreditSaldoAkhir = $netMutation;
+                                                        $kreditSaldoAkhir = abs($netMutation);
                                                     }
                                                 @endphp
                                                 <td>{{ $debitSaldoAkhir }}</td>
@@ -145,14 +145,14 @@
                                                     $fcDebitSaldoAwal = '(' . $fcData['saldoAwal']["debit"] . ')';
                                                     $fcKreditSaldoAwal = $fcData['saldoAwal']["kredit"];
                                                     $fcNetMutation = $fcData['netMutation'];
-                                                    if ($fcNetMutation < 0) {
-                                                        $fcHasil = '(' . abs($fcNetMutation) . ')';
-                                                        $fcDebitSaldoAkhir = '(' . abs($fcNetMutation) . ')';
+                                                    if ($fcNetMutation >= 0) {
+                                                        $fcHasil = $fcNetMutation;
+                                                        $fcDebitSaldoAkhir = $fcNetMutation;
                                                         $fcKreditSaldoAkhir = "0";
                                                     } else {
-                                                        $fcHasil = $fcNetMutation;
-                                                        $fcDebitSaldoAkhir = "(0)";
-                                                        $fcKreditSaldoAkhir = $fcNetMutation;
+                                                        $fcHasil = '(' . abs($fcNetMutation) . ')';
+                                                        $fcDebitSaldoAkhir = "0";
+                                                        $fcKreditSaldoAkhir = abs($fcNetMutation);
                                                     }
                                                 @endphp
                                                 <tr style="background-color: #f0f0f0;">

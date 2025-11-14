@@ -29,7 +29,7 @@ class AccountDataController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function searchFilterIndex($search){
+    public function searchFilterIndex($search, $pageSize = 10){
         $index = MasterAccount::query()->with(['balance_accounts', 'account_type']);
 
         if($search) {
@@ -38,17 +38,18 @@ class AccountDataController extends Controller
             ->orWhere('account_name','like',"%".$search."%");
         }
 
-        return $index->paginate(10);
+        return $index->paginate($pageSize);
     }
 
     public function index(Request $request)
     {
         $search = $request->get('search');
+        $pageSize = $request->get('pageSize') ?? 10;
 
         if ($search) {
-            $accounts = $this->searchFilterIndex($search);
+            $accounts = $this->searchFilterIndex($search, $pageSize);
         } else {
-            $accounts = MasterAccount::orderBy('id', 'ASC')->with(['balance_accounts', 'account_type'])->paginate(10);
+            $accounts = MasterAccount::orderBy('code', 'ASC')->with(['balance_accounts', 'account_type'])->paginate($pageSize);
         }
 
         $accountTypes = AccountType::all();
@@ -58,8 +59,10 @@ class AccountDataController extends Controller
         $customers = MasterContact::whereJsonContains('type','1')->get();
         $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
         $idrCurrencyId = $idrCurrency ? $idrCurrency->id : 1;
+        $startEntryPeriod = Setup::getStartEntryPeriod();
+        $startEntryPeriodDate = $startEntryPeriod ? $startEntryPeriod->format('Y-m-d') : null;
 
-        return view('financedatamaster::account.index', compact('accounts', 'accountTypes', 'currencies', 'headerAccounts', 'vendors', 'customers', 'idrCurrencyId'));
+        return view('financedatamaster::account.index', compact('accounts', 'accountTypes', 'currencies', 'headerAccounts', 'vendors', 'customers', 'idrCurrencyId', 'startEntryPeriodDate'));
     }
 
     /**
@@ -136,7 +139,8 @@ class AccountDataController extends Controller
 
     public function storeBeginningBalance(Request $request)
     {
-        $date = Setup::getStartEntryPeriod();
+        try {
+            $date = Setup::getStartEntryPeriod();
 
         if (!$date) {
             toast('Start Entry Period is not set!','error');
@@ -186,15 +190,24 @@ class AccountDataController extends Controller
             // Validate invoice entries
             $invoiceEntries = json_decode($request->invoice_entries, true) ?? [];
             
-            // Validate that all entries have contact_id
+            // Validate that all entries have contact_id and date is before start period
             foreach ($invoiceEntries as $entry) {
                 if (empty($entry['contact_id'])) {
                     toast('Vendor/Customer is required for all invoice entries!','error');
                     return redirect()->back();
                 }
+                
+                // Validate transaction date must be before start period date
+                if (!empty($entry['date'])) {
+                    $transactionDate = \Carbon\Carbon::parse($entry['date']);
+                    if ($transactionDate->gte($date)) {
+                        toast('Transaction date must be before start entry period (' . $date->format('d/m/Y') . ')!','error');
+                        return redirect()->back();
+                    }
+                }
             }
 
-            $this->createMultipleBeginningBalanceInvoices($invoiceEntries, $masterAccount);
+            $this->createMultipleBeginningBalanceInvoices($invoiceEntries, $masterAccount, $date);
             toast('Beginning balance saved with Invoice entries!','success');
             return redirect()->back();
         }
@@ -204,11 +217,20 @@ class AccountDataController extends Controller
             // Validate AP entries
             $apEntries = json_decode($request->ap_entries, true) ?? [];
             
-            // Validate that all entries have vendor_id
+            // Validate that all entries have vendor_id and date is before start period
             foreach ($apEntries as $entry) {
                 if (empty($entry['vendor_id'])) {
                     toast('Vendor is required for all AP entries!','error');
                     return redirect()->back();
+                }
+                
+                // Validate transaction date must be before start period date
+                if (!empty($entry['date'])) {
+                    $transactionDate = \Carbon\Carbon::parse($entry['date']);
+                    if ($transactionDate->gte($date)) {
+                        toast('Transaction date must be before start entry period (' . $date->format('d/m/Y') . ')!','error');
+                        return redirect()->back();
+                    }
                 }
             }
 
@@ -220,9 +242,15 @@ class AccountDataController extends Controller
         // For all other account types, only the balance account entry is created
         toast('Beginning balance saved successfully!','success');
         return redirect()->back();
+        } 
+        
+        catch (\Exception $e) {
+            toast('Failed to save beginning balance: ' . $e->getMessage(),'error');
+            return redirect()->back();
+        }
     }
 
-    private function createMultipleBeginningBalanceInvoices($invoiceEntries, $masterAccount)
+    private function createMultipleBeginningBalanceInvoices($invoiceEntries, $masterAccount, $entryPeriodDate)
     {
         // Get IDR currency ID
         $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
@@ -237,6 +265,7 @@ class AccountDataController extends Controller
         $existingIds = $existingInvoices->pluck('id')->toArray();
         $newIds = [];
 
+        // dd($entryPeriodDate);
         // Process each entry from the form
         foreach ($invoiceEntries as $entry) {
             if (isset($entry['id']) && is_numeric($entry['id']) && in_array($entry['id'], $existingIds)) {
@@ -338,7 +367,7 @@ class AccountDataController extends Controller
 
                 $balanceAccount = BalanceAccount::create([
                     'master_account_id' => $masterAccount->id,
-                    'date' => \App\Models\Setup::getStartEntryPeriod(),
+                    'date' => $entryPeriodDate,
                     'transaction_type_id' => 1,
                     'transaction_id' => $invoiceHead->id,
                     'debit' => $debit,
@@ -406,6 +435,22 @@ class AccountDataController extends Controller
     
     private function updateBeginningBalanceInvoice($request)
     {
+        $startPeriodDate = Setup::getStartEntryPeriod();
+        
+        if (!$startPeriodDate) {
+            toast('Start Entry Period is not set!','error');
+            return redirect()->back();
+        }
+        
+        // Validate transaction date must be before start period date
+        if (!empty($request->date_edit_beginning_balance)) {
+            $transactionDate = \Carbon\Carbon::parse($request->date_edit_beginning_balance);
+            if ($transactionDate->gte($startPeriodDate)) {
+                toast('Transaction date must be before start entry period (' . $startPeriodDate->format('d/m/Y') . ')!','error');
+                return redirect()->back();
+            }
+        }
+        
         $invoiceHead = InvoiceHead::find($request->id);
         if ($invoiceHead) {
             $invoiceHead->update([
@@ -466,6 +511,22 @@ class AccountDataController extends Controller
 
     private function updateBeginningBalanceAP($request)
     {
+        $startPeriodDate = Setup::getStartEntryPeriod();
+        
+        if (!$startPeriodDate) {
+            toast('Start Entry Period is not set!','error');
+            return redirect()->back();
+        }
+        
+        // Validate transaction date must be before start period date
+        if (!empty($request->date_edit_beginning_balance)) {
+            $transactionDate = \Carbon\Carbon::parse($request->date_edit_beginning_balance);
+            if ($transactionDate->gte($startPeriodDate)) {
+                toast('Transaction date must be before start entry period (' . $startPeriodDate->format('d/m/Y') . ')!','error');
+                return redirect()->back();
+            }
+        }
+        
         $orderHead = OrderHead::find($request->id);
         if ($orderHead) {
             $orderHead->update([
@@ -642,7 +703,7 @@ class AccountDataController extends Controller
 
                 $balanceAccount = BalanceAccount::create([
                     'master_account_id' => $masterAccount->id,
-                    'date' => \App\Models\Setup::getStartEntryPeriod(),
+                    'date' => $entryPeriodDate,
                     'transaction_type_id' => 1,
                     'transaction_id' => $orderHead->id,
                     'debit' => $debit,

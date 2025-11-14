@@ -85,12 +85,14 @@ class MasterAccount extends Model
         $data = $this->getDebitKreditAll($startDate, $endDate, $currencyId);
         $saldoAwal = $this->getDebitKreditSaldoAwal($currencyId);
 
-        $debitNet = $data['debit'] - $saldoAwal['debit'];
-        $kreditNet = $data['kredit'] - $saldoAwal['kredit'];
+        // Calculate saldo akhir: Saldo Awal + Mutasi Debit - Mutasi Kredit
+        // For debit accounts: positive result means debit balance
+        // For credit accounts: negative result means credit balance
+        $saldoAwalNet = $saldoAwal['debit'] - $saldoAwal['kredit'];
+        $mutasiNet = $data['debit'] - $data['kredit'];
+        $saldoAkhirNet = $saldoAwalNet + $mutasiNet;
 
-        $bigger = $kreditNet - $debitNet;
-
-        return $bigger;
+        return $saldoAkhirNet;
     }
     public function scopeFilter($query, array $filters)
     {

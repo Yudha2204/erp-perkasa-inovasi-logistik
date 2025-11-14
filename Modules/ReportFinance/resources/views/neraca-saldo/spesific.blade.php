@@ -88,8 +88,8 @@
                                             <td>{{ number_format($data["debit"], 0, ',', '.') }}</td>
                                             <td>{{ number_format($data["kredit"], 0, ',', '.') }}</td>
 
-                                            <td>{{  number_format(abs($netMutation), 0, ',', '.')  }}</td>
                                             <td>{{ $netMutation >= 0 ? number_format($netMutation, 0, ',', '.') : '0' }}</td>
+                                            <td>{{ $netMutation < 0 ? number_format(abs($netMutation), 0, ',', '.') : '0' }}</td>
                                         </tr>
                                         {{-- Foreign Currency Row (if checked and account is not IDR) --}}
                                         @if($foreign_currency && isset($ma->foreign_currency_data))
@@ -105,8 +105,8 @@
                                                 <td>{{ number_format($fcData['saldoAwal']["kredit"], 0, ',', '.') }}</td>
                                                 <td>{{ number_format($fcData['data']["debit"], 0, ',', '.') }}</td>
                                                 <td>{{ number_format($fcData['data']["kredit"], 0, ',', '.') }}</td>
-                                                <td>{{ number_format(abs($fcNetMutation), 0, ',', '.') }}</td>
                                                 <td>{{ $fcNetMutation >= 0 ? number_format($fcNetMutation, 0, ',', '.') : '0' }}</td>
+                                                <td>{{ $fcNetMutation < 0 ? number_format(abs($fcNetMutation), 0, ',', '.') : '0' }}</td>
                                             </tr>
                                         @endif
                                     @endforeach
@@ -118,9 +118,9 @@
                                         <th style="color: white"></th>
                                         <th style="color: white">{{ number_format($footer["saldoAwalDebit"], 0, ',', '.') }}</th>
                                         <th style="color: white">{{ number_format($footer["saldoAwalKredit"], 0, ',', '.') }}</th>
-                                        <th style="color: white">{{ number_format(abs($footer["mutasDebit"]), 0, ',', '.') }}</th>
+                                        <th style="color: white">{{ number_format($footer["mutasDebit"], 0, ',', '.') }}</th>
                                         <th style="color: white">{{ number_format($footer["mutasKredit"], 0, ',', '.') }}</th>
-                                        <th style="color: white">{{ number_format(abs($footer["saldoAkhirDebit"]), 0, ',', '.') }}</th>
+                                        <th style="color: white">{{ number_format($footer["saldoAkhirDebit"], 0, ',', '.') }}</th>
                                         <th style="color: white">{{ number_format($footer["saldoAkhirKredit"], 0, ',', '.') }}</th>
                                     </tr>
                                 @endif

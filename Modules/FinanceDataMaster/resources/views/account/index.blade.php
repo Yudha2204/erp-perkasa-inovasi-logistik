@@ -20,9 +20,19 @@
             <div class="row">
                 <div class="col-md-12 mb-3">
                     <div class="d-flex d-inline">
-                        <form action="{{ route('finance.master-data.account.index') }}">
+                        <form action="{{ route('finance.master-data.account.index') }}" method="GET" class="d-flex align-items-center">
                             <input type="text" name="search" id="search" value="{{ Request::get('search') }}" class="form-control" placeholder="Searching.....">
+                            @if(Request::get('pageSize'))
+                                <input type="hidden" name="pageSize" value="{{ Request::get('pageSize') }}">
+                            @endif
                         </form>
+                        &nbsp;&nbsp;
+                        <select name="pageSize" id="pageSize" class="form-control" style="width: auto; max-width: 120px;">
+                            <option value="10" {{ Request::get('pageSize', 10) == 10 ? 'selected' : '' }}>10</option>
+                            <option value="25" {{ Request::get('pageSize') == 25 ? 'selected' : '' }}>25</option>
+                            <option value="50" {{ Request::get('pageSize') == 50 ? 'selected' : '' }}>50</option>
+                            <option value="100" {{ Request::get('pageSize') == 100 ? 'selected' : '' }}>100</option>
+                        </select>
                         &nbsp;&nbsp;<a class="btn btn-primary" data-bs-effect="effect-scale" data-bs-toggle="modal" href="#modaldemo8"><i class="fe fe-plus me-2"></i>Add New</a>&nbsp;&nbsp;
                         <button type="button" class="btn btn-light"><img src="{{ url('assets/images/icon/filter.png') }}" alt=""></button>
                     </div>
@@ -146,7 +156,14 @@
                                     </tbody>
                                 </table>
                             </div>
-                            {{  $accounts->appends(request()->input())->links()}}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    Showing {{ $accounts->firstItem() ?? 0 }} to {{ $accounts->lastItem() ?? 0 }} of {{ $accounts->total() }} entries
+                                </div>
+                                <div>
+                                    {{ $accounts->appends(request()->input())->links() }}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -510,7 +527,7 @@
             <div class="modal-header">
                 <h5 class="modal-title">+ Update Saldo Awal</h5>
             </div>
-            <form action="{{ route('finance.master-data.account.update-beginning-balance') }}" method="POST">
+            <form action="{{ route('finance.master-data.account.update-beginning-balance') }}" method="POST" id="form-edit-beginning-balance">
                 @csrf
                 <div class="modal-body">
                     <input type="hidden" name="id" id="id_ar_ap">
@@ -929,6 +946,16 @@
             return;
         }
 
+        // Validate transaction date must be before start period date
+        @if($startEntryPeriodDate)
+        const startPeriodDate = new Date('{{ $startEntryPeriodDate }}');
+        const transactionDate = new Date(date);
+        if (transactionDate >= startPeriodDate) {
+            alert('Transaction date must be before start entry period ({{ \Carbon\Carbon::parse($startEntryPeriodDate)->format('d/m/Y') }})!');
+            return;
+        }
+        @endif
+
         const entry = {
             id: Date.now(), // Temporary ID for new entries
             number: number,
@@ -1028,6 +1055,16 @@
             return;
         }
 
+        // Validate transaction date must be before start period date
+        @if($startEntryPeriodDate)
+        const startPeriodDate = new Date('{{ $startEntryPeriodDate }}');
+        const transactionDate = new Date(date);
+        if (transactionDate >= startPeriodDate) {
+            alert('Transaction date must be before start entry period ({{ \Carbon\Carbon::parse($startEntryPeriodDate)->format('d/m/Y') }})!');
+            return;
+        }
+        @endif
+
         const entry = {
             id: Date.now(), // Temporary ID for new entries
             number: number,
@@ -1109,5 +1146,30 @@
     function updateAPEntriesHiddenField() {
         $('#ap_entries').val(JSON.stringify(apEntries));
     }
+
+    // Handle page size change
+    $('#pageSize').on('change', function() {
+        const pageSize = $(this).val();
+        const url = new URL(window.location.href);
+        url.searchParams.set('pageSize', pageSize);
+        url.searchParams.delete('page'); // Reset to first page when changing page size
+        window.location.href = url.toString();
+    });
+
+    // Validate date before submit edit beginning balance form
+    $('#form-edit-beginning-balance').on('submit', function(e) {
+        const date = $('#date_edit_beginning_balance').val();
+        @if($startEntryPeriodDate)
+        if (date) {
+            const startPeriodDate = new Date('{{ $startEntryPeriodDate }}');
+            const transactionDate = new Date(date);
+            if (transactionDate >= startPeriodDate) {
+                e.preventDefault();
+                alert('Transaction date must be before start entry period ({{ \Carbon\Carbon::parse($startEntryPeriodDate)->format('d/m/Y') }})!');
+                return false;
+            }
+        }
+        @endif
+    });
     </script>
 @endpush

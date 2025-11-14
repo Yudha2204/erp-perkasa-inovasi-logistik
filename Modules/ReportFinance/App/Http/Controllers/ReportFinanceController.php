@@ -486,10 +486,12 @@ class ReportFinanceController extends Controller
             $netMutation = $ma->getNetMutation($startDate, $endDate, $currency);
             $footer['netMutasi'] += $netMutation;
 
-            if ($netMutation < 0) {
+            // If netMutation is positive, it's a debit balance (goes to Debit column)
+            // If netMutation is negative, it's a credit balance (goes to Kredit column as positive)
+            if ($netMutation >= 0) {
                 $footer['saldoAkhirDebit'] += $netMutation;
             } else {
-                $footer['saldoAkhirKredit'] += $netMutation;
+                $footer['saldoAkhirKredit'] += abs($netMutation);
             }
 
             // If foreign currency is checked and account is not IDR, get foreign currency data
