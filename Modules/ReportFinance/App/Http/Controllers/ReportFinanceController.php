@@ -876,9 +876,10 @@ class ReportFinanceController extends Controller
         $outstandingData = collect();
 
         if($source == 'invoice') {
-            // AR (Invoice) - Calculate outstanding from InvoiceHead and RecieveDetail
+            // AR (Invoice) - Only show invoices with status != 'paid' (same logic as ReceivePaymentController)
             $invoices = InvoiceHead::with(['contact', 'currency'])
                 ->where('date_invoice', '<=', $asOfDate->format('Y-m-d'))
+                ->where('status', '!=', 'paid')
                 ->orderBy('date_invoice', 'desc');
 
             if ($request->has('search') && $request->search != '') {
@@ -890,39 +891,26 @@ class ReportFinanceController extends Controller
             $invoices = $invoices->get();
 
             foreach($invoices as $invoice) {
-                // Get all payments received up to as_of_date
-                $paymentsReceived = RecieveDetail::where('invoice_id', $invoice->id)
-                    ->where('charge_type', 'invoice')
-                    ->whereHas('head', function($query) use ($asOfDate) {
-                        $query->where('date_recieve', '<=', $asOfDate->format('Y-m-d'));
-                    })
-                    ->get();
-
-                $alreadyPaid = $paymentsReceived->sum('total') + $paymentsReceived->sum('dp');
                 $invoiceTotal = $invoice->total;
-                $remaining = $invoiceTotal - $alreadyPaid;
-
-                // Only include if there's outstanding amount
-                if($remaining > 0) {
-                    $outstandingData->push((object)[
-                        'id' => $invoice->id,
-                        'contact' => $invoice->contact,
-                        'currency' => $invoice->currency,
-                        'invoice' => $invoice,
-                        'order' => null,
-                        'date' => $invoice->date_invoice,
-                        'account' => 'piutang',
-                        'total' => $invoiceTotal,
-                        'already_paid' => $alreadyPaid,
-                        'remaining' => $remaining,
-                        'isPaid' => false,
-                    ]);
-                }
+                $outstandingData->push((object)[
+                    'id' => $invoice->id,
+                    'contact' => $invoice->contact,
+                    'currency' => $invoice->currency,
+                    'invoice' => $invoice,
+                    'order' => null,
+                    'date' => $invoice->date_invoice,
+                    'account' => 'piutang',
+                    'total' => $invoiceTotal,
+                    'already_paid' => 0,
+                    'remaining' => $invoiceTotal,
+                    'isPaid' => false,
+                ]);
             }
         } elseif($source == 'order') {
-            // AP - Calculate outstanding from OrderHead and PaymentDetail
+            // AP - Only show orders with status != 'paid' (same logic as PurchasePaymentController)
             $orders = OrderHead::with(['vendor', 'currency'])
                 ->where('date_order', '<=', $asOfDate->format('Y-m-d'))
+                ->where('status', '!=', 'paid')
                 ->orderBy('date_order', 'desc');
 
             if ($request->has('search') && $request->search != '') {
@@ -934,34 +922,20 @@ class ReportFinanceController extends Controller
             $orders = $orders->get();
 
             foreach($orders as $order) {
-                // Get all payments made up to as_of_date
-                $paymentsMade = PaymentDetail::where('payable_id', $order->id)
-                    ->where('charge_type', 'payable')
-                    ->whereHas('head', function($query) use ($asOfDate) {
-                        $query->where('date_payment', '<=', $asOfDate->format('Y-m-d'));
-                    })
-                    ->get();
-
-                $alreadyPaid = $paymentsMade->sum('total') + $paymentsMade->sum('dp');
                 $orderTotal = $order->total;
-                $remaining = $orderTotal - $alreadyPaid;
-
-                // Only include if there's outstanding amount
-                if($remaining > 0) {
-                    $outstandingData->push((object)[
-                        'id' => $order->id,
-                        'contact' => $order->vendor,
-                        'currency' => $order->currency,
-                        'invoice' => null,
-                        'order' => $order,
-                        'date' => $order->date_order,
-                        'account' => 'hutang',
-                        'total' => $orderTotal,
-                        'already_paid' => $alreadyPaid,
-                        'remaining' => $remaining,
-                        'isPaid' => false,
-                    ]);
-                }
+                $outstandingData->push((object)[
+                    'id' => $order->id,
+                    'contact' => $order->vendor,
+                    'currency' => $order->currency,
+                    'invoice' => null,
+                    'order' => $order,
+                    'date' => $order->date_order,
+                    'account' => 'hutang',
+                    'total' => $orderTotal,
+                    'already_paid' => 0,
+                    'remaining' => $orderTotal,
+                    'isPaid' => false,
+                ]);
             }
         }
 

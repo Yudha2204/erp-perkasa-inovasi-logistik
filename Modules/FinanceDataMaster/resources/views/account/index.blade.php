@@ -342,21 +342,21 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="row">
-                                            <div class="col-md-3">
+                                            <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label>Invoice Number <span class="text-danger">*</span></label>
                                                     <input type="number" min="1" step="1" id="new_invoice_number" class="form-control">
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label>Invoice Date <span class="text-danger">*</span></label>
                                                     <input type="date" id="new_invoice_date" class="form-control">
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-4">
                                                 <div class="form-group">
-                                                    <label>Customer/Vendor <span class="text-danger">*</span></label>
+                                                    <label>Customer <span class="text-danger">*</span></label>
                                                     <select class="form-control select2 form-select" id="new_invoice_contact_id" data-placeholder="Choose One">
                                                         <option label="Choose One" selected disabled></option>
                                                         @foreach ($customers as $customer)
@@ -365,10 +365,18 @@
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label>Beginning Balance Value <span class="text-danger">*</span></label>
                                                     <input type="number" step="0.01" id="new_invoice_value" class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6" id="invoice_idr_field" style="display: none;">
+                                                <div class="form-group">
+                                                    <label>IDR Value (Manual Exchange Rate) <span class="text-muted">(Optional)</span></label>
+                                                    <input type="number" step="0.01" id="new_invoice_idr_value" class="form-control" placeholder="Leave empty to use default exchange rate">
                                                 </div>
                                             </div>
                                         </div>
@@ -385,7 +393,7 @@
                                             <tr>
                                                 <th>Invoice Number</th>
                                                 <th>Invoice Date</th>
-                                                <th>Customer/Vendor</th>
+                                                <th>Customer</th>
                                                 <th>Value</th>
                                                 <th>Action</th>
                                             </tr>
@@ -408,19 +416,19 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="row">
-                                            <div class="col-md-3">
+                                            <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label>AP Number <span class="text-danger">*</span></label>
                                                     <input type="text" id="new_ap_number" class="form-control">
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label>AP Date <span class="text-danger">*</span></label>
                                                     <input type="date" id="new_ap_date" class="form-control">
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label>Vendor <span class="text-danger">*</span></label>
                                                     <select class="form-control select2 form-select" id="new_ap_vendor_id" data-placeholder="Choose One">
@@ -431,10 +439,18 @@
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label>Beginning Balance Value <span class="text-danger">*</span></label>
                                                     <input type="number" step="0.01" id="new_ap_value" class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6" id="ap_idr_field" style="display: none;">
+                                                <div class="form-group">
+                                                    <label>IDR Value (Manual Exchange Rate) <span class="text-muted">(Optional)</span></label>
+                                                    <input type="number" step="0.01" id="new_ap_idr_value" class="form-control" placeholder="Leave empty to use default exchange rate">
                                                 </div>
                                             </div>
                                         </div>
@@ -510,6 +526,10 @@
                     <div class="form-group">
                         <label>Value</label>
                         <input type="text" name="value_edit_beginning_balance" id="value_edit_beginning_balance" class="form-control">
+                    </div>
+                    <div class="form-group" id="idr_value_edit_field" style="display: none;">
+                        <label>IDR Value (Manual Exchange Rate) <span class="text-muted">(Optional)</span></label>
+                        <input type="number" step="0.01" name="idr_value_edit_beginning_balance" id="idr_value_edit_beginning_balance" class="form-control" placeholder="Leave empty to use default exchange rate">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -695,6 +715,7 @@
                     $('#code_beginning_balance').val(response.data.code);
                     $('#account_name_beginning_balance').val(response.data.account_name);
                     $('#account_type_id_beginning_balance').val(response.data.account_type_id);
+                    $('#account_type_id_beginning_balance').data('currency-id', response.data.master_currency_id);
 
                     $('#id_balance_account').val(response.data.id_balance_account);
                     $('#credit').val(response.data.credit);
@@ -702,6 +723,9 @@
 
                     // Show/hide AR and AP fields based on account type
                     const accountTypeId = response.data.account_type_id;
+                    const currencyId = response.data.master_currency_id;
+                    const idrCurrencyId = {{ $idrCurrencyId }};
+                    const isForeignCurrency = currencyId && currencyId != idrCurrencyId;
                     
                     // Hide all special fields first
                     $('#ar_fields').hide();
@@ -713,6 +737,15 @@
                     apEntries = [];
                     $('#invoice_table_body').empty();
                     $('#ap_table_body').empty();
+                    
+                    // Show/hide IDR field based on currency
+                    if (isForeignCurrency) {
+                        $('#invoice_idr_field').show();
+                        $('#ap_idr_field').show();
+                    } else {
+                        $('#invoice_idr_field').hide();
+                        $('#ap_idr_field').hide();
+                    }
                     
                     // Show AR fields for Account Receivable (ID 4)
                     if (accountTypeId == 4) {
@@ -886,9 +919,13 @@
         const value = $('#new_invoice_value').val();
         const contactId = $('#new_invoice_contact_id').val();
         const contactName = $('#new_invoice_contact_id option:selected').text();
+        const idrValue = $('#new_invoice_idr_value').val();
+        const idrCurrencyId = {{ $idrCurrencyId }};
+        const accountCurrencyId = $('#account_type_id_beginning_balance').data('currency-id') || null;
+        const isForeignCurrency = accountCurrencyId && accountCurrencyId != idrCurrencyId;
 
         if (!number || !date || !value || !contactId) {
-            alert('Please fill all required fields including Customer/Vendor');
+            alert('Please fill all required fields including Customer');
             return;
         }
 
@@ -898,7 +935,8 @@
             date: date,
             value: parseFloat(value),
             contact_id: contactId,
-            contact_name: contactName
+            contact_name: contactName,
+            idr_value: idrValue ? parseFloat(idrValue) : null
         };
 
         invoiceEntries.push(entry);
@@ -910,6 +948,7 @@
         $('#new_invoice_date').val('');
         $('#new_invoice_value').val('');
         $('#new_invoice_contact_id').val('').trigger('change');
+        $('#new_invoice_idr_value').val('');
     }
 
     function addInvoiceEntryToTable(entry) {
@@ -936,16 +975,33 @@
     function editInvoiceEntry(entryId) {
         const entry = invoiceEntries.find(e => e.id == entryId || e.id == parseInt(entryId));
         if (entry) {
+            const idrCurrencyId = {{ $idrCurrencyId }};
+            const accountCurrencyId = $('#account_type_id_beginning_balance').data('currency-id') || null;
+            const isForeignCurrency = accountCurrencyId && accountCurrencyId != idrCurrencyId;
+            
             $('#id_ar_ap').val(entry.id);
             $('#edit_type').val("invoice");
             $('#number_edit_beginning_balance').val(entry.number);
             $('#date_edit_beginning_balance').val(entry.date);
             $('#value_edit_beginning_balance').val(entry.value);
+            
+            // Show/hide IDR field based on currency
+            if (isForeignCurrency) {
+                $('#idr_value_edit_field').show();
+                $('#idr_value_edit_beginning_balance').val(entry.idr_value || '');
+            } else {
+                $('#idr_value_edit_field').hide();
+                $('#idr_value_edit_beginning_balance').val('');
+            }
+            
             $('#modal-edit-beginning-balance').modal('show');
         }
     }
 
     function deleteInvoiceEntry(entryId) {
+        if (!confirm('Are you sure you want to delete this invoice entry?')) {
+            return;
+        }
         invoiceEntries = invoiceEntries.filter(e => e.id != entryId && e.id != parseInt(entryId));
         $(`tr[data-entry-id="${entryId}"]`).remove();
         updateInvoiceEntriesHiddenField();
@@ -962,6 +1018,10 @@
         const value = $('#new_ap_value').val();
         const vendorId = $('#new_ap_vendor_id').val();
         const vendorName = $('#new_ap_vendor_id option:selected').text();
+        const idrValue = $('#new_ap_idr_value').val();
+        const idrCurrencyId = {{ $idrCurrencyId }};
+        const accountCurrencyId = $('#account_type_id_beginning_balance').data('currency-id') || null;
+        const isForeignCurrency = accountCurrencyId && accountCurrencyId != idrCurrencyId;
 
         if (!number || !date || !value || !vendorId) {
             alert('Please fill all required fields including Vendor');
@@ -974,7 +1034,8 @@
             date: date,
             value: parseFloat(value),
             vendor_id: vendorId,
-            vendor_name: vendorName
+            vendor_name: vendorName,
+            idr_value: idrValue ? parseFloat(idrValue) : null
         };
 
         apEntries.push(entry);
@@ -986,6 +1047,7 @@
         $('#new_ap_date').val('');
         $('#new_ap_value').val('');
         $('#new_ap_vendor_id').val('').trigger('change');
+        $('#new_ap_idr_value').val('');
     }
 
     function addAPEntryToTable(entry) {
@@ -1012,16 +1074,33 @@
     function editAPEntry(entryId) {
         const entry = apEntries.find(e => e.id == entryId || e.id == parseInt(entryId));
         if (entry) {
+            const idrCurrencyId = {{ $idrCurrencyId }};
+            const accountCurrencyId = $('#account_type_id_beginning_balance').data('currency-id') || null;
+            const isForeignCurrency = accountCurrencyId && accountCurrencyId != idrCurrencyId;
+            
             $('#id_ar_ap').val(entry.id);
             $('#edit_type').val("ap");
             $('#number_edit_beginning_balance').val(entry.number);
             $('#date_edit_beginning_balance').val(entry.date);
             $('#value_edit_beginning_balance').val(entry.value);
+            
+            // Show/hide IDR field based on currency
+            if (isForeignCurrency) {
+                $('#idr_value_edit_field').show();
+                $('#idr_value_edit_beginning_balance').val(entry.idr_value || '');
+            } else {
+                $('#idr_value_edit_field').hide();
+                $('#idr_value_edit_beginning_balance').val('');
+            }
+            
             $('#modal-edit-beginning-balance').modal('show');
         }
     }
 
     function deleteAPEntry(entryId) {
+        if (!confirm('Are you sure you want to delete this AP entry?')) {
+            return;
+        }
         apEntries = apEntries.filter(e => e.id != entryId && e.id != parseInt(entryId));
         $(`tr[data-entry-id="${entryId}"]`).remove();
         updateAPEntriesHiddenField();

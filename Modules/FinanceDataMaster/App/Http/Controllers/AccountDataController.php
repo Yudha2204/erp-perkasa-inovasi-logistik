@@ -56,8 +56,10 @@ class AccountDataController extends Controller
         $headerAccounts = MasterAccount::where('type', 'header')->get();
         $vendors = MasterContact::whereJsonContains('type','2')->get();
         $customers = MasterContact::whereJsonContains('type','1')->get();
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        $idrCurrencyId = $idrCurrency ? $idrCurrency->id : 1;
 
-        return view('financedatamaster::account.index', compact('accounts', 'accountTypes', 'currencies', 'headerAccounts', 'vendors', 'customers'));
+        return view('financedatamaster::account.index', compact('accounts', 'accountTypes', 'currencies', 'headerAccounts', 'vendors', 'customers', 'idrCurrencyId'));
     }
 
     /**
@@ -222,6 +224,10 @@ class AccountDataController extends Controller
 
     private function createMultipleBeginningBalanceInvoices($invoiceEntries, $masterAccount)
     {
+        // Get IDR currency ID
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        $idrCurrencyId = $idrCurrency ? $idrCurrency->id : 1;
+        
         // Get existing beginning balance invoices for this account
         $existingInvoices = InvoiceHead::where('account_id', $masterAccount->id)
             ->where('status', 'Beginning Balance')
@@ -260,6 +266,7 @@ class AccountDataController extends Controller
                     $balanceAccount = BalanceAccount::where('master_account_id', $masterAccount->id)
                         ->where('transaction_type_id', 1)
                         ->where('transaction_id', $invoiceHead->id)
+                        ->where('currency_id', $masterAccount->master_currency_id ?? 1)
                         ->first();
 
                     if ($balanceAccount) {
@@ -267,6 +274,27 @@ class AccountDataController extends Controller
                             'debit' => $debit,
                             'credit' => $credit,
                         ]);
+                        
+                        // Update IDR journal if manual IDR value is provided and currency is not IDR
+                        if (isset($entry['idr_value']) && $entry['idr_value'] && $masterAccount->master_currency_id != $idrCurrencyId) {
+                            $idrDebit = $normalSide === 'debit' ? $entry['idr_value'] : 0;
+                            $idrCredit = $normalSide === 'credit' ? $entry['idr_value'] : 0;
+                            
+                            // Find the IDR journal
+                            $idrBalanceAccount = BalanceAccount::where('master_account_id', $masterAccount->id)
+                                ->where('transaction_type_id', 1)
+                                ->where('transaction_id', $invoiceHead->id)
+                                ->where('currency_id', $idrCurrencyId)
+                                ->where('id', '!=', $balanceAccount->id)
+                                ->first();
+                            
+                            if ($idrBalanceAccount) {
+                                $idrBalanceAccount->update([
+                                    'debit' => $idrDebit,
+                                    'credit' => $idrCredit,
+                                ]);
+                            }
+                        }
                     }
 
                     $newIds[] = $entry['id'];
@@ -308,7 +336,7 @@ class AccountDataController extends Controller
                 $debit = $normalSide === 'debit' ? $entry['value'] : 0;
                 $credit = $normalSide === 'credit' ? $entry['value'] : 0;
 
-                BalanceAccount::create([
+                $balanceAccount = BalanceAccount::create([
                     'master_account_id' => $masterAccount->id,
                     'date' => \App\Models\Setup::getStartEntryPeriod(),
                     'transaction_type_id' => 1,
@@ -318,11 +346,49 @@ class AccountDataController extends Controller
                     'currency_id' => $masterAccount->master_currency_id ?? 1,
                 ]);
 
+                // Update IDR journal if manual IDR value is provided and currency is not IDR
+                if (isset($entry['idr_value']) && $entry['idr_value'] && $masterAccount->master_currency_id != $idrCurrencyId) {
+                    $idrDebit = $normalSide === 'debit' ? $entry['idr_value'] : 0;
+                    $idrCredit = $normalSide === 'credit' ? $entry['idr_value'] : 0;
+                    
+                    // Find the IDR journal that was created automatically
+                    $idrBalanceAccount = BalanceAccount::where('master_account_id', $masterAccount->id)
+                        ->where('transaction_type_id', 1)
+                        ->where('transaction_id', $invoiceHead->id)
+                        ->where('currency_id', $idrCurrencyId)
+                        ->where('id', '!=', $balanceAccount->id)
+                        ->first();
+                    
+                    if ($idrBalanceAccount) {
+                        $idrBalanceAccount->update([
+                            'debit' => $idrDebit,
+                            'credit' => $idrCredit,
+                        ]);
+                    }
+                }
+
                 $newIds[] = $invoiceHead->id;
             }
         }
 
-        // No deletion - just update existing records
+        // Delete entries that are no longer in the form
+        $idsToDelete = array_diff($existingIds, $newIds);
+        foreach ($idsToDelete as $idToDelete) {
+            $invoiceHeadToDelete = InvoiceHead::find($idToDelete);
+            if ($invoiceHeadToDelete) {
+                // Delete invoice detail
+                \Modules\FinancePiutang\App\Models\InvoiceDetail::where('head_id', $idToDelete)->delete();
+                
+                // Delete balance account entry
+                BalanceAccount::where('master_account_id', $masterAccount->id)
+                    ->where('transaction_type_id', 1)
+                    ->where('transaction_id', $idToDelete)
+                    ->delete();
+                
+                // Delete invoice head
+                $invoiceHeadToDelete->delete();
+            }
+        }
     }
     
     public function updateBeginningBalance(Request $request)
@@ -354,15 +420,46 @@ class AccountDataController extends Controller
                 ]);
             }
 
+            $masterAccount = MasterAccount::with('account_type')->find($invoiceHead->account_id);
+            $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+            $idrCurrencyId = $idrCurrency ? $idrCurrency->id : 1;
+            
             $balanceAccount = BalanceAccount::where('master_account_id', $invoiceHead->account_id)
                 ->where('transaction_type_id', 1)
                 ->where('transaction_id', $invoiceHead->id)
+                ->where('currency_id', $masterAccount->master_currency_id ?? 1)
                 ->first();
 
             if ($balanceAccount) {
+                $normalSide = $masterAccount->account_type->normal_side ?? 'debit';
+                $debit = $normalSide === 'debit' ? $request->value_edit_beginning_balance : 0;
+                $credit = $normalSide === 'credit' ? $request->value_edit_beginning_balance : 0;
+                
                 $balanceAccount->update([
-                    'debit' => $request->value_edit_beginning_balance,
+                    'debit' => $debit,
+                    'credit' => $credit,
                 ]);
+                
+                // Update IDR journal if manual IDR value is provided and currency is not IDR
+                if ($request->has('idr_value_edit_beginning_balance') && $request->idr_value_edit_beginning_balance && $masterAccount->master_currency_id != $idrCurrencyId) {
+                    $idrDebit = $normalSide === 'debit' ? $request->idr_value_edit_beginning_balance : 0;
+                    $idrCredit = $normalSide === 'credit' ? $request->idr_value_edit_beginning_balance : 0;
+                    
+                    // Find the IDR journal
+                    $idrBalanceAccount = BalanceAccount::where('master_account_id', $invoiceHead->account_id)
+                        ->where('transaction_type_id', 1)
+                        ->where('transaction_id', $invoiceHead->id)
+                        ->where('currency_id', $idrCurrencyId)
+                        ->where('id', '!=', $balanceAccount->id)
+                        ->first();
+                    
+                    if ($idrBalanceAccount) {
+                        $idrBalanceAccount->update([
+                            'debit' => $idrDebit,
+                            'credit' => $idrCredit,
+                        ]);
+                    }
+                }
             }
         }
     }
@@ -382,22 +479,57 @@ class AccountDataController extends Controller
                     'price' => $request->value_edit_beginning_balance,
                 ]);
             }
-        }
+            
+            $masterAccount = MasterAccount::with('account_type')->find($orderHead->account_id);
+            $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+            $idrCurrencyId = $idrCurrency ? $idrCurrency->id : 1;
+            
+            $balanceAccount = BalanceAccount::where('master_account_id', $orderHead->account_id)
+                ->where('transaction_type_id', 1)
+                ->where('transaction_id', $orderHead->id)
+                ->where('currency_id', $masterAccount->master_currency_id ?? 1)
+                ->first();
 
-        $balanceAccount = BalanceAccount::where('master_account_id', $orderHead->account_id)
-            ->where('transaction_type_id', 1)
-            ->where('transaction_id', $orderHead->id)
-            ->first();
-
-        if ($balanceAccount) {
-            $balanceAccount->update([
-                'debit' => $request->value_edit_beginning_balance,
-            ]);
+            if ($balanceAccount) {
+                $normalSide = $masterAccount->account_type->normal_side ?? 'credit';
+                $debit = $normalSide === 'debit' ? $request->value_edit_beginning_balance : 0;
+                $credit = $normalSide === 'credit' ? $request->value_edit_beginning_balance : 0;
+                
+                $balanceAccount->update([
+                    'debit' => $debit,
+                    'credit' => $credit,
+                ]);
+                
+                // Update IDR journal if manual IDR value is provided and currency is not IDR
+                if ($request->has('idr_value_edit_beginning_balance') && $request->idr_value_edit_beginning_balance && $masterAccount->master_currency_id != $idrCurrencyId) {
+                    $idrDebit = $normalSide === 'debit' ? $request->idr_value_edit_beginning_balance : 0;
+                    $idrCredit = $normalSide === 'credit' ? $request->idr_value_edit_beginning_balance : 0;
+                    
+                    // Find the IDR journal
+                    $idrBalanceAccount = BalanceAccount::where('master_account_id', $orderHead->account_id)
+                        ->where('transaction_type_id', 1)
+                        ->where('transaction_id', $orderHead->id)
+                        ->where('currency_id', $idrCurrencyId)
+                        ->where('id', '!=', $balanceAccount->id)
+                        ->first();
+                    
+                    if ($idrBalanceAccount) {
+                        $idrBalanceAccount->update([
+                            'debit' => $idrDebit,
+                            'credit' => $idrCredit,
+                        ]);
+                    }
+                }
+            }
         }
     }
 
     private function createMultipleBeginningBalanceAPs($apEntries, $masterAccount)
     {
+        // Get IDR currency ID
+        $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+        $idrCurrencyId = $idrCurrency ? $idrCurrency->id : 1;
+        
         // Get existing beginning balance APs for this account
         $existingAPs = OrderHead::where('account_id', $masterAccount->id)
             ->where('status', 'Beginning Balance')
@@ -436,6 +568,7 @@ class AccountDataController extends Controller
                     $balanceAccount = BalanceAccount::where('master_account_id', $masterAccount->id)
                         ->where('transaction_type_id', 1)
                         ->where('transaction_id', $orderHead->id)
+                        ->where('currency_id', $masterAccount->master_currency_id ?? 1)
                         ->first();
 
                     if ($balanceAccount) {
@@ -443,6 +576,27 @@ class AccountDataController extends Controller
                             'debit' => $debit,
                             'credit' => $credit,
                         ]);
+                        
+                        // Update IDR journal if manual IDR value is provided and currency is not IDR
+                        if (isset($entry['idr_value']) && $entry['idr_value'] && $masterAccount->master_currency_id != $idrCurrencyId) {
+                            $idrDebit = $normalSide === 'debit' ? $entry['idr_value'] : 0;
+                            $idrCredit = $normalSide === 'credit' ? $entry['idr_value'] : 0;
+                            
+                            // Find the IDR journal
+                            $idrBalanceAccount = BalanceAccount::where('master_account_id', $masterAccount->id)
+                                ->where('transaction_type_id', 1)
+                                ->where('transaction_id', $orderHead->id)
+                                ->where('currency_id', $idrCurrencyId)
+                                ->where('id', '!=', $balanceAccount->id)
+                                ->first();
+                            
+                            if ($idrBalanceAccount) {
+                                $idrBalanceAccount->update([
+                                    'debit' => $idrDebit,
+                                    'credit' => $idrCredit,
+                                ]);
+                            }
+                        }
                     }
 
                     $newIds[] = $entry['id'];
@@ -486,7 +640,7 @@ class AccountDataController extends Controller
                 $debit = $normalSide === 'debit' ? $entry['value'] : 0;
                 $credit = $normalSide === 'credit' ? $entry['value'] : 0;
 
-                BalanceAccount::create([
+                $balanceAccount = BalanceAccount::create([
                     'master_account_id' => $masterAccount->id,
                     'date' => \App\Models\Setup::getStartEntryPeriod(),
                     'transaction_type_id' => 1,
@@ -496,11 +650,49 @@ class AccountDataController extends Controller
                     'currency_id' => $masterAccount->master_currency_id ?? 1,
                 ]);
 
+                // Update IDR journal if manual IDR value is provided and currency is not IDR
+                if (isset($entry['idr_value']) && $entry['idr_value'] && $masterAccount->master_currency_id != $idrCurrencyId) {
+                    $idrDebit = $normalSide === 'debit' ? $entry['idr_value'] : 0;
+                    $idrCredit = $normalSide === 'credit' ? $entry['idr_value'] : 0;
+                    
+                    // Find the IDR journal that was created automatically
+                    $idrBalanceAccount = BalanceAccount::where('master_account_id', $masterAccount->id)
+                        ->where('transaction_type_id', 1)
+                        ->where('transaction_id', $orderHead->id)
+                        ->where('currency_id', $idrCurrencyId)
+                        ->where('id', '!=', $balanceAccount->id)
+                        ->first();
+                    
+                    if ($idrBalanceAccount) {
+                        $idrBalanceAccount->update([
+                            'debit' => $idrDebit,
+                            'credit' => $idrCredit,
+                        ]);
+                    }
+                }
+
                 $newIds[] = $orderHead->id;
             }
         }
 
-        // No deletion - just update existing records
+        // Delete entries that are no longer in the form
+        $idsToDelete = array_diff($existingIds, $newIds);
+        foreach ($idsToDelete as $idToDelete) {
+            $orderHeadToDelete = OrderHead::find($idToDelete);
+            if ($orderHeadToDelete) {
+                // Delete order detail
+                \Modules\FinancePayments\App\Models\OrderDetail::where('head_id', $idToDelete)->delete();
+                
+                // Delete balance account entry
+                BalanceAccount::where('master_account_id', $masterAccount->id)
+                    ->where('transaction_type_id', 1)
+                    ->where('transaction_id', $idToDelete)
+                    ->delete();
+                
+                // Delete order head
+                $orderHeadToDelete->delete();
+            }
+        }
     }
 
     /**
@@ -524,16 +716,36 @@ class AccountDataController extends Controller
             $totalDebit = 0;
             $totalCredit = 0;
             
+            $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+            $idrCurrencyId = $idrCurrency ? $idrCurrency->id : 1;
+            
             foreach ($beginningBalanceInvoices as $invoice) {
                 $invoiceDetail = \Modules\FinancePiutang\App\Models\InvoiceDetail::where('head_id', $invoice->id)->first();
                 $contact = $invoice->contact;
+                
+                // Get IDR value from balance account if exists
+                $idrValue = null;
+                if ($data->master_currency_id != $idrCurrencyId) {
+                    $idrBalanceAccount = BalanceAccount::where('master_account_id', $id)
+                        ->where('transaction_type_id', 1)
+                        ->where('transaction_id', $invoice->id)
+                        ->where('currency_id', $idrCurrencyId)
+                        ->first();
+                    
+                    if ($idrBalanceAccount) {
+                        $normalSide = $data->account_type->normal_side ?? 'debit';
+                        $idrValue = $normalSide === 'debit' ? $idrBalanceAccount->debit : $idrBalanceAccount->credit;
+                    }
+                }
+                
                 $invoiceEntries[] = [
                     'id' => $invoice->id,
                     'number' => $invoice->number,
                     'date' => $invoice->date_invoice,
                     'value' => $invoiceDetail->price ?? 0,
                     'contact_id' => $invoice->contact_id,
-                    'contact_name' => $contact->customer_name ?? 'N/A'
+                    'contact_name' => $contact->customer_name ?? 'N/A',
+                    'idr_value' => $idrValue
                 ];
                 
                 // Get the balance account entry for this invoice
@@ -563,16 +775,36 @@ class AccountDataController extends Controller
             $totalDebit = 0;
             $totalCredit = 0;
             
+            $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
+            $idrCurrencyId = $idrCurrency ? $idrCurrency->id : 1;
+            
             foreach ($beginningBalanceAPs as $ap) {
                 $orderDetail = \Modules\FinancePayments\App\Models\OrderDetail::where('head_id', $ap->id)->first();
                 $vendor = $ap->vendor;
+                
+                // Get IDR value from balance account if exists
+                $idrValue = null;
+                if ($data->master_currency_id != $idrCurrencyId) {
+                    $idrBalanceAccount = BalanceAccount::where('master_account_id', $id)
+                        ->where('transaction_type_id', 1)
+                        ->where('transaction_id', $ap->id)
+                        ->where('currency_id', $idrCurrencyId)
+                        ->first();
+                    
+                    if ($idrBalanceAccount) {
+                        $normalSide = $data->account_type->normal_side ?? 'credit';
+                        $idrValue = $normalSide === 'debit' ? $idrBalanceAccount->debit : $idrBalanceAccount->credit;
+                    }
+                }
+                
                 $apEntries[] = [
                     'id' => $ap->id,
                     'number' => $ap->transaction,
                     'date' => $ap->date_order,
                     'value' => $orderDetail->price ?? 0,
                     'vendor_id' => $ap->vendor_id,
-                    'vendor_name' => $vendor->customer_name ?? 'N/A'
+                    'vendor_name' => $vendor->customer_name ?? 'N/A',
+                    'idr_value' => $idrValue
                 ];
                 
                 // Get the balance account entry for this AP
