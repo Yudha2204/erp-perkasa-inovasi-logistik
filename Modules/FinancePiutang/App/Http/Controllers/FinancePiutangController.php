@@ -22,7 +22,7 @@ class FinancePiutangController extends Controller
      */
     public function index()
     {
-        return view('financepiutang::index');        
+        return view('financepiutang::index');
     }
 
     /**
@@ -102,7 +102,7 @@ class FinancePiutangController extends Controller
         return response()->json([
             'message' => 'Success',
             'data'    => $marketing
-        ]); 
+        ]);
     }
 
     public function getMarketing(Request $request)
@@ -132,7 +132,7 @@ class FinancePiutangController extends Controller
                 'marketing' => $marketing,
                 'item' => $groupData
             ]
-        ]); 
+        ]);
     }
 
     public function getSalesOrder(Request $request)

@@ -1102,8 +1102,8 @@
                     total_display.value = 0;
                     const discount_display = document.getElementById("discount_display")
                     discount_display.value = 0;
-                    const additional_cost = document.getElementById("additional_cost")
-                    additional_cost.value = 0;
+                    // const additional_cost = document.getElementById("additional_cost")
+                    // additional_cost.value = 0;
 
                     if (response.data?.item) {
                         var formContainer = document.getElementById('form-container');
@@ -1150,6 +1150,10 @@
                             desc.value = data.description;
                             var remarkInput = newFormWrapper.querySelector('.remark-input');
                             remarkInput.value = data.remark;
+                            var qty = newFormWrapper.querySelector('input[name="qty_detail"]');
+                            qty.value = 1;
+                            var uom = newFormWrapper.querySelector('input[name="uom_detail"]');
+                            uom.value = '';
                             var price = newFormWrapper.querySelector('.price-input');
                             price.value = Number(data.total).toLocaleString('en', {
                                 minimumFractionDigits: 2,
@@ -1157,6 +1161,7 @@
                             });
                             formContainer.appendChild(newFormWrapper);
                         });
+                        calculate();
                     }
                 }
             });
