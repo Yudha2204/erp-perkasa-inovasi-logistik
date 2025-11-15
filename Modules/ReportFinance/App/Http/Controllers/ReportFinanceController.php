@@ -15,6 +15,8 @@ use Modules\FinanceDataMaster\App\Models\TransactionType;
 use Modules\FinancePiutang\App\Models\RecieveDetail;
 use Modules\FinancePayments\App\Models\PaymentDetail;
 use Modules\FinanceDataMaster\App\Models\FiscalPeriod;
+use Modules\FinancePiutang\App\Models\InvoiceHead;
+use Modules\FinancePayments\App\Models\OrderHead;
 
 class ReportFinanceController extends Controller
 {
@@ -350,17 +352,11 @@ class ReportFinanceController extends Controller
 
     public function LabaRugi(Request $request)
     {
+        $period = FiscalPeriod::find($request->fiscal_period_laba_rugi);
+        $startDate = Carbon::parse($period->start_date)->startOfDay();
+        $endDate = Carbon::parse($period->end_date)->endOfDay();
+        
         $currency_id = $request->currency;
-        $start_datepicker = $request->start_date_profit_loss;
-        $end_datepicker = $request->end_date_profit_loss;
-        $startDate = Carbon::now()->subYear()->startOfDay();
-        $endDate = Carbon::now()->endOfDay();
-        if($start_datepicker){
-            $startDate = date('Y-m-d', strtotime($start_datepicker));
-        }
-        if($end_datepicker){
-            $endDate = date('Y-m-d', strtotime($end_datepicker));
-        }
 
         $labaRugi = $this->LabaRugiFilter($startDate, $endDate, $currency_id);
 
@@ -689,16 +685,9 @@ class ReportFinanceController extends Controller
 
     public function Neraca(Request $request)
     {
-        $start_datepicker = $request->start_date_neraca;
-        $end_datepicker = $request->end_date_neraca;
-        $startDate = Carbon::now()->subYear()->startOfDay();
-        $endDate = Carbon::now()->endOfDay();
-        if($start_datepicker){
-            $startDate = date('Y-m-d', strtotime($start_datepicker));
-        }
-        if($end_datepicker){
-            $endDate = date('Y-m-d', strtotime($end_datepicker));
-        }
+        $period = FiscalPeriod::find($request->fiscal_period_neraca);
+        $startDate = Carbon::parse($period->start_date)->startOfDay();
+        $endDate = Carbon::parse($period->end_date)->endOfDay();
 
         // Always use IDR currency
         $idrCurrency = MasterCurrency::where('initial', 'IDR')->first();
