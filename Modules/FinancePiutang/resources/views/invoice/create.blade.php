@@ -1551,14 +1551,14 @@
 
                     let errorList = errorAlert.find('ul');
                     errorList.empty();
-
+                    // console.log(data , error)
                     for (const key in data.errors) {
                         if (Object.hasOwnProperty.call(data.errors, key)) {
                             const messages = data.errors[key];
-                            console.log(messages)
-                            messages.forEach(message => {
-                                errorList.append($('<li>').text(message));
-                            });
+                            // console.log(messages)
+                            // messages.forEach(message => {
+                                errorList.append($('<li>').text(messages));
+                            // });
                         }
                     }
 

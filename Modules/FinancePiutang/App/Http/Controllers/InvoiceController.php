@@ -454,8 +454,8 @@ class InvoiceController extends Controller
             //code...
         } catch (\Exception $e) {
             DB::rollBack();
-            dd($e->getMessage());
-            return response()->json(['error' => 'Error On App Please Contact IT Support'], 500);
+            // dd($e->getMessage());
+            return response()->json(['errors' => ['error' => 'Error On App Please Contact IT Support']], 500);
             //throw $th;
         }
 
@@ -787,7 +787,7 @@ class InvoiceController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             dd($e->getMessage());
-            return response()->json(['error' => 'Error On App Please Contact IT Support'], 500);
+            return response()->json(['errors' => ['error' => 'Error On App Please Contact IT Support']], 500);
             //throw $th;
         }
     }

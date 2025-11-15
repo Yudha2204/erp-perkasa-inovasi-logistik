@@ -17,7 +17,8 @@ use Modules\ExchangeRate\App\Models\ExchangeRate;
 use Modules\GeneralLedger\App\Models\GeneralJournalHead;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\Traits\HasRoles;
-
+use Illuminate\Validation\ValidationException;
+use Exception;
 class BalanceAccount extends Model
 {
     use HasFactory, HasRoles, SoftDeletes;
@@ -124,13 +125,24 @@ class BalanceAccount extends Model
             ->orderByDesc('id')
             ->first();
 
+        // 1) Handle 'Exchange Rate Not Found'
         if (!$rate) {
-            throw new \Exception('Failed to convert amount: exchange rate not found for the given date/currencies.');
+            // Definisi pesan error kustom untuk field 'exchange_rate'
+            $errors = [
+                'exchange_rate' => ['Failed to convert amount: exchange rate not found for the given date/currencies.']
+            ];
+
+            throw ValidationException::withMessages($errors);
         }
 
-        // 3) Validate denominators
+        // 2) Handle 'Invalid Exchange Rate Record'
         if (empty($rate->from_nominal) || empty($rate->to_nominal)) {
-            throw new \Exception('Invalid exchange rate record: nominal values cannot be zero or null.');
+            // Definisi pesan error kustom untuk field 'nominal_value'
+            $errors = [
+                'nominal_value' => ['Invalid exchange rate record: nominal values cannot be zero or null.']
+            ];
+
+            throw ValidationException::withMessages($errors);
         }
 
         // 4) Compute factor based on orientation of the stored pair
@@ -158,12 +170,12 @@ class BalanceAccount extends Model
             // Check if fiscal period exists and is open for the transaction date
             if (class_exists(\Modules\FinanceDataMaster\App\Models\FiscalPeriod::class) && $balanceAccount->transaction_type_id != 1) {
                 $period = \Carbon\Carbon::parse($balanceAccount->date)->format('Y-m');
-                
+
                 // First check if period exists
                 if (!\Modules\FinanceDataMaster\App\Models\FiscalPeriod::periodExists($balanceAccount->date)) {
                     throw new \Exception("Cannot create transaction: Fiscal period {$period} does not exist. Please create the fiscal period first.");
                 }
-                
+
                 // Then check if period is open
                 if (!\Modules\FinanceDataMaster\App\Models\FiscalPeriod::isDateInOpenPeriodStrict($balanceAccount->date)) {
                     throw new \Exception("Cannot create transaction: Fiscal period {$period} is closed. Please open the period first.");

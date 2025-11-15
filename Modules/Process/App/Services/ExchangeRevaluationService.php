@@ -27,7 +27,7 @@ class ExchangeRevaluationService
     }
     /**
      * Execute monthly exchange revaluation for all BS accounts with non-IDR currency
-     * 
+     *
      * @param string $period Format: Y-m (e.g., '2024-08')
      * @return array
      */
@@ -37,15 +37,15 @@ class ExchangeRevaluationService
         $endDate = Carbon::createFromFormat('Y-m', $period)->endOfMonth();
         $idrCurrencyId = $this->getIdrCurrencyId();
 
-        
+
         // Get Exchange Profit/Loss account
         $exchangePLAccount = MasterAccount::where('account_type_id', '22')
         ->first();
-        
+
         if (!$exchangePLAccount) {
             throw new \Exception('Exchange Profit/Loss account not found');
         }
-        
+
         // Get all BS accounts with non-IDR currency
         $bsAccounts = MasterAccount::whereHas('account_type', function($query) {
                 $query->where('report_type', 'BS');
@@ -55,12 +55,12 @@ class ExchangeRevaluationService
             })
             ->with(['currency', 'account_type'])
             ->get();
-            
+
             $results = [];
             $totalRevaluationAmount = 0;
-            
+
             DB::beginTransaction();
-            
+
             try {
                 BalanceAccount::where('transaction_type_id', 99) // Asumsi 99 adalah Tipe Transaksi Revaluasi
                 ->where('date', $endDate->format('Y-m-d'))
@@ -68,15 +68,15 @@ class ExchangeRevaluationService
 
             foreach ($bsAccounts as $account) {
                 $revaluationResult = $this->revaluateAccount($account, $endDate, $exchangePLAccount);
-                
+
                 if ($revaluationResult['has_revaluation']) {
                     $results[] = $revaluationResult;
                     $totalRevaluationAmount += $revaluationResult['revaluation_amount'];
                 }
             }
-            
+
             DB::commit();
-            
+
             return [
                 'success' => true,
                 'period' => $period,
@@ -85,16 +85,16 @@ class ExchangeRevaluationService
                 'total_revaluation_amount' => $totalRevaluationAmount,
                 'details' => $results
             ];
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
         }
     }
-    
+
     /**
      * Revaluate a specific account
-     * 
+     *
      * @param MasterAccount $account
      * @param Carbon $endDate
      * @param MasterAccount $exchangePLAccount
@@ -102,10 +102,10 @@ class ExchangeRevaluationService
      */
     private function revaluateAccount(MasterAccount $account, Carbon $endDate, MasterAccount $exchangePLAccount): array
     {
-        
+
         // Get account balance in foreign currency
         $balance = $this->getAccountBalance($account, $endDate);
-        
+
         if ($balance == 0) {
             return [
                 'account_id' => $account->id,
@@ -118,14 +118,14 @@ class ExchangeRevaluationService
         }
         // Get exchange rate for end of month
         $exchangeRate = $this->getExchangeRate($account->currency, $endDate);
-        
+
         if (!$exchangeRate) {
             throw new \Exception("Exchange rate not found for {$account->currency->initial} on {$endDate->format('Y-m-d')}");
         }
-        
+
         // Calculate revaluation amount
         $revaluationAmount = $this->calculateRevaluationAmount($account, $balance, $exchangeRate, $endDate);
-        
+
         if (abs($revaluationAmount) < 0.01) { // Ignore very small amounts
             return [
                 'account_id' => $account->id,
@@ -136,10 +136,10 @@ class ExchangeRevaluationService
                 'revaluation_amount' => 0
             ];
         }
-        
+
         // Create journal entries
         $this->createJournalEntries($account, $exchangePLAccount, $revaluationAmount, $endDate);
-        
+
         return [
             'account_id' => $account->id,
             'account_code' => $account->code,
@@ -151,10 +151,10 @@ class ExchangeRevaluationService
             'revaluation_amount' => $revaluationAmount
         ];
     }
-    
+
     /**
      * Get account balance in foreign currency
-     * 
+     *
      * @param MasterAccount $account
      * @param Carbon $endDate
      * @return float
@@ -170,7 +170,7 @@ class ExchangeRevaluationService
             ->first();
         $totalDebit = $balanceData->total_debit ?? 0;
         $totalCredit = $balanceData->total_credit ?? 0;
-        
+
         // Calculate net balance based on account type normal side
         if ($account->account_type->normal_side === 'debit') {
             return $totalDebit - $totalCredit;
@@ -178,10 +178,10 @@ class ExchangeRevaluationService
             return $totalCredit - $totalDebit;
         }
     }
-    
+
     /**
      * Get exchange rate for specific currency and date
-     * 
+     *
      * @param MasterCurrency $currency
      * @param Carbon $date
      * @return float|null
@@ -209,13 +209,26 @@ class ExchangeRevaluationService
             ->orderByDesc('id')
             ->first();
 
+       // 1) Handle 'Exchange Rate Not Found'
         if (!$rate) {
-            throw new \Exception('Failed to convert amount: exchange rate not found for the given date/currencies.');
+            // Definisi pesan error kustom untuk field 'exchange_rate'
+            $errors = [
+                'exchange_rate' => ['Failed to convert amount: exchange rate not found for the given date/currencies.']
+            ];
+
+            throw ValidationException::withMessages($errors);
         }
 
+        // 2) Handle 'Invalid Exchange Rate Record'
         if (empty($rate->from_nominal) || empty($rate->to_nominal)) {
-            throw new \Exception('Invalid exchange rate record: nominal values cannot be zero or null.');
+            // Definisi pesan error kustom untuk field 'nominal_value'
+            $errors = [
+                'nominal_value' => ['Invalid exchange rate record: nominal values cannot be zero or null.']
+            ];
+
+            throw ValidationException::withMessages($errors);
         }
+
 
         $isDirect = ((int)$rate->from_currency_id === $currencyId)
             && ((int)$rate->to_currency_id === $idrCurrencyId);
@@ -226,10 +239,10 @@ class ExchangeRevaluationService
 
         return $factor;
     }
-    
+
     /**
      * Calculate revaluation amount
-     * 
+     *
      * @param MasterAccount $account
      * @param float $balance
      * @param float $exchangeRate
@@ -239,19 +252,19 @@ class ExchangeRevaluationService
     {
         // Convert foreign currency balance to IDR
         $balanceInIDR = $balance * $exchangeRate;
-        
+
         // Get current IDR balance from previous revaluations
         $currentIDRBalance = $this->getCurrentIDRBalance($account, $endDate);
-        
+
         // Calculate revaluation amount
         $revaluationAmount = $balanceInIDR - $currentIDRBalance;
-        
+
         return $revaluationAmount;
     }
-    
+
     /**
      * Get current IDR balance from previous revaluations
-     * 
+     *
      * @param MasterAccount $account
      * @return float
      */
@@ -263,11 +276,11 @@ class ExchangeRevaluationService
         // This is calculated by summing all revaluation transactions for this account
         $balanceData = BalanceAccount::withoutGlobalScope('debit_priority')
             ->where('master_account_id', $account->id)
-            ->where('currency_id', $idrCurrencyId) 
+            ->where('currency_id', $idrCurrencyId)
             ->where('date', '<=', $endDate->format('Y-m-d'))
             ->selectRaw('SUM(debit) as total_debit, SUM(credit) as total_credit')
             ->first();
-        
+
         $totalDebit = $balanceData->total_debit ?? 0;
         $totalCredit = $balanceData->total_credit ?? 0;
 
@@ -280,7 +293,7 @@ class ExchangeRevaluationService
             return $totalCredit - $totalDebit;
         }
     }
-    
+
     /**
      * Helper function to create a single balance entry
      */
@@ -307,7 +320,7 @@ class ExchangeRevaluationService
     {
         $transactionTypeId = 99; // Revaluation transaction type
         $idrCurrencyId = $this->getIdrCurrencyId();
-        
+
         if ($revaluationAmount > 0) {
             // Revaluation amount is positive
             if ($account->account_type->normal_side === 'debit') {
@@ -326,7 +339,7 @@ class ExchangeRevaluationService
         } else {
             // Revaluation amount is negative or zero
             $absAmount = abs($revaluationAmount);
-            
+
             if ($absAmount < 0.01) {
                 return; // Do nothing if amount is effectively zero
             }
@@ -346,17 +359,17 @@ class ExchangeRevaluationService
             }
         }
     }
-    
+
     /**
      * Check if revaluation has been done for a specific period
-     * 
+     *
      * @param string $period
      * @return bool
      */
     public function isRevaluationDone(string $period): bool
     {
         $endDate = Carbon::createFromFormat('Y-m', $period)->endOfMonth();
-        
+
         // Check if there are any revaluation transactions for this period
         $hasRevaluation = BalanceAccount::whereHas('master_account', function($query) {
                 $query->where('account_type_id', 22);
@@ -364,7 +377,7 @@ class ExchangeRevaluationService
             ->where('date', $endDate->format('Y-m-d'))
             ->where('transaction_type_id', 99) // Assuming 99 is revaluation transaction type
             ->exists();
-        
+
         return $hasRevaluation;
     }
 }

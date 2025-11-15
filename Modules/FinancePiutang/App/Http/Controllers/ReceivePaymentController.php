@@ -499,7 +499,7 @@ class ReceivePaymentController extends Controller
             //throw $th;
             DB::rollBack();
             dd($e->getMessage());
-            return response()->json(['error' => 'Error On App Please Contact IT Support'], 500);
+            return response()->json(['errors' => ['error' => 'Error On App Please Contact IT Support']], 500);
         }
 
     }
@@ -982,7 +982,7 @@ class ReceivePaymentController extends Controller
             //throw $th;
             DB::rollBack();
             // dd($e->getMessage());
-            return response()->json(['error' => 'Error On App Please Contact IT Support'], 500);
+            return response()->json(['errors' => ['error' => 'Error On App Please Contact IT Support']], 500);
         }
     }
 
