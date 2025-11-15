@@ -116,6 +116,9 @@ class OperationExportController extends Controller
             $data = new OperationExport();
             $data->job_order_id = $this->generateUniqueCode();
             $data->marketing_export_id = null;
+            $data->mbl = $request->mbl;
+            $data->hbl = $request->hbl;
+            $data->chargeable_weight = $request->chargeable_weight;
             $data->origin = $request->origin;
             $data->pickup_address = $request->pickup_address;
             $data->pickup_address_desc = $request->pickup_address_desc;
@@ -361,6 +364,9 @@ class OperationExportController extends Controller
             //update data operation to Database
             
             $data = OperationExport::find($id);
+            $data->mbl = $request->mbl;
+            $data->hbl = $request->hbl;
+            $data->chargeable_weight = $request->chargeable_weight;
             $data->origin = $request->origin;
             $data->pickup_address = $request->pickup_address;
             $data->pickup_address_desc = $request->pickup_address_desc;

@@ -15,7 +15,7 @@ use Spatie\Permission\Traits\HasRoles;
 class SalesOrderHead extends Model
 {
     use HasFactory, HasRoles, SoftDeletes;
-    
+
     protected $table = 'sales_order_head';
     protected $guarded = [];
 
@@ -48,16 +48,16 @@ class SalesOrderHead extends Model
     {
         if($this->marketing_id) {
             if($this->source === "export") {
-                return MarketingExport::with('quotation')->find($this->marketing_id);
+                return MarketingExport::with(['quotation','operations'])->find($this->marketing_id);
             } else if($this->source === "import") {
-                return MarketingImport::with('quotation')->find($this->marketing_id);
+                return MarketingImport::with(['quotation', 'operations'])->find($this->marketing_id);
             }
         }
         return null;
     }
 
     public function getTotalAttribute()
-    {   
+    {
         $discount = $this->discount_nominal;
         $detail = SalesOrderDetail::where('head_id', $this->id)->get();
         $total = 0;

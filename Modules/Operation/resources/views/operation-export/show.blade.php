@@ -73,6 +73,24 @@
                                         </div>
                                         <div class="col-md-12">
                                             <div class="form-group">
+                                                <label class="form-label">MBL</label>
+                                                <input type="text" class="form-control" name="mbl" id="mbl" value="{{ $operationExport->mbl }}" disabled>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label">HBL</label>
+                                                <input type="text" class="form-control" name="hbl" id="hbl" value="{{ $operationExport->hbl }}" disabled>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="form-label">Chargeable Weight</label>
+                                                <input type="number" step="0.01" class="form-control" name="chargeable_weight" id="chargeable_weight" value="{{ $operationExport->chargeable_weight }}" disabled>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
                                                 <label class="form-label">Negara Asal / Origin</label>
                                                 <input type="text" class="form-control" name="origin" id="origin" value="{{ $operationExport->origin }}" disabled >
                                             </div>

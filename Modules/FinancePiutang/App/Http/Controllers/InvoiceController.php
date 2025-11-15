@@ -41,6 +41,7 @@ class InvoiceController extends Controller
     public function index()
     {
         $invoice = InvoiceHead::whereNot('status', 'Beginning Balance')->orderBy('date_invoice','ASC')->get();
+        // return response()->json([$invoice[13]->sales->marketing->operations[0]->id],200);
         $bank = BankAccount::all();
         foreach($invoice as $i) {
             $i->updateStatus();
