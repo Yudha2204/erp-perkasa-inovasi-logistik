@@ -21,7 +21,7 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="card">
-                        <div class="card-body">                
+                        <div class="card-body">
                             @if ($errors->any())
                                 <div class="alert alert-danger" role="alert">
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button>
@@ -42,7 +42,7 @@
                                                 data-placeholder="Choose One" name="customer_id" id="customer_id">
                                                 <option label="Choose One" selected disabled></option>
                                                 @foreach ($contact as $c)
-                                                    <option value="{{ $c->id }}">{{ $c->customer_name }}</option>   
+                                                    <option value="{{ $c->id }}">{{ $c->customer_name }}</option>
                                                 @endforeach
                                             </select>
                                             <div id="btn_edit_contact"></div>
@@ -123,7 +123,7 @@
                                         <label for="shipper" class="form-label">Shipper</label>
                                         <input type="text" class="form-control" name="shipper" id="shipper" placeholder="Link" readonly>
                                     </div>
-                                </div> 
+                                </div>
                               </div>
                               <div class="row">
                                   <div class="col-md-4">
@@ -271,7 +271,7 @@
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type2" name="contact_type[]" value="2" @if(is_array(old('contact_type')) && in_array(2,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Vendor</span>
                                                             </label>
-                                                            &nbsp;&nbsp;&nbsp;&nbsp;    
+                                                            &nbsp;&nbsp;&nbsp;&nbsp;
                                                         <label class="custom-control custom-checkbox">
                                                                 <input type="checkbox" class="custom-control-input" id="contact_type3" name="contact_type[]" value="3" @if(is_array(old('contact_type')) && in_array(3,old('contact_type'))) checked @endif>
                                                                 <span class="custom-control-label">Karyawan</span>
@@ -502,7 +502,7 @@
                                                 </div>
                                             </div>
                                             <div class="row input_fields_wrap_new edit mt-2">
-                        
+
                                             </div>
                                             <div class="row mt-2">
                                                 <div class="col-3">
@@ -696,7 +696,7 @@
                                                 data-placeholder="Select..." id="select-no-transactions" required>
                                                 <option label="Select..." selected disabled></option>
                                                 @foreach ($no_transactions as $t)
-                                                    <option value="{{ $t->id }}">{{ $t->template }}{{ $t->number }}</option>   
+                                                    <option value="{{ $t->id }}">{{ $t->template }}{{ $t->number }}</option>
                                                 @endforeach
                                             </select>
                                             <button class="btn text-danger btn-sm" id="delete_option">
@@ -792,7 +792,7 @@
                     $('#email_edit').val(response.data.email);
                     $('#npwp_ktp_edit').val(response.data.npwp_ktp);
                     $('#company_name_edit').val(response.data.company_name);
-                    
+
                     $('#address_edit').val(response.data.address);
                     $('#city_edit').val(response.data.city);
                     $('#postal_code_edit').val(response.data.postal_code);
@@ -934,6 +934,9 @@
         });
 
         $(document).ready(function () {
+            $('.select2').select2({
+                minimumResultsForSearch: 0
+            });
             // show beneficiary - siwft code if select checkbox vendor value
             $("input:checkbox[name^='contact_type']").on('change', function () {
                 if ($('#contact_type2').prop('checked')) {
@@ -991,7 +994,7 @@
             });
 
             $(wrapper_new).on("click",".remove_field_new", function(e){ //user click on remove text
-                e.preventDefault(); 
+                e.preventDefault();
                 $(this).parent().parent().remove(); x--;
             })
         });
@@ -1017,7 +1020,7 @@
                     return;
                 }
                 var confirmDelete = confirm('Are you sure want to delete this item?');
-                
+
                 if (confirmDelete) {
                     var id = selectedOption.value;
                     var url = "{{ route('finance.kas.transaction-kas-in.destroy', ':id') }}".replace(':id', id);
@@ -1071,7 +1074,7 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 
+                data: {
                     'currency_id': currency_id,
                     'account_type_id': [1, 2] // Filter for header accounts only
                 },
@@ -1107,7 +1110,7 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 
+                data: {
                     'currency_id': currency_id,
                     'account_type_id': [1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20] // Filter for detail accounts only, excluding AR (4), AP (8), and Current Earning (13)
                 },
@@ -1217,7 +1220,7 @@
             var newFormWrapper = document.createElement('tr');
             newFormWrapper.classList.add('form-wrapper');
             newFormWrapper.classList.add('group-form');
-        
+
             var formTemplate = `
             <td><a href="javascript:void(0)"
                 class="arrow-display" onclick="toggleList(this)">
@@ -1247,7 +1250,7 @@
                 </div>
             </td>
             `;
-        
+
             newFormWrapper.innerHTML = formTemplate;
             formContainer.appendChild(newFormWrapper);
 
@@ -1255,7 +1258,7 @@
             populateNewDetailAccount(newFormWrapper);
 
             $('.select2').select2({
-                minimumResultsForSearch: Infinity
+                minimumResultsForSearch: 0
             });
             var select2Elements = document.querySelectorAll('.select2');
             select2Elements.forEach(function(element) {
@@ -1266,7 +1269,7 @@
         function populateNewDetailAccount(formWrapper) {
             var currency_id = $('#currency_id').val()
             const selectElement = formWrapper.querySelector('select[name="account_detail_id"]')
-            
+
             if (!selectElement) return;
 
             let defaultOption = document.createElement("option");
@@ -1281,7 +1284,7 @@
                 type: 'GET',
                 dataType: 'json',
                 url: '{{ route('finance.master-data.account') }}',
-                data: { 
+                data: {
                     'currency_id': currency_id,
                     'account_type_id': [1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20] // Filter for detail accounts only, excluding AR (4), AP (8), and Current Earning (13)
                 },
@@ -1336,7 +1339,7 @@
         document.getElementById('submit-all-form').addEventListener('click', function() {
             var forms = document.querySelectorAll('.form-wrapper');
             var formData = [];
-        
+
             forms.forEach(function(form) {
                 var formDataObj = {};
                 form.querySelectorAll('input, select').forEach(function(input) {
@@ -1344,14 +1347,14 @@
                 });
                 formData.push(formDataObj);
             });
-        
+
             // Menyimpan data dalam input tersembunyi untuk dikirimkan ke backend
             var hiddenInput = document.createElement('input');
             hiddenInput.setAttribute('type', 'hidden');
             hiddenInput.setAttribute('name', 'form_data');
             hiddenInput.setAttribute('value', JSON.stringify(formData));
             document.querySelector('form[name="dynamic-form"]').appendChild(hiddenInput);
-        
+
             // Mengirimkan formulir ke backend
             document.forms['dynamic-form'].submit();
         });

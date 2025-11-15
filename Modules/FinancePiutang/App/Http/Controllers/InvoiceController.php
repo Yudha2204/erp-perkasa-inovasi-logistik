@@ -41,6 +41,7 @@ class InvoiceController extends Controller
     public function index()
     {
         $invoice = InvoiceHead::whereNot('status', 'Beginning Balance')->orderBy('date_invoice','ASC')->get();
+        // return response()->json([$invoice[13]->sales->marketing->operations[0]->id],200);
         $bank = BankAccount::all();
         foreach($invoice as $i) {
             $i->updateStatus();
@@ -481,7 +482,7 @@ class InvoiceController extends Controller
             return redirect()->route('finance.piutang.invoice.index')->withErrors(["error" => "There is receive payment link to this invoice"]);
         }
         $invoice = InvoiceHead::find($id);
-        // dd($invoice->jurnal);
+        // return response()->json($invoice->sales , 200);
         $contact = MasterContact::whereJsonContains('type','1')->get();
         $terms = MasterTermOfPayment::all();
         $taxs = MasterTax::all();

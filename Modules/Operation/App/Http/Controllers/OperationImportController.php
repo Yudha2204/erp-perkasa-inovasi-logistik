@@ -117,6 +117,9 @@ class OperationImportController extends Controller
             $data = new OperationImport();
             $data->job_order_id = $this->generateUniqueCode();
             $data->marketing_import_id = null;
+            $data->mbl = $request->mbl;
+            $data->hbl = $request->hbl;
+            $data->chargeable_weight = $request->chargeable_weight;
             $data->origin = $request->origin;
             $data->pickup_address = $request->pickup_address;
             $data->pickup_address_desc = $request->pickup_address_desc;
@@ -361,6 +364,9 @@ class OperationImportController extends Controller
             //update data operation to Database
             
             $data = OperationImport::find($id);
+            $data->mbl = $request->mbl;
+            $data->hbl = $request->hbl;
+            $data->chargeable_weight = $request->chargeable_weight;
             $data->origin = $request->origin;
             $data->pickup_address = $request->pickup_address;
             $data->pickup_address_desc = $request->pickup_address_desc;

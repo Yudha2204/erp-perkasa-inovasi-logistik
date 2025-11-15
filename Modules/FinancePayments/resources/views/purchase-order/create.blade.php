@@ -909,6 +909,9 @@
         });
 
         $(document).ready(function () {
+            $('.select2').select2({
+                width: '100%',
+            });
             $('#pph_tax_master').on('change', function() {
                 var selectedTax = $(this).val();
                 $('.form-wrapper').each(function() {

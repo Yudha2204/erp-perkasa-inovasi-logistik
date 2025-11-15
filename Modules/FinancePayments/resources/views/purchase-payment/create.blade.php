@@ -902,6 +902,9 @@
         });
 
         $(document).ready(function () {
+            $('.select2').select2({
+                width: '100%',
+            });
             // show beneficiary - siwft code if select checkbox vendor value
             $("input:checkbox[name^='contact_type']").on('change', function () {
                 if ($('#contact_type2').prop('checked')) {

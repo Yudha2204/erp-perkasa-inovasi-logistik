@@ -105,7 +105,7 @@
                                                                 @csrf
                                                                 @method('DELETE')
                                                                 <button type="submit" class="btn text-danger btn-sm dropdown-item" onclick="return confirmDelete()"><span class="fe fe-trash fs-14"></span> Delete</button>
-                                                            </form>       
+                                                            </form>
 
                                                             <a class="btn text-success btn-sm dropdown-item" data-bs-toggle="modal" href="#modal-pdf-{{ $inv->id }}" modal-data-id="{{ $inv->id }}" data-id="{{ $inv->sales->marketing->job_order_id ?? "" }}">
                                                             <span class="fe fe-check fs-14"></span> Print
@@ -161,20 +161,20 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <label for="mbl">MBL</label>
-                                            <input type="text" class="form-control" name="mbl" id="mbl" placeholder="0" required>
+                                            <input type="text" class="form-control" name="mbl" id="mbl" value="{{ $inv->sales->marketing->operations[0]->mbl ?? "" }}" placeholder="0" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="hbl">HBL</label>
-                                            <input type="text" class="form-control" name="hbl" id="hbl" placeholder="0" required>
+                                            <input type="text" class="form-control" name="hbl" id="hbl" value="{{ $inv->sales->marketing->operations[0]->hbl ?? "" }}" placeholder="0" required>
                                         </div>
                                     </div>
                                     <div class="">
                                         @php
                                             $voyage = '';
                                             $transportation = '';
-    
+
                                             if ($inv->sales && $inv->sales->marketing) {
-                                                $transportation = 'Land Trucking'; 
+                                                $transportation = 'Land Trucking';
                                                 if ($inv->sales->marketing->transportation === 1) {
                                                     $transportation = 'Air Freight';
                                                 } else if ($inv->sales->marketing->transportation === 2) {
@@ -188,7 +188,7 @@
                                     </div>
                                     <div class="">
                                         <label for="chargetableWeight">Chargetable Weight</label>
-                                        <input type="text" class="form-control" name="chargetableWeight" placeholder="0" id="chargetableWeight" required>
+                                        <input type="text" class="form-control" name="chargetableWeight" placeholder="0" id="chargetableWeight" value="{{ $inv->sales->marketing->operations[0]->chargeable_weight ?? "" }}" required>
                                     </div>
                                     <div class="">
                                         <label for="invoice_date">Invoice Date</label>
@@ -209,7 +209,7 @@
                                             <label for="weight">Weight</label>
                                             <input type="text" class="form-control" name="weight" id="weight" value="{{ $inv->sales->marketing->total_weight ?? 0 }}">
                                         </div>
-                                        <div class="col-md-6 d-flex gap-2">                                           
+                                        <div class="col-md-6 d-flex gap-2">
                                             <div class="">
                                                 @php
                                                     $volumetrik = "-";
