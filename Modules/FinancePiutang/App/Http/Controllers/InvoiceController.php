@@ -40,7 +40,7 @@ class InvoiceController extends Controller
      */
     public function index()
     {
-        $invoice = InvoiceHead::whereNot('status', 'Beginning Balance')->get();
+        $invoice = InvoiceHead::whereNot('status', 'Beginning Balance')->orderBy('date_invoice','ASC')->get();
         $bank = BankAccount::all();
         foreach($invoice as $i) {
             $i->updateStatus();

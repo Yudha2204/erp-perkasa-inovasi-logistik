@@ -43,7 +43,7 @@ class ReceivePaymentController extends Controller
      */
     public function index()
     {
-        $data_recieve = RecieveHead::all();
+        $data_recieve = RecieveHead::orderBy('date_recieve','ASC')->get();
         return view('financepiutang::receive-payment.index',compact('data_recieve'));
     }
 
@@ -460,11 +460,11 @@ class ReceivePaymentController extends Controller
                 // Get the account with its account_type to check normal_side
                 $account = MasterAccount::with('account_type')->find($charge['account_id']);
                 $normalSide = $account->account_type->normal_side ?? 'debit';
-                
+
                 // Determine debit/credit based on normal_side
                 $debit = $normalSide === 'debit' ? $charge['amount'] : 0;
                 $credit = $normalSide === 'credit' ? $charge['amount'] : 0;
-                
+
                 $account_charge_flow[] = [
                     $debit, // debit
                     $credit, // credit
@@ -944,11 +944,11 @@ class ReceivePaymentController extends Controller
                 // Get the account with its account_type to check normal_side
                 $account = MasterAccount::with('account_type')->find($charge['account_id']);
                 $normalSide = $account->account_type->normal_side ?? 'debit';
-                
+
                 // Determine debit/credit based on normal_side
                 $debit = $normalSide === 'debit' ? $charge['amount'] : 0;
                 $credit = $normalSide === 'credit' ? $charge['amount'] : 0;
-                
+
                 $account_charge_flow[] = [
                     $debit, // debit
                     $credit, // credit

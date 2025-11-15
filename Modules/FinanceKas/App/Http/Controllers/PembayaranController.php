@@ -37,7 +37,7 @@ class PembayaranController extends Controller
      */
     public function index()
     {
-        $head = KasOutHead::all();
+        $head = KasOutHead::orderBy('date_kas_out','ASC')->get();
         return view('financekas::pembayaran.index', compact('head'));
     }
 

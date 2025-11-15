@@ -41,7 +41,7 @@ class PurchaseOrderController extends Controller
 
     public function index()
     {
-        $head = OrderHead::all();
+        $head = OrderHead::orderBy('date_order','ASC')->get();
         return view('financepayments::purchase-order.index', compact('head'));
     }
 

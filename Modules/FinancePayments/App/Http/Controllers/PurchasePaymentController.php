@@ -41,7 +41,7 @@ class PurchasePaymentController extends Controller
 
     public function index()
     {
-        $head = PaymentHead::all();
+        $head = PaymentHead::orderBy('date_payment')->get();
         return view('financepayments::purchase-payment.index', compact('head'));
     }
 

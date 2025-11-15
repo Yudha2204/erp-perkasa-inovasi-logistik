@@ -33,7 +33,7 @@ class SalesOrderController extends Controller
      */
     public function index()
     {
-        $sales_order = SalesOrderHead::all();
+        $sales_order = SalesOrderHead::orderBy('date','ASC')->get();
         return view('financepiutang::sales-order.index', compact('sales_order'));
     }
 
@@ -234,11 +234,11 @@ class SalesOrderController extends Controller
                 "date_sales.required" => "The date is required.",
                 "currency_id.required" => "The currency field is required."
             ]);
-    
+
             if ($validator->fails()) {
                 return response()->json(['errors' => $validator->errors()], 422);
             }
-    
+
             $contact_id = $request->input('customer_id');
             $no_transactions = $request->input('no_transaction');
             $date = $request->input('date_sales');
@@ -248,10 +248,10 @@ class SalesOrderController extends Controller
             $additional_cost = $request->input('additional_cost');
             $discount_type = $request->input('discount_type');
             $discount_nominal = $request->input('discount');
-    
+
             $exp_transaction = explode("-", $no_transactions);
             $number = $exp_transaction[3];
-    
+
             $marketing_id = null;
             $marketing_source = null;
             if($choose === "1") {
@@ -265,9 +265,9 @@ class SalesOrderController extends Controller
                     $marketing_source = $exp_marketing[1];
                 }
             }
-    
+
             $salesOrder = SalesOrderHead::findOrFail($id);
-    
+
             $salesOrder->update([
                 'contact_id' => $contact_id,
                 'number' => $number,
@@ -280,9 +280,9 @@ class SalesOrderController extends Controller
                 'discount_type' => $discount_type,
                 'discount_nominal' => $this->numberToDatabase($discount_nominal)
             ]);
-    
+
             $head_id = $salesOrder->id;
-    
+
             $formData = json_decode($request->input('form_data'), true);
             foreach ($formData as $data) {
                 $des_detail = $data['des_detail'];
@@ -294,7 +294,7 @@ class SalesOrderController extends Controller
                 $disc_type_detail = $data['disc_type_detail'];
                 $operator = $data['operator'];
                 $exp_operator = explode(":", $operator);
-    
+
                 if($exp_operator[1] === "create") {
                     SalesOrderDetail::create([
                         'head_id' => $head_id,
@@ -324,7 +324,7 @@ class SalesOrderController extends Controller
                     }
                 }
             }
-    
+
             return response()->json(['message' => 'update successfully!'], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

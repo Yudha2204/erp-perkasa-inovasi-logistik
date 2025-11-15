@@ -36,7 +36,7 @@ class PenerimaanController extends Controller
      */
     public function index()
     {
-        $head = KasInHead::all();
+        $head = KasInHead::orderBy('date_kas_in','ASC')->get();
         return view('financekas::penerimaan.index', compact('head'));
     }
 
