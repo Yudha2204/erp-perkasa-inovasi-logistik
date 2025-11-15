@@ -12,6 +12,7 @@ use Modules\FinanceDataMaster\App\Models\AccountType;
 use Modules\FinanceDataMaster\App\Models\BalanceAccount;
 use Modules\FinanceDataMaster\App\Models\MasterAccount;
 use Modules\FinanceDataMaster\App\Models\TransactionType;
+use Modules\FinanceDataMaster\App\Models\MasterContact;
 use Modules\FinancePiutang\App\Models\RecieveDetail;
 use Modules\FinancePayments\App\Models\PaymentDetail;
 use Modules\FinanceDataMaster\App\Models\FiscalPeriod;
@@ -39,7 +40,9 @@ class ReportFinanceController extends Controller
     {
         $currency = MasterCurrency::all();
         $fiscalPeriods = FiscalPeriod::all();
-        return view('reportfinance::index', compact('currency', 'fiscalPeriods'));
+        $customers = MasterContact::whereJsonContains('type', '1')->orderBy('customer_name', 'asc')->get();
+        $vendors = MasterContact::whereJsonContains('type', '2')->orderBy('customer_name', 'asc')->get();
+        return view('reportfinance::index', compact('currency', 'fiscalPeriods', 'customers', 'vendors'));
     }
 
     public function BukuBesarFilter($startDate, $endDate, $currency)
@@ -1015,6 +1018,8 @@ class ReportFinanceController extends Controller
     {
         $source = $request->source;
         $as_of_date = $request->as_of_date;
+        $contact_id = $request->contact_id; // For customer (AR/Invoice)
+        $vendor_id = $request->vendor_id; // For vendor (AP/Order)
 
         // Default to today if no date provided
         $asOfDate = Carbon::now()->endOfDay();
@@ -1030,6 +1035,11 @@ class ReportFinanceController extends Controller
                 ->where('date_invoice', '<=', $asOfDate->format('Y-m-d'))
                 ->where('status', '!=', 'paid')
                 ->orderBy('date_invoice', 'desc');
+
+            // Filter by customer if provided
+            if ($contact_id) {
+                $invoices->where('contact_id', $contact_id);
+            }
 
             if ($request->has('search') && $request->search != '') {
                 $invoices->whereHas('contact', function ($subQuery) use ($request) {
@@ -1061,6 +1071,11 @@ class ReportFinanceController extends Controller
                 ->where('date_order', '<=', $asOfDate->format('Y-m-d'))
                 ->where('status', '!=', 'paid')
                 ->orderBy('date_order', 'desc');
+
+            // Filter by vendor if provided
+            if ($vendor_id) {
+                $orders->where('vendor_id', $vendor_id);
+            }
 
             if ($request->has('search') && $request->search != '') {
                 $orders->whereHas('vendor', function ($subQuery) use ($request) {
@@ -1112,7 +1127,15 @@ class ReportFinanceController extends Controller
 
         $currency = MasterCurrency::all();
 
-        return view('reportfinance::outstanding-arap.index', compact('paginator', 'asOfDate', 'source', 'currency', 'totalsByCurrency'));
+        // Get customers for AR (Invoice) or vendors for AP (Order)
+        $contacts = collect();
+        if($source == 'invoice') {
+            $contacts = MasterContact::whereJsonContains('type', '1')->orderBy('customer_name', 'asc')->get();
+        } elseif($source == 'order') {
+            $contacts = MasterContact::whereJsonContains('type', '2')->orderBy('customer_name', 'asc')->get();
+        }
+
+        return view('reportfinance::outstanding-arap.index', compact('paginator', 'asOfDate', 'source', 'currency', 'totalsByCurrency', 'contacts', 'contact_id', 'vendor_id'));
     }
     public function PrintLaporanKeuangan($id)
     {

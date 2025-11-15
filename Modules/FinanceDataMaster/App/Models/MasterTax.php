@@ -19,4 +19,14 @@ class MasterTax extends Model
     {
         return $this->belongsTo(MasterAccount::class, 'account_id', 'id');
     }
+
+    public function purchaseAccount()
+    {
+        return $this->belongsTo(MasterAccount::class, 'account_id', 'id');
+    }
+
+    public function salesAccount()
+    {
+        return $this->belongsTo(MasterAccount::class, 'sales_account_id', 'id');
+    }
 }

@@ -592,14 +592,21 @@
                         <form class="standardForm" action="{{ route('finance.report-finance.outstanding-arap') }}" method="GET" enctype="multipart/form-data">
                             <div class="row d-flex justify-content-center align-items-center flex-column">
                                 <label for="">Source :</label>
-                                <select name="source" id="source_outstanding" style="height: 30px; margin-bottom: 30px; width: 450px;" required>
+                                <select name="source" id="source_outstanding" class="form-control" style="margin-bottom: 10px; width: 100%;" required>
                                     <option label="Choose one" selected disabled></option>
                                     <option value="invoice">AR (Invoice)</option>
                                     <option value="order">AP</option>
                                 </select>
-                                <label for="">As of Date:</label>
+                                <label for="" id="contact_label" style="display: none;">Customer/Vendor:</label>
+                                <select name="contact_id" id="contact_id_outstanding" class="form-control select2 form-select" data-placeholder="Choose Customer" style="margin-bottom: 30px; width: 100%; display: none;">
+                                    <option label="Choose one" value="" selected>All</option>
+                                </select>
+                                <select name="vendor_id" id="vendor_id_outstanding" class="form-control select2 form-select" data-placeholder="Choose Vendor" style="margin-bottom: 30px; width: 100%; display: none;">
+                                    <option label="Choose one" value="" selected>All</option>
+                                </select>
+                                <label for="" style="margin-top: 10px;">As of Date:</label>
                                 <div class="d-flex justify-content-center align-items-center">
-                                    <input type="text" id="as_of_datepicker" name="as_of_date" style="width: 200px; text-align: center; border: 1px solid #D8D8DC;" required>
+                                    <input type="text" id="as_of_datepicker" name="as_of_date" class="form-control" style="text-align: center; border: 1px solid #D8D8DC;" required>
                                 </div>
                             </div>
                             <br><br>
@@ -616,6 +623,35 @@
 </div>
 @endsection
 
+@push('styles')
+<!-- SELECT2 CSS -->
+<link href="{{ url('assets/plugins/select2/select2.min.css') }}" rel="stylesheet" />
+<style>
+    /* Ensure Select2 containers are properly hidden when select is hidden */
+    #contact_id_outstanding[style*="display: none"] + .select2-container {
+        display: none !important;
+    }
+    #vendor_id_outstanding[style*="display: none"] + .select2-container {
+        display: none !important;
+    }
+    #select2-contact_id_outstanding-container[style*="display: none"] {
+        display: none !important;
+    }
+    #select2-vendor_id_outstanding-container[style*="display: none"] {
+        display: none !important;
+    }
+    /* Ensure Select2 takes full width */
+    #contact_id_outstanding + .select2-container,
+    #vendor_id_outstanding + .select2-container {
+        width: 100% !important;
+    }
+    #select2-contact_id_outstanding-container,
+    #select2-vendor_id_outstanding-container {
+        width: 100% !important;
+    }
+</style>
+@endpush
+
 @push('scripts')
 <script src="../assets/plugins/chart/Chart.bundle.js"></script>
 <script src="../assets/js/chart.js"></script>
@@ -624,6 +660,9 @@
 <!-- Masukkan jQuery dan jQuery UI di footer template Anda -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<!-- SELECT2 JS -->
+<script src="{{ url('assets/plugins/select2/select2.full.min.js') }}"></script>
+<script src="{{ url('assets/js/select2.js') }}"></script>
 
 <script>
     $(function() {
@@ -645,6 +684,192 @@
         $("#end_datepicker_laporan_rekening").datepicker();
         $("#as_of_datepicker").datepicker();
     })
+
+    // Populate customer and vendor dropdowns
+    $(document).ready(function() {
+        // Populate customer dropdown
+        var customers = @json($customers);
+        var customerSelect = $('#contact_id_outstanding');
+        customers.forEach(function(customer) {
+            customerSelect.append('<option value="' + customer.id + '">' + customer.customer_name + '</option>');
+        });
+
+        // Populate vendor dropdown
+        var vendors = @json($vendors);
+        var vendorSelect = $('#vendor_id_outstanding');
+        vendors.forEach(function(vendor) {
+            vendorSelect.append('<option value="' + vendor.id + '">' + vendor.customer_name + '</option>');
+        });
+
+        // Function to initialize Select2 for a dropdown
+        function initSelect2(selectElement, placeholder) {
+            // Make sure element is visible before initializing Select2
+            if (!selectElement.is(':visible')) {
+                selectElement.show();
+            }
+            
+            // Destroy existing Select2 if it exists
+            if (selectElement.hasClass('select2-hidden-accessible')) {
+                selectElement.select2('destroy');
+            }
+            
+            // Initialize Select2
+            selectElement.select2({
+                placeholder: placeholder,
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#modal-outstanding-arap-format')
+            });
+            
+            // Ensure Select2 container is visible
+            selectElement.next('.select2-container').show();
+            $('#select2-' + selectElement.attr('id') + '-container').show();
+        }
+
+        // Handle source change
+        $('#source_outstanding').on('change', function() {
+            var source = $(this).val();
+            var contactLabel = $('#contact_label');
+            var contactSelect = $('#contact_id_outstanding');
+            var vendorSelect = $('#vendor_id_outstanding');
+
+            // Destroy Select2 instances if they exist
+            if (contactSelect.hasClass('select2-hidden-accessible')) {
+                contactSelect.select2('destroy');
+            }
+            if (vendorSelect.hasClass('select2-hidden-accessible')) {
+                vendorSelect.select2('destroy');
+            }
+            
+            // Hide both first
+            contactSelect.hide();
+            vendorSelect.hide();
+            contactLabel.hide();
+            
+            // Hide Select2 containers if they exist
+            contactSelect.next('.select2-container').hide();
+            vendorSelect.next('.select2-container').hide();
+            $('#select2-contact_id_outstanding-container').hide();
+            $('#select2-vendor_id_outstanding-container').hide();
+
+            if (source === 'invoice') {
+                // Show customer dropdown for AR (Invoice)
+                contactLabel.text('Customer:').show();
+                contactSelect.show();
+                
+                // Initialize Select2 for customer after showing
+                setTimeout(function() {
+                    initSelect2(contactSelect, 'Choose Customer');
+                }, 200);
+                
+                contactSelect.prop('required', false);
+                vendorSelect.prop('required', false);
+            } else if (source === 'order') {
+                // Show vendor dropdown for AP (Order)
+                contactLabel.text('Vendor:').show();
+                vendorSelect.show();
+                
+                // Initialize Select2 for vendor after showing
+                setTimeout(function() {
+                    initSelect2(vendorSelect, 'Choose Vendor');
+                }, 200);
+                
+                contactSelect.prop('required', false);
+                vendorSelect.prop('required', false);
+            }
+        });
+
+        // Initialize Select2 when modal is shown (only if source is already selected)
+        $('#modal-outstanding-arap-format').on('shown.bs.modal', function() {
+            var source = $('#source_outstanding').val();
+            var contactSelect = $('#contact_id_outstanding');
+            var vendorSelect = $('#vendor_id_outstanding');
+            var contactLabel = $('#contact_label');
+            
+            // Ensure both are hidden first
+            contactSelect.hide();
+            vendorSelect.hide();
+            contactLabel.hide();
+            
+            // Hide Select2 containers
+            contactSelect.next('.select2-container').hide();
+            vendorSelect.next('.select2-container').hide();
+            $('#select2-contact_id_outstanding-container').hide();
+            $('#select2-vendor_id_outstanding-container').hide();
+            
+            // If source is already selected, show the appropriate dropdown
+            if (source === 'invoice') {
+                contactLabel.text('Customer:').show();
+                contactSelect.show();
+                setTimeout(function() {
+                    initSelect2(contactSelect, 'Choose Customer');
+                }, 200);
+            } else if (source === 'order') {
+                contactLabel.text('Vendor:').show();
+                vendorSelect.show();
+                setTimeout(function() {
+                    initSelect2(vendorSelect, 'Choose Vendor');
+                }, 200);
+            }
+        });
+
+        // Clean up and reset when modal is hidden
+        $('#modal-outstanding-arap-format').on('hidden.bs.modal', function() {
+            var contactSelect = $('#contact_id_outstanding');
+            var vendorSelect = $('#vendor_id_outstanding');
+            var contactLabel = $('#contact_label');
+            
+            // Destroy Select2 instances
+            if (contactSelect.hasClass('select2-hidden-accessible')) {
+                contactSelect.select2('destroy');
+            }
+            if (vendorSelect.hasClass('select2-hidden-accessible')) {
+                vendorSelect.select2('destroy');
+            }
+            
+            // Hide both dropdowns and label
+            contactLabel.hide();
+            contactSelect.hide();
+            vendorSelect.hide();
+            
+            // Hide Select2 containers
+            contactSelect.next('.select2-container').hide();
+            vendorSelect.next('.select2-container').hide();
+            $('#select2-contact_id_outstanding-container').hide();
+            $('#select2-vendor_id_outstanding-container').hide();
+            
+            // Reset values
+            contactSelect.val('').trigger('change');
+            vendorSelect.val('').trigger('change');
+            $('#source_outstanding').val('').trigger('change');
+        });
+
+        // Ensure both are hidden when modal opens
+        $('#modal-outstanding-arap-format').on('show.bs.modal', function() {
+            var contactSelect = $('#contact_id_outstanding');
+            var vendorSelect = $('#vendor_id_outstanding');
+            var contactLabel = $('#contact_label');
+            
+            // Destroy any existing Select2 instances
+            if (contactSelect.hasClass('select2-hidden-accessible')) {
+                contactSelect.select2('destroy');
+            }
+            if (vendorSelect.hasClass('select2-hidden-accessible')) {
+                vendorSelect.select2('destroy');
+            }
+            
+            // Hide both dropdowns and label
+            contactLabel.hide();
+            contactSelect.hide();
+            vendorSelect.hide();
+            
+            // Hide Select2 containers
+            contactSelect.next('.select2-container').hide();
+            vendorSelect.next('.select2-container').hide();
+            $('#select2-contact_id_outstanding-container').hide();
+            $('#select2-vendor_id_outstanding-container').hide();
+        });
+    });
 
     function toggleForm(type, element) {
         const parent = element.closest('.modal-body');

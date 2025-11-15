@@ -11,17 +11,44 @@
             <div class="page-header">
                 <h1>Laporan Outstanding {{ $source == 'customer' || $source == 'invoice' ? 'AR (Invoice)' : 'AP' }}</h1>
                 <p class="text-muted">As of Date: {{ \Carbon\Carbon::parse($asOfDate)->format('d F Y') }}</p>
+                @if($contact_id || $vendor_id)
+                    <p class="text-muted">
+                        Filter: 
+                        @if($source == 'invoice' && $contact_id && $contacts)
+                            @php
+                                $selectedContact = $contacts->firstWhere('id', $contact_id);
+                            @endphp
+                            Customer: <strong>{{ $selectedContact->customer_name ?? 'N/A' }}</strong>
+                        @elseif($source == 'order' && $vendor_id && $contacts)
+                            @php
+                                $selectedVendor = $contacts->firstWhere('id', $vendor_id);
+                            @endphp
+                            Vendor: <strong>{{ $selectedVendor->customer_name ?? 'N/A' }}</strong>
+                        @endif
+                    </p>
+                @endif
             </div>
             <!-- PAGE-HEADER END -->
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <div class="d-flex d-inline">
-                        <form action="{{ route('finance.report-finance.outstanding-arap') }}" method="GET">
-                            <input type="text" name="search" value="{{ request()->search }}" class="form-control" placeholder="Searching.....">
+                        <form action="{{ route('finance.report-finance.outstanding-arap') }}" method="GET" class="d-flex">
+                            <input type="text" name="search" value="{{ request()->search }}" class="form-control" placeholder="Searching....." style="margin-right: 10px;">
                             <input type="hidden" name="source" value="{{ request()->source }}">
                             <input type="hidden" name="as_of_date" value="{{ request()->as_of_date }}">
+                            @if($contact_id)
+                                <input type="hidden" name="contact_id" value="{{ $contact_id }}">
+                            @endif
+                            @if($vendor_id)
+                                <input type="hidden" name="vendor_id" value="{{ $vendor_id }}">
+                            @endif
+                            <button type="submit" class="btn btn-primary">Search</button>
                         </form>
                     </div>
+                </div>
+                <div class="col-md-6 mb-3 text-end">
+                    <a href="{{ route('finance.report-finance.outstanding-arap', array_merge(request()->only(['source', 'as_of_date', 'contact_id', 'vendor_id']), ['search' => ''])) }}" class="btn btn-secondary">Clear Search</a>
+                    <a href="{{ route('finance.report-finance.index') }}" class="btn btn-info">Back to Reports</a>
                 </div>
             </div>
             <div class="row">

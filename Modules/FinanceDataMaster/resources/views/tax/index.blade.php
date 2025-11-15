@@ -51,7 +51,8 @@
                                             <th>Code</th>
                                             <th>Name</th>
                                             <th>Type</th>
-                                            <th>Account</th>
+                                            <th>Purchase Account</th>
+                                            <th>Sales Account</th>
                                             <th>Tax Rate</th>
                                             <th>Status</th>
                                             <th>Action</th>
@@ -70,7 +71,12 @@
                                                         <span class="badge bg-warning badge-sm me-1 mb-1 mt-1">PPH</span>
                                                     @endif
                                                 </td>
-                                                <td>{{ $t->account ? $t->account->account_name : '-' }}</td>
+                                                @if ($t->type == 'PPN')
+                                                    <td>{{ $t->account ? $t->account->account_name : '-' }}</td>
+                                                    <td>{{ $t->salesAccount ? $t->salesAccount->account_name : '-' }}</td>
+                                                @else
+                                                    <td colspan="2" class="text-center">{{ $t->account ? $t->account->account_name : '-' }}</td>
+                                                @endif
                                                 <td>{{ $t->tax_rate }}</td>
                                                 <td>
                                                     @if ($t->status == 1)
@@ -107,7 +113,7 @@
                                                 </td>
                                             </tr>
                                         @empty
-                                        <td colspan="8">
+                                        <td colspan="9">
                                             <span class="text-danger">
                                                 <strong>Data is Empty</strong>
                                             </span>
@@ -170,12 +176,15 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Account</label>
-                                <select class="form-control select2 form-select" name="account_id" data-placeholder="Choose Account">
+                                <label>Purchase Account</label>
+                                <select class="form-control select2 form-select" name="account_id" id="account_id" data-placeholder="Choose Purchase Account">
                                     <option value="">None</option>
-                                    @foreach ($accounts as $account)
-                                        <option value="{{ $account->id }}" {{ old('account_id') == $account->id ? "selected" : "" }}>{{ $account->account_name }}</option>
-                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group" id="sales_account_group">
+                                <label>Sales Account</label>
+                                <select class="form-control select2 form-select" name="sales_account_id" id="sales_account_id" data-placeholder="Choose Sales Account">
+                                    <option value="">None</option>
                                 </select>
                             </div>
                             <div class="mt-3" style="text-align: right">
@@ -234,12 +243,15 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Account</label>
-                                <select class="form-control select2 form-select" name="account_id" id="account_id_edit" data-placeholder="Choose Account">
+                                <label>Purchase Account</label>
+                                <select class="form-control select2 form-select" name="account_id" id="account_id_edit" data-placeholder="Choose Purchase Account">
                                     <option value="">None</option>
-                                    @foreach ($accounts as $account)
-                                        <option value="{{ $account->id }}" {{ old('account_id') == $account->id ? "selected" : "" }}>{{ $account->account_name }}</option>
-                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group" id="sales_account_group_edit">
+                                <label>Sales Account</label>
+                                <select class="form-control select2 form-select" name="sales_account_id" id="sales_account_id_edit" data-placeholder="Choose Sales Account">
+                                    <option value="">None</option>
                                 </select>
                             </div>
                             <div class="mt-3" style="text-align: right">
@@ -292,8 +304,12 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Account</label>
-                            <input type="text" name="account" id="account_show" class="form-control" disabled>
+                            <label>Purchase Account</label>
+                            <input type="text" name="purchase_account" id="purchase_account_show" class="form-control" disabled>
+                        </div>
+                        <div class="form-group" id="sales_account_group_show">
+                            <label>Sales Account</label>
+                            <input type="text" name="sales_account" id="sales_account_show" class="form-control" disabled>
                         </div>
                         <div class="mt-3" style="text-align: right">
                             <a class="btn btn-white color-grey" data-bs-dismiss="modal">Close</a>
@@ -308,9 +324,95 @@
 @endsection
 @push('scripts')
     <script>
+    // Function to load accounts based on tax type and account type
+    function loadAccounts(taxType, accountType, selectElementId, selectedValue = null) {
+        if (!taxType) {
+            $(selectElementId).empty().append('<option value="">None</option>');
+            return;
+        }
+
+        $.ajax({
+            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+            type: 'GET',
+            dataType: 'json',
+            url: "{{ route('finance.master-data.tax.get-accounts-by-type') }}",
+            data: {
+                tax_type: taxType,
+                account_type: accountType
+            },
+            success: function(response) {
+                var $select = $(selectElementId);
+                $select.empty().append('<option value="">None</option>');
+                
+                if (response.success && response.accounts) {
+                    $.each(response.accounts, function(index, account) {
+                        var option = $('<option></option>')
+                            .attr('value', account.id)
+                            .text(account.account_name);
+                        
+                        if (selectedValue && account.id == selectedValue) {
+                            option.attr('selected', 'selected');
+                        }
+                        
+                        $select.append(option);
+                    });
+                }
+                
+                // Reinitialize select2 if it exists
+                if ($select.hasClass('select2')) {
+                    $select.trigger('change.select2');
+                }
+            },
+            error: function() {
+                $(selectElementId).empty().append('<option value="">None</option>');
+            }
+        });
+    }
+
+    // Handle type change in create modal
+    $(document).on('change', 'select[name="type"]', function() {
+        var taxType = $(this).val();
+        if (taxType) {
+            loadAccounts(taxType, 'purchase', '#account_id');
+            // Sales account always shown, but filtered based on tax type
+            $('#sales_account_group').show();
+            loadAccounts(taxType, 'sales', '#sales_account_id');
+        } else {
+            $('#account_id').empty().append('<option value="">None</option>');
+            $('#sales_account_id').empty().append('<option value="">None</option>');
+        }
+    });
+
+    // Load accounts when create modal is opened if type is already selected
+    $('#modaldemo8').on('shown.bs.modal', function() {
+        var taxType = $('select[name="type"]').val();
+        if (taxType) {
+            loadAccounts(taxType, 'purchase', '#account_id', $('select[name="account_id"]').val());
+            // Sales account always shown, but filtered based on tax type
+            $('#sales_account_group').show();
+            loadAccounts(taxType, 'sales', '#sales_account_id', $('select[name="sales_account_id"]').val());
+        }
+    });
+
+    // Handle type change in edit modal
+    $(document).on('change', '#type_edit', function() {
+        var taxType = $(this).val();
+        var currentPurchaseAccount = $('#account_id_edit').val();
+        var currentSalesAccount = $('#sales_account_id_edit').val();
+        
+        if (taxType) {
+            loadAccounts(taxType, 'purchase', '#account_id_edit', currentPurchaseAccount);
+            // Sales account always shown, but filtered based on tax type
+            $('#sales_account_group_edit').show();
+            loadAccounts(taxType, 'sales', '#sales_account_id_edit', currentSalesAccount);
+        } else {
+            $('#account_id_edit').empty().append('<option value="">None</option>');
+            $('#sales_account_id_edit').empty().append('<option value="">None</option>');
+        }
+    });
+
     //edit data
     $('body').on('click', '#btn-edit', function () {
-
         let id = $(this).data('id');
         var url = "{{ route('finance.master-data.tax.edit', ':id') }}";
         url = url.replace(':id', id);
@@ -321,26 +423,35 @@
             dataType: 'json',
             url: url,
             success:function(response){
-                    // //fill data to form
-                    $('#id_edit').val(response.data.id);
-                    $('#code_edit').val(response.data.code);
-                    $('#name_edit').val(response.data.name);
-                    $('#type_edit').val(response.data.type).change();
-                    $('#tax_rate_edit').val(response.data.tax_rate);
-                    $("#status_edit").val(response.data.status).change();
-                    $('#account_id_edit').val(response.data.account_id || '').change();
-
-                    $('#modal-edit').modal('show');
+                // Fill data to form
+                $('#id_edit').val(response.data.id);
+                $('#code_edit').val(response.data.code);
+                $('#name_edit').val(response.data.name);
+                $('#tax_rate_edit').val(response.data.tax_rate);
+                $("#status_edit").val(response.data.status).change();
+                
+                // Set type and load accounts
+                var taxType = response.data.type;
+                $('#type_edit').val(taxType).change();
+                
+                // Load accounts with current values
+                if (taxType) {
+                    loadAccounts(taxType, 'purchase', '#account_id_edit', response.data.account_id);
+                    // Sales account always shown, but filtered based on tax type
+                    $('#sales_account_group_edit').show();
+                    loadAccounts(taxType, 'sales', '#sales_account_id_edit', response.data.sales_account_id);
                 }
+
+                $('#modal-edit').modal('show');
+            }
         });
     });
 
     //show data
     $('body').on('click', '#btn-show', function () {
-
-    let id = $(this).data('id');
-    var url = "{{ route('finance.master-data.tax.show', ':id') }}";
-    url = url.replace(':id', id);
+        let id = $(this).data('id');
+        var url = "{{ route('finance.master-data.tax.show', ':id') }}";
+        url = url.replace(':id', id);
 
         $.ajax({
             headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
@@ -348,16 +459,20 @@
             dataType: 'json',
             url: url,
             success:function(response){
-                    // //fill data to form
-                    $('#code_show').val(response.data.code);
-                    $('#name_show').val(response.data.name);
-                    $('#type_show').val(response.data.type);
-                    $('#tax_rate_show').val(response.data.tax_rate);
-                    $("#status_show").val(response.data.status).change();
-                    $('#account_show').val(response.data.account ? response.data.account.account_name : 'None');
+                // Fill data to form
+                $('#code_show').val(response.data.code);
+                $('#name_show').val(response.data.name);
+                $('#type_show').val(response.data.type);
+                $('#tax_rate_show').val(response.data.tax_rate);
+                $("#status_show").val(response.data.status).change();
+                $('#purchase_account_show').val(response.data.account ? response.data.account.account_name : 'None');
+                
+                // Sales account always shown
+                $('#sales_account_group_show').show();
+                $('#sales_account_show').val(response.data.sales_account ? response.data.sales_account.account_name : 'None');
 
-                    $('#modal-show').modal('show');
-                }
+                $('#modal-show').modal('show');
+            }
         });
     });
     </script>

@@ -24,18 +24,18 @@ class AccountTypeSeeder extends Seeder
             ['code'=>'1-0005','classification'=>'Fixed Asset','normal_side'=>'debit','report_type'=>'BS'],
             ['code'=>'1-0006','classification'=>'Other Asset','normal_side'=>'debit','report_type'=>'BS'],
             ['code'=>'1-0007','classification'=>'Accumulated Depreciation','normal_side'=>'credit','report_type'=>'BS'],
-    
+            
             // --- Liabilities (BS) ---
             ['code'=>'2-0001','classification'=>'Account Payable','normal_side'=>'credit','report_type'=>'BS'],
             ['code'=>'2-0002','classification'=>'Other Payable','normal_side'=>'credit','report_type'=>'BS'],
             ['code'=>'2-0003','classification'=>'Prepaid Sales','normal_side'=>'credit','report_type'=>'BS'],
             ['code'=>'2-0004','classification'=>'Tax Payable','normal_side'=>'credit','report_type'=>'BS'],
-    
+            
             // --- Equity (BS) ---
             ['code'=>'3-0001','classification'=>'Equity','normal_side'=>'credit','report_type'=>'BS'],
             ['code'=>'3-0002','classification'=>'Current Earning','normal_side'=>'credit','report_type'=>'BS'],
             ['code'=>'3-0003','classification'=>'Retained Earning','normal_side'=>'credit','report_type'=>'BS'],
-    
+            
             // --- P/L (PL) ---
             ['code'=>'4-0000','classification'=>'Income','normal_side'=>'credit','report_type'=>'PL'],
             ['code'=>'4-0001','classification'=>'Sales Discount','normal_side'=>'debit','report_type'=>'PL'],
@@ -43,13 +43,16 @@ class AccountTypeSeeder extends Seeder
             ['code'=>'6-0000','classification'=>'Expense','normal_side'=>'debit','report_type'=>'PL'],
             ['code'=>'7-0000','classification'=>'Other Income','normal_side'=>'credit','report_type'=>'PL'],
             ['code'=>'8-0000','classification'=>'Other Expense','normal_side'=>'debit','report_type'=>'PL'],
-    
+            
             // --- Misc (PL) ---
             ['code'=>'9-0001','classification'=>'Rounding Difference','normal_side'=>'credit','report_type'=>'PL'],
             ['code'=>'9-0002','classification'=>'Exchange Profit/Loss','normal_side'=>'Credit','report_type'=>'PL'],
             ['code'=>'9-9999','classification'=>'Profit Loss Summary','normal_side'=>'debit','report_type'=>'NONE'],
-
+            
             ['code'=>'5-0001','classification'=>'Purchase Discount','normal_side'=>'credit','report_type'=>'PL'],
+
+            ['code'=>'1-0008','classification'=>'Tax In','normal_side'=>'debit','report_type'=>'BS'],
+            ['code'=>'2-0005','classification'=>'Tax Out','normal_side'=>'credit','report_type'=>'BS'],
         ];
 
         $rows = array_map(fn($r) => array_merge($r, ['created_at'=>$now,'updated_at'=>$now]), $rows);
@@ -70,29 +73,32 @@ class AccountTypeSeeder extends Seeder
             ["1", "1-0005", "Fixed Asset", "0", "0", "debit", "BS"], // 5
             ["1", "1-0006", "Other Asset", "0", "0", "debit", "BS"], // 6
             ["1", "1-0007", "Accumulated Depreciation", "0", "0", "credit", "BS"], // 7
-
+            
             ["2", "2-0001", "Account Payable", "0", "0", "credit", "BS"], // 8
             ["2", "2-0002", "Other Payable", "0", "0", "credit", "BS"], // 9
             ["2", "2-0003", "Prepaid Sales", "0", "0", "credit", "BS"], // 10
             ["2", "2-0004", "Tax Payable", "0", "0", "credit", "BS"], // 11
-
-            ["3", "3-0001", "Equity", "0", "0", "credit", "BS"], // 12
-            ["3", "3-0002", "Current Earning", "0", "0", "credit", "BS"], // 13
-            ["3", "3-0003", "Retained Earning", "0", "0", "credit", "BS"], // 14
             
-            ["4", "4-0000", "Income", "0", "0", "credit", "PL"], // 15
-            ["4", "4-0001", "Sales Discount", "0", "0", "debit", "PL"], // 16
+            ["3", "3-0001", "Equity", "0", "0", "credit", "BS"], // 13
+            ["3", "3-0002", "Current Earning", "0", "0", "credit", "BS"], // 14
+            ["3", "3-0003", "Retained Earning", "0", "0", "credit", "BS"], // 15
+            
+            ["4", "4-0000", "Income", "0", "0", "credit", "PL"], // 16
+            ["4", "4-0001", "Sales Discount", "0", "0", "debit", "PL"], // 17
 
-            ["5", "5-0000", "Cost of Sales", "0", "0", "debit", "PL"], // 17
-            ["6", "6-0000", "Expense", "0", "0", "debit", "PL"], // 18
-            ["7", "7-0000", "Other Income", "0", "0", "credit", "PL"], // 19
-            ["8", "8-0000", "Other Expense", "0", "0", "debit", "PL"], // 20
+            ["5", "5-0000", "Cost of Sales", "0", "0", "debit", "PL"], // 18
+            ["6", "6-0000", "Expense", "0", "0", "debit", "PL"], // 19
+            ["7", "7-0000", "Other Income", "0", "0", "credit", "PL"], // 20
+            ["8", "8-0000", "Other Expense", "0", "0", "debit", "PL"], // 21
 
-            ["9", "9-0001", "Rounding Difference", "0", "0", "credit", "PL"], // 21
-            ["9", "9-0002", "Exchange Profit/Loss", "0", "0", "credit", "PL"], // 22
-            ["9", "9-9999", "Profit Loss Summary", "0", "0", "debit", "NONE"], // 23
+            ["9", "9-0001", "Rounding Difference", "0", "0", "credit", "PL"], // 22
+            ["9", "9-0002", "Exchange Profit/Loss", "0", "0", "credit", "PL"], // 23
+            ["9", "9-9999", "Profit Loss Summary", "0", "0", "debit", "NONE"], // 24
+            
+            ["5", "5-0001", "Purchase Discount", "0", "0", "credit", "PL"], // 25
 
-            ["5", "5-0001", "Purchase Discount", "0", "0", "credit", "PL"], // 24
+            ["1", "1-0008", "Tax In", "0", "0", "debit", "BS"], // 26
+            ["2", "2-0005", "Tax Out", "0", "0", "credit", "BS"], // 27
         ];
 
         $length = count($array_simple);

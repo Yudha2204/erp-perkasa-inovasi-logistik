@@ -7,6 +7,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Modules\FinanceDataMaster\App\Models\MasterTax;
+use Modules\FinanceDataMaster\App\Models\MasterAccount;
+use Modules\FinanceDataMaster\App\Models\AccountType;
 use Illuminate\Support\Facades\Validator;
 
 class TaxDataController extends Controller
@@ -24,7 +26,7 @@ class TaxDataController extends Controller
      * Display a listing of the resource.
      */
     public function searchFilterIndex($search){
-        $index = MasterTax::query();
+        $index = MasterTax::with(['account', 'salesAccount']);
 
         if($search) {
             $index
@@ -42,13 +44,63 @@ class TaxDataController extends Controller
         if ($search) {
             $taxes = $this->searchFilterIndex($search);
         } else {
-            $taxes = MasterTax::orderBy('id', 'DESC')->paginate(10);
+            $taxes = MasterTax::with(['account', 'salesAccount'])->orderBy('id', 'DESC')->paginate(10);
         }
         
-        // Get accounts for dropdown
-        $accounts = \Modules\FinanceDataMaster\App\Models\MasterAccount::orderBy('code', 'ASC')->where('type', 'detail')->get();
+        // Get accounts for dropdown - will be filtered dynamically in view based on tax type
+        $accounts = MasterAccount::orderBy('code', 'ASC')->where('type', 'detail')->get();
         
         return view('financedatamaster::tax.index', compact('taxes', 'accounts'));
+    }
+
+    /**
+     * Get accounts filtered by account type code
+     */
+    public function getAccountsByType(Request $request)
+    {
+        $taxType = $request->get('tax_type');
+        $accountType = $request->get('account_type'); // 'purchase' or 'sales'
+
+        $accountTypeCode = null;
+        
+        if ($taxType == 'PPN') {
+            if ($accountType == 'purchase') {
+                // Tax In (code: 1-0008)
+                $accountTypeCode = '1-0008';
+            } else if ($accountType == 'sales') {
+                // Tax Out (code: 2-0005)
+                $accountTypeCode = '2-0005';
+            }
+        } else if ($taxType == 'PPH') {
+            if ($accountType == 'purchase') {
+                // Other Payable (code: 2-0002)
+                $accountTypeCode = '2-0002';
+            } else if ($accountType == 'sales') {
+                // Expense (code: 6-0000)
+                $accountTypeCode = '6-0000';
+            }
+        }
+
+        if ($accountTypeCode) {
+            $accountTypeModel = AccountType::where('code', $accountTypeCode)->first();
+            
+            if ($accountTypeModel) {
+                $accounts = MasterAccount::where('account_type_id', $accountTypeModel->id)
+                    ->where('type', 'detail')
+                    ->orderBy('code', 'ASC')
+                    ->get();
+                
+                return response()->json([
+                    'success' => true,
+                    'accounts' => $accounts
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => false,
+            'accounts' => []
+        ]);
     }
 
     /**
@@ -71,7 +123,8 @@ class TaxDataController extends Controller
                 'name'   => 'required',
                 'type'   => 'required|in:PPN,PPH',
                 'tax_rate'   => 'required',
-                'account_id' => 'nullable|exists:master_account,id|where:type,detail',
+                'account_id' => 'nullable|exists:master_account,id',
+                'sales_account_id' => 'nullable|exists:master_account,id',
             ]);
     
             if ($validator->fails()) {
@@ -87,7 +140,8 @@ class TaxDataController extends Controller
                 'name'   => 'required',
                 'type'   => 'required|in:PPN,PPH',
                 'tax_rate'   => 'required',
-                'account_id' => 'nullable|exists:master_account,id|where:type,detail',
+                'account_id' => 'nullable|exists:master_account,id',
+                'sales_account_id' => 'nullable|exists:master_account,id',
                ],
                [
                  'code.unique'=> 'The code '.$request->code.' has already been taken', // custom message 
@@ -109,7 +163,8 @@ class TaxDataController extends Controller
             'name' => $request->name,
             'type' => $request->type,
             'tax_rate' => $request->tax_rate,
-            'account_id' => $request->account_id,
+            'account_id' => $request->account_id, // Purchase Account
+            'sales_account_id' => $request->sales_account_id, // Sales Account
             'status' => $request->status,
         ]); 
 
@@ -122,7 +177,7 @@ class TaxDataController extends Controller
      */
     public function show($id)
     {
-        $data = MasterTax::with('account')->find($id);
+        $data = MasterTax::with(['account', 'salesAccount'])->find($id);
         return response()->json([
             'success' => true,
             'data'    => $data
@@ -134,7 +189,7 @@ class TaxDataController extends Controller
      */
     public function edit($id)
     {
-        $data = MasterTax::with('account')->find($id);
+        $data = MasterTax::with(['account', 'salesAccount'])->find($id);
         return response()->json([
             'success' => true,
             'data'    => $data

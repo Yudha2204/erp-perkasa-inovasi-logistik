@@ -28,6 +28,7 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
         Route::resource('/master-data/contact', ContactDataController::class);
         Route::resource('/master-data/currency', CurrencyDataController::class);
         Route::resource('/master-data/tax', TaxDataController::class);
+        Route::get('/master-data/tax/get-accounts-by-type', [TaxDataController::class, 'getAccountsByType'])->name('tax.get-accounts-by-type');
         Route::resource('/master-data/term-of-payment', TermOfPaymentDataController::class);
 
         Route::post('master-data/account/store-beginning-balance', [AccountDataController::class, 'storeBeginningBalance'])->name('account.store-beginning-balance');
