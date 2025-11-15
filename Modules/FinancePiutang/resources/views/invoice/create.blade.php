@@ -908,9 +908,12 @@
                     $(this).find('select[name="pajak_detail"]').val(selectedTax).trigger('change');
                 });
             });
-            $('#customer_id').select2('destroy').select2({
+            $('.select2').select2({
                 placeholder: "Choose One"
             });
+            //  $('.select2').select2('destroy').select2({
+            //     placeholder: "Choose One"
+            // });
 
             // show beneficiary - siwft code if select checkbox vendor value
             $("input:checkbox[name^='contact_type']").on('change', function () {

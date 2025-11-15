@@ -918,7 +918,9 @@
             $('#customer_id').select2('destroy').select2({
                 placeholder: "Choose One"
             });
-
+            $('#currency_id').select2('destroy').select2({
+                placeholder: "Choose One"
+            });
             // show beneficiary - siwft code if select checkbox vendor value
             $("input:checkbox[name^='contact_type']").on('change', function() {
                 if ($('#contact_type2').prop('checked')) {

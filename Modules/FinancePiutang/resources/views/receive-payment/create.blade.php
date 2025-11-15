@@ -893,10 +893,12 @@
         });
 
         $(document).ready(function () {
-            $('#customer_id').select2('destroy').select2({
-                placeholder: "Choose One"
+            // $('#customer_id').select2('destroy').select2({
+            //     placeholder: "Choose One"
+            // });
+            $('.select2').select2({
+            minimumResultsForSearch: 0
             });
-
             // show beneficiary - siwft code if select checkbox vendor value
             $("input:checkbox[name^='contact_type']").on('change', function () {
                 if ($('#contact_type2').prop('checked')) {
@@ -967,10 +969,16 @@
                 if ($('#choose_job_order').prop('checked')) {
                     job_order_display.show();
                     $('#choose_job_order').val("1")
+                    $('.select2').select2({
+                    minimumResultsForSearch: 0
+                    });
                     getInvoice()
                 } else {
                     job_order_display.hide();
                     $('#choose_job_order').val("0")
+                    $('.select2').select2({
+            minimumResultsForSearch: 0
+            });
                     getInvoice()
                 }
             });
@@ -1183,7 +1191,7 @@
 
                         getCurrencyVia()
                         $('.select2').select2({
-                            minimumResultsForSearch: Infinity
+                            minimumResultsForSearch: 0
                         });
                         var select2Elements = document.querySelectorAll('.select2');
                         select2Elements.forEach(function(element) {
@@ -1389,7 +1397,7 @@
             getCurrencyVia()
 
             $('.select2').select2({
-                minimumResultsForSearch: Infinity
+                minimumResultsForSearch: 0
             });
             var select2Elements = document.querySelectorAll('.select2');
             select2Elements.forEach(function(element) {
@@ -1568,7 +1576,7 @@
                                         getCurrencyVia()
 
                                         $('.select2').select2({
-                                            minimumResultsForSearch: Infinity
+                                            minimumResultsForSearch: 0
                                         });
                                         var select2Elements = document.querySelectorAll('.select2');
                                         select2Elements.forEach(function(element) {

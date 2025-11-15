@@ -481,7 +481,7 @@ class InvoiceController extends Controller
             return redirect()->route('finance.piutang.invoice.index')->withErrors(["error" => "There is receive payment link to this invoice"]);
         }
         $invoice = InvoiceHead::find($id);
-        // dd($invoice->jurnal);
+        // return response()->json($invoice->sales , 200);
         $contact = MasterContact::whereJsonContains('type','1')->get();
         $terms = MasterTermOfPayment::all();
         $taxs = MasterTax::all();
