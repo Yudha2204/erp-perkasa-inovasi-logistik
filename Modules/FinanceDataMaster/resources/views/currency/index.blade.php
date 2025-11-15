@@ -61,11 +61,11 @@
                                                 <td>{{ $c->currency_name }}</td>
                                                 <td>
                                                     <div class="g-2">
+                                                        @if ($c->can_delete == 1 )
                                                         <a href="javascript:void(0)" id="btn-edit" data-id="{{ $c->id }}" class="btn text-primary btn-sm"
                                                             data-bs-toggle="tooltip"
                                                             data-bs-original-title="Edit"><span
                                                                 class="fe fe-edit fs-14"></span></a>
-                                                        @if ($c->can_delete == 1 )
                                                             <a href="#" class="btn text-danger btn-sm"
                                                                     data-bs-toggle="tooltip"
                                                                     data-bs-original-title="Delete" onclick="if (confirm('Are you sure want to delete this item?')) {
@@ -80,8 +80,8 @@
                                                                 @csrf
                                                                 @method('DELETE')
                                                             </form>
+                                                        </div>
                                                         @endif
-                                                    </div>
                                                 </td>
                                             </tr>
                                         @empty
